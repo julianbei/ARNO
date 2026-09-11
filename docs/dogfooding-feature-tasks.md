@@ -56,6 +56,8 @@ Acceptance criteria:
 
 ### Task 3: Checkpoint/Revert Primitives
 
+Status: completed on 2026-09-11
+
 Objective:
 
 Add state primitives for checkpoint and revert.

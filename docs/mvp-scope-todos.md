@@ -36,15 +36,15 @@ Out of scope for MVP:
 ### B. Inspection
 
 - [ ] Replace regex-only symbol boundaries with tree-sitter-backed ranges.
-- [ ] Add file outlines that separate imports, types, classes, functions.
-- [ ] Add symbol disambiguation behavior (exact, ambiguous, not found).
+- [x] Add file outlines that separate imports, types, classes, functions.
+- [x] Add symbol disambiguation behavior (exact, ambiguous, not found).
 - [ ] Add conservative repository map with token budget and omission reporting.
 
 ### C. Mutation and Safety
 
 - [ ] Enforce expected_revision checks on all mutable operations.
 - [ ] Return structured edit consequences: changed symbols, diagnostics, jobs.
-- [ ] Add checkpoint() and revert(target?) primitives.
+- [x] Add checkpoint() and revert(target?) primitives.
 
 ### D. Validation
 
@@ -73,6 +73,7 @@ Progress:
 
 - Task 1 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
 - Task 2 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
+- Task 3 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
 
 ### F. Documentation
 

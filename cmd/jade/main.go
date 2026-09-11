@@ -112,5 +112,43 @@ func main() {
 		return
 	}
 
+	if len(os.Args) == 2 && os.Args[1] == "api-checkpoint-demo" {
+		before := internalServer.Changes()
+		checkpoint := internalServer.Checkpoint(protocol.CheckpointRequest{Note: "demo"})
+
+		_, replaceErr := internalServer.ReplaceRange(protocol.ReplaceRangeRequest{
+			Path:             "demo/path.ts",
+			ExpectedRevision: before.Revision,
+			StartLine:        1,
+			EndLine:          1,
+			NewCode:          "demo",
+		})
+		if replaceErr != nil {
+			log.Fatalf("api replace range failed: %v", replaceErr)
+		}
+
+		during := internalServer.Changes()
+		restored, revertErr := internalServer.Revert(protocol.RevertRequest{CheckpointID: checkpoint.ID})
+		if revertErr != nil {
+			log.Fatalf("api revert failed: %v", revertErr)
+		}
+		after := internalServer.Changes()
+		eventPage := internalServer.Events(0, 50)
+
+		checkpointEvents := 0
+		for _, record := range eventPage.Events {
+			if record.Event.Type == "CHECKPOINT_CREATED" || record.Event.Type == "CHECKPOINT_RESTORED" {
+				checkpointEvents++
+			}
+		}
+
+		fmt.Printf("before=%s paths=%d\n", before.Revision, len(before.Paths))
+		fmt.Printf("checkpoint=%s revision=%s\n", checkpoint.ID, checkpoint.Revision)
+		fmt.Printf("during=%s paths=%d\n", during.Revision, len(during.Paths))
+		fmt.Printf("after=%s paths=%d restored=%s\n", after.Revision, len(after.Paths), restored.ID)
+		fmt.Printf("checkpoint_events=%d\n", checkpointEvents)
+		return
+	}
+
 	log.Println("jade runtime initialized")
 }

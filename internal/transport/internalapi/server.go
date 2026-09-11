@@ -237,6 +237,34 @@ func (s *Server) Changes() protocol.ChangesResponse {
 	}
 }
 
+func (s *Server) Checkpoint(req protocol.CheckpointRequest) protocol.CheckpointResponse {
+	checkpoint := s.workspace.Checkpoint(req.Note)
+	return protocol.CheckpointResponse{
+		ID:       checkpoint.ID,
+		Note:     checkpoint.Note,
+		Revision: checkpoint.Revision,
+		Paths:    checkpoint.Paths,
+	}
+}
+
+func (s *Server) Revert(req protocol.RevertRequest) (protocol.CheckpointResponse, error) {
+	if req.CheckpointID == "" {
+		return protocol.CheckpointResponse{}, fmt.Errorf("checkpoint id is required")
+	}
+
+	checkpoint, ok := s.workspace.RevertCheckpoint(req.CheckpointID)
+	if !ok {
+		return protocol.CheckpointResponse{}, fmt.Errorf("checkpoint not found: %s", req.CheckpointID)
+	}
+
+	return protocol.CheckpointResponse{
+		ID:       checkpoint.ID,
+		Note:     checkpoint.Note,
+		Revision: checkpoint.Revision,
+		Paths:    checkpoint.Paths,
+	}, nil
+}
+
 func (s *Server) JobStatus(id string) (protocol.JobStatusResponse, error) {
 	status, summary, ok := s.jobs.Status(id)
 	if !ok {

@@ -20,6 +20,23 @@ type Manager struct {
 	bus      *events.Bus
 	revision int
 	changed  map[string]struct{}
+	ckptSeq  int
+	ckpts    map[string]checkpointSnapshot
+}
+
+type checkpointSnapshot struct {
+	id       string
+	note     string
+	revision int
+	changed  map[string]struct{}
+}
+
+// Checkpoint captures workspace state for later restore.
+type Checkpoint struct {
+	ID       string
+	Note     string
+	Revision string
+	Paths    []string
 }
 
 // Freshness reports whether caller-visible workspace state drifted relative to
@@ -39,6 +56,8 @@ func NewManager(root string, bus *events.Bus) *Manager {
 		bus:      bus,
 		revision: 1,
 		changed:  make(map[string]struct{}),
+		ckptSeq:  0,
+		ckpts:    make(map[string]checkpointSnapshot),
 	}
 }
 
@@ -87,6 +106,84 @@ func (m *Manager) Changes() []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+func (m *Manager) Checkpoint(note string) Checkpoint {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.ckptSeq++
+	id := "cp-" + itoa(m.ckptSeq)
+
+	copyChanged := make(map[string]struct{}, len(m.changed))
+	for path := range m.changed {
+		copyChanged[path] = struct{}{}
+	}
+
+	snapshot := checkpointSnapshot{
+		id:       id,
+		note:     note,
+		revision: m.revision,
+		changed:  copyChanged,
+	}
+	m.ckpts[id] = snapshot
+
+	checkpoint := Checkpoint{
+		ID:       snapshot.id,
+		Note:     snapshot.note,
+		Revision: revisionString(snapshot.revision),
+		Paths:    sortedKeys(snapshot.changed),
+	}
+
+	if m.bus != nil {
+		m.bus.Publish(events.Event{
+			Type:   "CHECKPOINT_CREATED",
+			Entity: "workspace",
+			Payload: map[string]string{
+				"id":       checkpoint.ID,
+				"revision": checkpoint.Revision,
+				"note":     checkpoint.Note,
+			},
+		})
+	}
+
+	return checkpoint
+}
+
+func (m *Manager) RevertCheckpoint(id string) (Checkpoint, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	snapshot, ok := m.ckpts[id]
+	if !ok {
+		return Checkpoint{}, false
+	}
+
+	m.revision = snapshot.revision
+	m.changed = make(map[string]struct{}, len(snapshot.changed))
+	for path := range snapshot.changed {
+		m.changed[path] = struct{}{}
+	}
+
+	checkpoint := Checkpoint{
+		ID:       snapshot.id,
+		Note:     snapshot.note,
+		Revision: revisionString(snapshot.revision),
+		Paths:    sortedKeys(snapshot.changed),
+	}
+
+	if m.bus != nil {
+		m.bus.Publish(events.Event{
+			Type:   "CHECKPOINT_RESTORED",
+			Entity: "workspace",
+			Payload: map[string]string{
+				"id":       checkpoint.ID,
+				"revision": checkpoint.Revision,
+			},
+		})
+	}
+
+	return checkpoint, true
 }
 
 func (m *Manager) HeadCommit() (string, error) {
@@ -220,6 +317,15 @@ func dedupe(in []string) []string {
 			last = v
 		}
 	}
+	return out
+}
+
+func sortedKeys(in map[string]struct{}) []string {
+	out := make([]string, 0, len(in))
+	for key := range in {
+		out = append(out, key)
+	}
+	sort.Strings(out)
 	return out
 }
 

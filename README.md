@@ -34,6 +34,7 @@ The scaffold now includes the first source-grounded runtime behavior inspired by
 - Edit responses with immediate diagnostics and async job IDs in [internal/edit/service.go](internal/edit/service.go)
 - Job lifecycle status and events in [internal/jobs/runner.go](internal/jobs/runner.go)
 - Internal API and MCP transport parity for inspect/modify/state/job/event operations in [internal/transport/internalapi/server.go](internal/transport/internalapi/server.go) and [internal/transport/mcp/server.go](internal/transport/mcp/server.go)
+- Checkpoint/revert state primitives with event emission in [internal/workspace/manager.go](internal/workspace/manager.go)
 
 ## Reference Notes
 
@@ -56,6 +57,9 @@ go run ./cmd/jade outline README.md
 
 # show structured outline section counts
 go run ./cmd/jade api-outline-sections docs/fixtures/outline_sections.ts
+
+# demonstrate checkpoint -> mutate -> revert flow
+go run ./cmd/jade api-checkpoint-demo
 ```
 
 ---

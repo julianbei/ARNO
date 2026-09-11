@@ -67,6 +67,16 @@ type ReplaceRangeRequest struct {
 	NewCode          string
 }
 
+// CheckpointRequest creates a named snapshot of workspace state.
+type CheckpointRequest struct {
+	Note string
+}
+
+// RevertRequest restores workspace state to a checkpoint.
+type RevertRequest struct {
+	CheckpointID string
+}
+
 // DiagnosticLevel normalizes error severities from language tools.
 type DiagnosticLevel string
 
@@ -146,6 +156,14 @@ type EventsResponse struct {
 
 // ChangesResponse returns tracked changed paths and active workspace revision.
 type ChangesResponse struct {
+	Revision string
+	Paths    []string
+}
+
+// CheckpointResponse describes a created or restored workspace checkpoint.
+type CheckpointResponse struct {
+	ID       string
+	Note     string
 	Revision string
 	Paths    []string
 }

@@ -166,6 +166,71 @@ Notes:
 
 ### Task: <task-id / task-name>
 
+Run mode: baseline-shell-file
+
+Date: 2026-09-11
+
+Commit start: d3387e2
+
+Commit end: d3387e2
+
+Build/test result: pass
+
+Wall-clock minutes: <1
+
+Tool calls (count): 1
+
+LLM turns (count): 1
+
+Estimated token usage: low
+
+Files touched: none
+
+Notes:
+
+- Baseline shell visibility was limited to repository state (`git rev-parse`, `git status`).
+- No runtime checkpoint/revert API semantics were available through shell-only inspection.
+
+---
+
+### Task: 3 / Checkpoint/Revert Primitives
+
+Run mode: jade-first
+
+Date: 2026-09-11
+
+Commit start: d3387e2
+
+Commit end: in-progress
+
+Build/test result: pass
+
+Wall-clock minutes: ~10
+
+Tool calls (count): 2
+
+LLM turns (count): 1
+
+Estimated token usage: low-medium
+
+Files touched:
+
+- [internal/workspace/manager.go](../internal/workspace/manager.go)
+- [internal/protocol/types.go](../internal/protocol/types.go)
+- [internal/transport/internalapi/server.go](../internal/transport/internalapi/server.go)
+- [internal/transport/mcp/server.go](../internal/transport/mcp/server.go)
+- [cmd/jade/main.go](../cmd/jade/main.go)
+
+Notes:
+
+- `go run ./cmd/jade api-checkpoint-demo` output:
+	`before=r1 paths=0`
+	`checkpoint=cp-1 revision=r1`
+	`during=r2 paths=1`
+	`after=r1 paths=0 restored=cp-1`
+	`checkpoint_events=2`
+- Event stream included both `CHECKPOINT_CREATED` and `CHECKPOINT_RESTORED`.
+
 Run mode: baseline-shell-file | jade-first
 
 Date:
