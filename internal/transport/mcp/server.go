@@ -6,6 +6,7 @@ import (
 	"github.com/julianbei/jade/internal/code"
 	"github.com/julianbei/jade/internal/diagnostics"
 	"github.com/julianbei/jade/internal/edit"
+	"github.com/julianbei/jade/internal/events"
 	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/languages"
 	"github.com/julianbei/jade/internal/workspace"
@@ -19,6 +20,7 @@ type Server struct {
 	diagnostics *diagnostics.Service
 	jobs        *jobs.Runner
 	languages   *languages.Registry
+	bus         *events.Bus
 }
 
 func NewServer(
@@ -28,6 +30,7 @@ func NewServer(
 	diagnosticsService *diagnostics.Service,
 	runner *jobs.Runner,
 	registry *languages.Registry,
+	bus *events.Bus,
 ) *Server {
 	return &Server{
 		workspace:   workspaceManager,
@@ -36,6 +39,7 @@ func NewServer(
 		diagnostics: diagnosticsService,
 		jobs:        runner,
 		languages:   registry,
+		bus:         bus,
 	}
 }
 

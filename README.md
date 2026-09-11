@@ -37,6 +37,7 @@ The scaffold now includes the first source-grounded runtime behavior inspired by
 
 - Source-grounded droneship extraction and decisions: [docs/droneship-findings.md](docs/droneship-findings.md)
 - Follow-up implementation queue: [docs/mvp-next-steps.md](docs/mvp-next-steps.md)
+- MVP scope and dogfooding TODOs: [docs/mvp-scope-todos.md](docs/mvp-scope-todos.md)
 
 Quick commands:
 

@@ -12,6 +12,7 @@ import (
 	"github.com/julianbei/jade/internal/events"
 	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/languages"
+	"github.com/julianbei/jade/internal/protocol"
 	"github.com/julianbei/jade/internal/transport/internalapi"
 	"github.com/julianbei/jade/internal/transport/mcp"
 	"github.com/julianbei/jade/internal/workspace"
@@ -43,8 +44,8 @@ func main() {
 	lr.Register("go", languages.NewNoopAdapter("go"))
 	lr.Register("rust", languages.NewNoopAdapter("rust"))
 
-	mcpServer := mcp.NewServer(wm, ci, es, ds, jr, lr)
-	internalServer := internalapi.NewServer(wm, ci, es, ds, jr, lr)
+	mcpServer := mcp.NewServer(wm, ci, es, ds, jr, lr, bus)
+	internalServer := internalapi.NewServer(wm, ci, es, ds, jr, lr, bus)
 
 	if err := mcpServer.Start(ctx); err != nil {
 		log.Fatalf("failed to start mcp transport: %v", err)
@@ -61,6 +62,18 @@ func main() {
 		for _, symbol := range symbols {
 			fmt.Printf("%s %s %s:%d-%d\n", symbol.Kind, symbol.Name, symbol.Path, symbol.From, symbol.To)
 		}
+		return
+	}
+
+	if len(os.Args) == 3 && os.Args[1] == "api-outline" {
+		response, outlineErr := internalServer.Outline(protocol.OutlineRequest{Path: os.Args[2]})
+		if outlineErr != nil {
+			log.Fatalf("api outline failed: %v", outlineErr)
+		}
+		for _, item := range response.Outline {
+			fmt.Printf("%s %s %s:%d-%d\n", item.Kind, item.Name, item.Path, item.From, item.To)
+		}
+		fmt.Printf("revision=%s drifted=%t\n", response.Revision, response.Freshness.Drifted)
 		return
 	}
 

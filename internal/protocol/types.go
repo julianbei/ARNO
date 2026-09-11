@@ -20,6 +20,35 @@ type Target struct {
 	End      int
 }
 
+// OutlineRequest asks for declaration-level structure for a file.
+type OutlineRequest struct {
+	Path          string
+	IndexedCommit string
+}
+
+// ReadSymbolRequest asks for a bounded symbol body.
+type ReadSymbolRequest struct {
+	Path          string
+	SymbolID      string
+	MaxLines      int
+	IndexedCommit string
+}
+
+// ReplaceSymbolRequest replaces a symbol implementation.
+type ReplaceSymbolRequest struct {
+	SymbolID string
+	NewCode  string
+}
+
+// ReplaceRangeRequest replaces arbitrary source lines at an expected revision.
+type ReplaceRangeRequest struct {
+	Path             string
+	ExpectedRevision string
+	StartLine        int
+	EndLine          int
+	NewCode          string
+}
+
 // DiagnosticLevel normalizes error severities from language tools.
 type DiagnosticLevel string
 
@@ -71,6 +100,31 @@ type Event struct {
 	Type    string
 	Entity  string
 	Payload map[string]string
+}
+
+// EventRecord contains one asynchronous event in the event stream.
+type EventRecord struct {
+	Cursor int64
+	Event  Event
+}
+
+// EventsResponse returns a page of events and the latest cursor.
+type EventsResponse struct {
+	Cursor int64
+	Events []EventRecord
+}
+
+// ChangesResponse returns tracked changed paths and active workspace revision.
+type ChangesResponse struct {
+	Revision string
+	Paths    []string
+}
+
+// JobStatusResponse returns asynchronous validation job status.
+type JobStatusResponse struct {
+	ID      string
+	Status  string
+	Summary string
 }
 
 // EditResponse is the baseline shape for mutation feedback.
