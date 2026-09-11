@@ -57,11 +57,17 @@ Out of scope for MVP:
 
 ### E. Dogfooding Harness
 
-- [ ] Define 3-5 feature tasks to build with JADE itself.
+- [x] Define 3-5 feature tasks to build with JADE itself.
 - [ ] Record baseline metrics using shell/file workflow.
 - [ ] Re-run same tasks through JADE primitives.
 - [ ] Capture: tokens, tool calls, turns, wall-clock, pass/fail.
 - [ ] Publish per-task comparison in a markdown report.
+
+Artifacts:
+
+- [docs/dogfooding-feature-tasks.md](dogfooding-feature-tasks.md)
+- [docs/dogfooding-run-log.md](dogfooding-run-log.md)
+- [docs/dogfooding-report.md](dogfooding-report.md)
 
 ### F. Documentation
 
