@@ -30,8 +30,26 @@ type OutlineRequest struct {
 type ReadSymbolRequest struct {
 	Path          string
 	SymbolID      string
+	SymbolName    string
 	MaxLines      int
 	IndexedCommit string
+}
+
+// SymbolResolutionStatus communicates how symbol selection was resolved.
+type SymbolResolutionStatus string
+
+const (
+	ResolutionExact     SymbolResolutionStatus = "exact"
+	ResolutionAmbiguous SymbolResolutionStatus = "ambiguous"
+	ResolutionNotFound  SymbolResolutionStatus = "not_found"
+)
+
+// SymbolResolution captures selection outcome and candidates.
+type SymbolResolution struct {
+	Status       SymbolResolutionStatus
+	Query        string
+	SelectedID   string
+	CandidateIDs []string
 }
 
 // ReplaceSymbolRequest replaces a symbol implementation.
@@ -93,6 +111,7 @@ type InspectResponse struct {
 	Outline   []OutlineItem
 	Source    string
 	Freshness Freshness
+	Resolve   SymbolResolution
 }
 
 // Event is a normalized asynchronous status signal.

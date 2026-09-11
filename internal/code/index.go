@@ -104,6 +104,28 @@ func (i *Index) ReadSymbol(path string, symbolID string, maxLines int) (Symbol, 
 	return Symbol{}, "", fmt.Errorf("symbol not found: %s", symbolID)
 }
 
+func (i *Index) SymbolsByName(path string, symbolName string) ([]Symbol, error) {
+	absolute := i.resolvePath(path)
+	rel, err := filepath.Rel(i.root, absolute)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := os.ReadFile(absolute)
+	if err != nil {
+		return nil, err
+	}
+
+	all := extractSymbols(rel, splitLines(string(data)))
+	matches := make([]Symbol, 0)
+	for _, symbol := range all {
+		if symbol.Name == symbolName {
+			matches = append(matches, symbol)
+		}
+	}
+	return matches, nil
+}
+
 func (i *Index) resolvePath(path string) string {
 	if filepath.IsAbs(path) {
 		return filepath.Clean(path)
@@ -134,6 +156,7 @@ var declarationPatterns = []struct {
 	{kind: "function", pattern: regexp.MustCompile(`^\s*function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`)},
 	{kind: "class", pattern: regexp.MustCompile(`^\s*export\s+class\s+([A-Za-z_][A-Za-z0-9_]*)\b`)},
 	{kind: "class", pattern: regexp.MustCompile(`^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)\b`)},
+	{kind: "method", pattern: regexp.MustCompile(`^\s*([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\)\s*\{`)},
 	{kind: "method", pattern: regexp.MustCompile(`^\s*(?:pub\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`)},
 }
 
@@ -147,6 +170,9 @@ func extractSymbols(relPath string, lines []string) []Symbol {
 			}
 
 			name := match[1]
+			if isReservedName(name) {
+				continue
+			}
 			from := lineNo + 1
 			to := findEndLine(lines, lineNo)
 
@@ -171,6 +197,15 @@ func extractSymbols(relPath string, lines []string) []Symbol {
 	})
 
 	return out
+}
+
+func isReservedName(name string) bool {
+	switch name {
+	case "if", "for", "switch", "while", "catch", "return", "else", "do", "try":
+		return true
+	default:
+		return false
+	}
 }
 
 func findEndLine(lines []string, start int) int {

@@ -77,5 +77,23 @@ func main() {
 		return
 	}
 
+	if len(os.Args) == 4 && os.Args[1] == "api-read-symbol" {
+		response, readErr := internalServer.ReadSymbol(protocol.ReadSymbolRequest{
+			Path:       os.Args[2],
+			SymbolName: os.Args[3],
+		})
+		if readErr != nil {
+			log.Fatalf("api read symbol failed: %v", readErr)
+		}
+		fmt.Printf("status=%s query=%s selected=%s\n", response.Resolve.Status, response.Resolve.Query, response.Resolve.SelectedID)
+		if len(response.Resolve.CandidateIDs) > 0 {
+			fmt.Printf("candidates=%v\n", response.Resolve.CandidateIDs)
+		}
+		if response.Source != "" {
+			fmt.Println(response.Source)
+		}
+		return
+	}
+
 	log.Println("jade runtime initialized")
 }

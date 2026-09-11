@@ -83,14 +83,93 @@ func (s *Server) Outline(req protocol.OutlineRequest) (protocol.InspectResponse,
 }
 
 func (s *Server) ReadSymbol(req protocol.ReadSymbolRequest) (protocol.InspectResponse, error) {
-	symbol, source, err := s.index.ReadSymbol(req.Path, req.SymbolID, req.MaxLines)
+	freshness := s.workspace.Freshness(req.IndexedCommit)
+	base := protocol.InspectResponse{
+		Revision: s.workspace.Revision(),
+		Freshness: protocol.Freshness{
+			IndexedCommit: freshness.IndexedCommit,
+			HeadCommit:    freshness.HeadCommit,
+			Drifted:       freshness.Drifted,
+			ChangedPaths:  freshness.ChangedPaths,
+			DirtyPaths:    freshness.DirtyPaths,
+			Unknown:       freshness.Unknown,
+		},
+	}
+
+	if req.SymbolID != "" {
+		symbol, source, err := s.index.ReadSymbol(req.Path, req.SymbolID, req.MaxLines)
+		if err != nil {
+			base.Resolve = protocol.SymbolResolution{
+				Status: protocol.ResolutionNotFound,
+				Query:  req.SymbolID,
+			}
+			return base, nil
+		}
+
+		base.Outline = []protocol.OutlineItem{{
+			ID:   symbol.ID,
+			Kind: symbol.Kind,
+			Name: symbol.Name,
+			Path: symbol.Path,
+			From: symbol.From,
+			To:   symbol.To,
+		}}
+		base.Source = source
+		base.Resolve = protocol.SymbolResolution{
+			Status:     protocol.ResolutionExact,
+			Query:      req.SymbolID,
+			SelectedID: symbol.ID,
+		}
+		return base, nil
+	}
+
+	if req.SymbolName == "" {
+		return protocol.InspectResponse{}, fmt.Errorf("symbol id or symbol name is required")
+	}
+
+	candidates, err := s.index.SymbolsByName(req.Path, req.SymbolName)
 	if err != nil {
 		return protocol.InspectResponse{}, err
 	}
 
-	freshness := s.workspace.Freshness(req.IndexedCommit)
+	if len(candidates) == 0 {
+		base.Resolve = protocol.SymbolResolution{
+			Status: protocol.ResolutionNotFound,
+			Query:  req.SymbolName,
+		}
+		return base, nil
+	}
+
+	candidateIDs := make([]string, 0, len(candidates))
+	outline := make([]protocol.OutlineItem, 0, len(candidates))
+	for _, candidate := range candidates {
+		candidateIDs = append(candidateIDs, candidate.ID)
+		outline = append(outline, protocol.OutlineItem{
+			ID:   candidate.ID,
+			Kind: candidate.Kind,
+			Name: candidate.Name,
+			Path: candidate.Path,
+			From: candidate.From,
+			To:   candidate.To,
+		})
+	}
+
+	if len(candidates) > 1 {
+		base.Outline = outline
+		base.Resolve = protocol.SymbolResolution{
+			Status:       protocol.ResolutionAmbiguous,
+			Query:        req.SymbolName,
+			CandidateIDs: candidateIDs,
+		}
+		return base, nil
+	}
+
+	symbol, source, err := s.index.ReadSymbol(req.Path, candidates[0].ID, req.MaxLines)
+	if err != nil {
+		return protocol.InspectResponse{}, err
+	}
+
 	return protocol.InspectResponse{
-		Revision: s.workspace.Revision(),
 		Outline: []protocol.OutlineItem{
 			{
 				ID:   symbol.ID,
@@ -101,14 +180,14 @@ func (s *Server) ReadSymbol(req protocol.ReadSymbolRequest) (protocol.InspectRes
 				To:   symbol.To,
 			},
 		},
-		Source: source,
-		Freshness: protocol.Freshness{
-			IndexedCommit: freshness.IndexedCommit,
-			HeadCommit:    freshness.HeadCommit,
-			Drifted:       freshness.Drifted,
-			ChangedPaths:  freshness.ChangedPaths,
-			DirtyPaths:    freshness.DirtyPaths,
-			Unknown:       freshness.Unknown,
+		Revision:  base.Revision,
+		Source:    source,
+		Freshness: base.Freshness,
+		Resolve: protocol.SymbolResolution{
+			Status:       protocol.ResolutionExact,
+			Query:        req.SymbolName,
+			SelectedID:   symbol.ID,
+			CandidateIDs: candidateIDs,
 		},
 	}, nil
 }

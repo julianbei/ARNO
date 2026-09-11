@@ -69,6 +69,10 @@ Artifacts:
 - [docs/dogfooding-run-log.md](dogfooding-run-log.md)
 - [docs/dogfooding-report.md](dogfooding-report.md)
 
+Progress:
+
+- Task 1 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
+
 ### F. Documentation
 
 - [ ] Keep README current with implemented MVP capabilities.
