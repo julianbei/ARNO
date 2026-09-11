@@ -12,6 +12,8 @@ import (
 	"github.com/julianbei/jade/internal/events"
 )
 
+const parserModeEnv = "JADE_GO_SYMBOL_PARSER"
+
 // Symbol is the minimum structural unit surfaced to agents.
 type Symbol struct {
 	ID   string
@@ -56,7 +58,7 @@ func (i *Index) Outline(path string) ([]Symbol, error) {
 	}
 
 	lines := splitLines(string(data))
-	symbols := extractSymbols(rel, lines)
+	symbols, mode := i.symbolsForPath(absolute, rel, data, lines)
 
 	if i.bus != nil {
 		i.bus.Publish(events.Event{
@@ -64,6 +66,7 @@ func (i *Index) Outline(path string) ([]Symbol, error) {
 			Entity: "code_index",
 			Payload: map[string]string{
 				"path":    rel,
+				"mode":    mode,
 				"symbols": fmt.Sprintf("%d", len(symbols)),
 			},
 		})
@@ -85,7 +88,7 @@ func (i *Index) OutlineStructured(path string) (OutlineSections, []Symbol, error
 	}
 
 	lines := splitLines(string(data))
-	symbols := extractSymbols(rel, lines)
+	symbols, mode := i.symbolsForPath(absolute, rel, data, lines)
 	sections := groupSymbols(symbols)
 	sections.Imports = extractImports(lines)
 
@@ -95,6 +98,7 @@ func (i *Index) OutlineStructured(path string) (OutlineSections, []Symbol, error
 			Entity: "code_index",
 			Payload: map[string]string{
 				"path":    rel,
+				"mode":    mode,
 				"symbols": fmt.Sprintf("%d", len(symbols)),
 			},
 		})
@@ -120,7 +124,7 @@ func (i *Index) ReadSymbol(path string, symbolID string, maxLines int) (Symbol, 
 	}
 
 	lines := splitLines(string(data))
-	symbols := extractSymbols(rel, lines)
+	symbols, _ := i.symbolsForPath(absolute, rel, data, lines)
 	for _, symbol := range symbols {
 		if symbol.ID != symbolID {
 			continue
@@ -157,7 +161,7 @@ func (i *Index) SymbolsByName(path string, symbolName string) ([]Symbol, error) 
 		return nil, err
 	}
 
-	all := extractSymbols(rel, splitLines(string(data)))
+	all, _ := i.symbolsForPath(absolute, rel, data, splitLines(string(data)))
 	matches := make([]Symbol, 0)
 	for _, symbol := range all {
 		if symbol.Name == symbolName {
@@ -165,6 +169,21 @@ func (i *Index) SymbolsByName(path string, symbolName string) ([]Symbol, error) 
 		}
 	}
 	return matches, nil
+}
+
+func (i *Index) symbolsForPath(absolute string, relPath string, data []byte, lines []string) ([]Symbol, string) {
+	if strings.EqualFold(filepath.Ext(absolute), ".go") {
+		mode := strings.TrimSpace(strings.ToLower(os.Getenv(parserModeEnv)))
+		if mode != "regex" {
+			symbols, err := extractGoSymbolsTreeSitter(relPath, data)
+			if err == nil && len(symbols) > 0 {
+				return symbols, "tree-sitter"
+			}
+		}
+		return extractSymbols(relPath, lines), "regex"
+	}
+
+	return extractSymbols(relPath, lines), "regex"
 }
 
 func (i *Index) resolvePath(path string) string {

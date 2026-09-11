@@ -97,6 +97,8 @@ Acceptance criteria:
 
 ### Task 5: Tree-sitter Read Boundary Spike
 
+Status: completed on 2026-09-11
+
 Objective:
 
 Add initial tree-sitter-backed boundary detection for at least Go.
@@ -104,13 +106,18 @@ Add initial tree-sitter-backed boundary detection for at least Go.
 Target files:
 
 - [internal/code/index.go](../internal/code/index.go)
-- [internal/languages/golang/adapter.go](../internal/languages/golang/adapter.go)
+- [internal/code/treesitter_go.go](../internal/code/treesitter_go.go)
+- [cmd/jade/main.go](../cmd/jade/main.go)
 
 Acceptance criteria:
 
 - Go symbol range can be read via parser-backed path.
 - Regex fallback is still available behind a feature switch.
 - Boundary mismatches are documented.
+
+Evidence:
+
+- [docs/tree-sitter-spike-notes.md](tree-sitter-spike-notes.md)
 
 ## Execution Rule
 

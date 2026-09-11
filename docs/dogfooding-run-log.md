@@ -135,7 +135,7 @@ Notes:
 Run mode: jade-first
 Date: 2026-09-11
 Commit start: c0ee5df
-Commit end: in-progress
+Commit end: 8dc613f
 Build/test result: pass
 Wall-clock minutes: ~8
 Tool calls (count): 2
@@ -150,6 +150,44 @@ Files touched:
 - [cmd/jade/main.go](../cmd/jade/main.go)
 Notes:
 - `go run ./cmd/jade api-job-summary-demo` returned concise summary first and raw output separately.
+
+### Task: 5 / Tree-sitter Read Boundary Spike
+
+Run mode: baseline-shell-file
+Date: 2026-09-11
+Commit start: 8dc613f
+Commit end: 8dc613f
+Build/test result: pass
+Wall-clock minutes: <1
+Tool calls (count): 1
+LLM turns (count): 1
+Estimated token usage: low
+Files touched: none
+Notes:
+- Baseline comparison used regex extraction only: `JADE_GO_SYMBOL_PARSER=regex go run ./cmd/jade outline docs/fixtures/go_treesitter_spike.go | wc -l`.
+- Result: 2 symbols.
+
+Run mode: jade-first
+Date: 2026-09-11
+Commit start: 8dc613f
+Commit end: in-progress
+Build/test result: pass
+Wall-clock minutes: ~10
+Tool calls (count): 3
+LLM turns (count): 1
+Estimated token usage: medium
+Files touched:
+- [internal/code/index.go](../internal/code/index.go)
+- [internal/code/treesitter_go.go](../internal/code/treesitter_go.go)
+- [cmd/jade/main.go](../cmd/jade/main.go)
+- [docs/fixtures/go_treesitter_spike.go](fixtures/go_treesitter_spike.go)
+- [docs/tree-sitter-spike-notes.md](tree-sitter-spike-notes.md)
+- [go.mod](../go.mod)
+- [go.sum](../go.sum)
+Notes:
+- Tree-sitter comparison: `JADE_GO_SYMBOL_PARSER=tree-sitter ... | wc -l` produced 4 symbols.
+- Combined check: `go run ./cmd/jade api-go-parser-compare docs/fixtures/go_treesitter_spike.go` produced `regex=2 tree_sitter=4`.
+- Feature switch and fallback behavior documented in [docs/tree-sitter-spike-notes.md](tree-sitter-spike-notes.md).
 
 ## Template
 

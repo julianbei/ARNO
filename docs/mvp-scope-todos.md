@@ -60,9 +60,9 @@ Out of scope for MVP:
 - [x] Define 3-5 feature tasks to build with JADE itself.
 - [x] Record baseline metrics using shell/file workflow.
 - [x] Re-run same tasks through JADE primitives.
+- [x] Task 5: Tree-sitter read boundary spike (Go first, then TS/Rust)
 - [x] Capture: tokens, tool calls, turns, wall-clock, pass/fail.
 - [x] Publish per-task comparison in a markdown report.
-
 Artifacts:
 
 - [docs/dogfooding-feature-tasks.md](dogfooding-feature-tasks.md)
@@ -75,6 +75,7 @@ Progress:
 - Task 2 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
 - Task 3 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
 - Task 4 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
+- Task 5 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
 
 ### F. Documentation
 

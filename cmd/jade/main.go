@@ -169,5 +169,22 @@ func main() {
 		return
 	}
 
+	if len(os.Args) == 3 && os.Args[1] == "api-go-parser-compare" {
+		_ = os.Setenv("JADE_GO_SYMBOL_PARSER", "regex")
+		regexSymbols, regexErr := ci.Outline(os.Args[2])
+		if regexErr != nil {
+			log.Fatalf("regex outline failed: %v", regexErr)
+		}
+
+		_ = os.Setenv("JADE_GO_SYMBOL_PARSER", "tree-sitter")
+		treeSymbols, treeErr := ci.Outline(os.Args[2])
+		if treeErr != nil {
+			log.Fatalf("tree-sitter outline failed: %v", treeErr)
+		}
+
+		fmt.Printf("regex=%d tree_sitter=%d\n", len(regexSymbols), len(treeSymbols))
+		return
+	}
+
 	log.Println("jade runtime initialized")
 }

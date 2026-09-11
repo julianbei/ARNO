@@ -31,6 +31,7 @@ The scaffold now includes the first source-grounded runtime behavior inspired by
 - Non-blocking in-process event bus in [internal/events/bus.go](internal/events/bus.go)
 - Progressive disclosure primitives for code outlines and symbol reads in [internal/code/index.go](internal/code/index.go)
 - Structured outline sections for imports/types/classes/functions/methods in [internal/code/index.go](internal/code/index.go)
+- Go tree-sitter symbol extraction with regex fallback switch in [internal/code/index.go](internal/code/index.go) and [internal/code/treesitter_go.go](internal/code/treesitter_go.go)
 - Edit responses with immediate diagnostics and async job IDs in [internal/edit/service.go](internal/edit/service.go)
 - Job lifecycle status and events in [internal/jobs/runner.go](internal/jobs/runner.go)
 - Decisive validation summaries with explicit raw-output expansion in [internal/jobs/runner.go](internal/jobs/runner.go)
@@ -45,6 +46,7 @@ The scaffold now includes the first source-grounded runtime behavior inspired by
 - Dogfooding feature tasks: [docs/dogfooding-feature-tasks.md](docs/dogfooding-feature-tasks.md)
 - Dogfooding run log template: [docs/dogfooding-run-log.md](docs/dogfooding-run-log.md)
 - Dogfooding comparison report template: [docs/dogfooding-report.md](docs/dogfooding-report.md)
+- Go tree-sitter spike notes: [docs/tree-sitter-spike-notes.md](docs/tree-sitter-spike-notes.md)
 
 Quick commands:
 
@@ -64,6 +66,9 @@ go run ./cmd/jade api-checkpoint-demo
 
 # demonstrate decisive summary + raw output expansion
 go run ./cmd/jade api-job-summary-demo
+
+# compare Go parser modes (regex vs tree-sitter)
+go run ./cmd/jade api-go-parser-compare docs/fixtures/go_treesitter_spike.go
 ```
 
 ---
