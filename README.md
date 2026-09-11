@@ -1,5 +1,7 @@
 # Jade — Julian's Agentic Development Environment
 
+![Jade logo](logo-cropped.png)
+
 **Status:** Initial concept / team briefing  
 **Project name:** **Jade**  
 **Expansion:** **Julian's Agentic Development Environment**  
