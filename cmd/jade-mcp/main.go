@@ -1,4 +1,3 @@
-package jademcp
 package main
 
 import (
@@ -150,12 +149,16 @@ func (s *mcpServer) handleRequest(req rpcRequest) rpcResponse {
 			Result: map[string]interface{}{
 				"protocolVersion": "2024-11-05",
 				"capabilities": map[string]interface{}{
-					"tools": map[string]interface{}{},
+					"tools": map[string]interface{}{
+						"listChanged": true,
+					},
 				},
 				"serverInfo": map[string]interface{}{
-					"name":    "jade",
-					"version": "0.1.0",
+					"name":        "jade",
+					"version":     "0.1.0",
+					"description": "Agent IDE runtime for inspect, modify, validate, and state workflows.",
 				},
+				"instructions": "Use JADE to inspect code, make targeted edits, validate work, and manage revisions/checkpoints in the active workspace.",
 			},
 		}
 	case "ping":
@@ -288,25 +291,118 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 }
 
 func tools() []mcpTool {
-	objPath := map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"path": map[string]interface{}{"type": "string"},
-		},
-		"required": []string{"path"},
-	}
-
 	return []mcpTool{
-		{Name: "jade.outline", Description: "Get structured outline and freshness for a file", InputSchema: objPath},
-		{Name: "jade.read_symbol", Description: "Read a symbol by ID or by name with explicit resolution", InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{"path": map[string]interface{}{"type": "string"}, "symbolId": map[string]interface{}{"type": "string"}, "symbolName": map[string]interface{}{"type": "string"}, "maxLines": map[string]interface{}{"type": "integer"}}, "required": []string{"path"}}},
-		{Name: "jade.replace_symbol", Description: "Replace symbol source by symbol ID", InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{"symbolId": map[string]interface{}{"type": "string"}, "newCode": map[string]interface{}{"type": "string"}}, "required": []string{"symbolId", "newCode"}}},
-		{Name: "jade.replace_range", Description: "Replace source line range with expected revision check", InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{"path": map[string]interface{}{"type": "string"}, "expectedRevision": map[string]interface{}{"type": "string"}, "startLine": map[string]interface{}{"type": "integer"}, "endLine": map[string]interface{}{"type": "integer"}, "newCode": map[string]interface{}{"type": "string"}}, "required": []string{"path", "expectedRevision", "startLine", "endLine", "newCode"}}},
-		{Name: "jade.changes", Description: "Get current workspace revision and changed paths", InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}}},
-		{Name: "jade.checkpoint", Description: "Create a workspace checkpoint", InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{"note": map[string]interface{}{"type": "string"}}}},
-		{Name: "jade.revert", Description: "Revert workspace to a checkpoint", InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{"checkpointId": map[string]interface{}{"type": "string"}}, "required": []string{"checkpointId"}}},
-		{Name: "jade.job_status", Description: "Get async job status and summary", InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{"id": map[string]interface{}{"type": "string"}}, "required": []string{"id"}}},
-		{Name: "jade.job_output", Description: "Get full async job output", InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{"id": map[string]interface{}{"type": "string"}}, "required": []string{"id"}}},
-		{Name: "jade.events", Description: "Poll event stream after cursor", InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{"after": map[string]interface{}{"type": "integer"}, "limit": map[string]interface{}{"type": "integer"}}}},
+		{
+			Name:        "jade.outline",
+			Description: "Return the declaration outline for a file, along with freshness and structured section buckets.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path": map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
+				},
+				"required": []string{"path"},
+			},
+		},
+		{
+			Name:        "jade.read_symbol",
+			Description: "Read a symbol body by ID or name and return exact, ambiguous, or not_found resolution metadata.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":       map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
+					"symbolId":   map[string]interface{}{"type": "string", "description": "Exact symbol ID if already known."},
+					"symbolName": map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
+					"maxLines":   map[string]interface{}{"type": "integer", "description": "Maximum number of lines to return from the symbol body."},
+				},
+				"required": []string{"path"},
+			},
+		},
+		{
+			Name:        "jade.replace_symbol",
+			Description: "Replace the source for an identified symbol using its stable symbol ID.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"symbolId": map[string]interface{}{"type": "string", "description": "Symbol ID to replace."},
+					"newCode":  map[string]interface{}{"type": "string", "description": "Replacement source code."},
+				},
+				"required": []string{"symbolId", "newCode"},
+			},
+		},
+		{
+			Name:        "jade.replace_range",
+			Description: "Replace a line range in a file only if the expected revision matches the current workspace revision.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":             map[string]interface{}{"type": "string", "description": "File path to edit."},
+					"expectedRevision": map[string]interface{}{"type": "string", "description": "Revision expected before editing."},
+					"startLine":        map[string]interface{}{"type": "integer", "description": "Inclusive start line."},
+					"endLine":          map[string]interface{}{"type": "integer", "description": "Inclusive end line."},
+					"newCode":          map[string]interface{}{"type": "string", "description": "Replacement code to insert in the target range."},
+				},
+				"required": []string{"path", "expectedRevision", "startLine", "endLine", "newCode"},
+			},
+		},
+		{
+			Name:        "jade.changes",
+			Description: "Return the current workspace revision and a list of changed paths.",
+			InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+		{
+			Name:        "jade.checkpoint",
+			Description: "Create a named checkpoint of the current workspace state.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"note": map[string]interface{}{"type": "string", "description": "Optional checkpoint note."},
+				},
+			},
+		},
+		{
+			Name:        "jade.revert",
+			Description: "Revert the workspace to a previously created checkpoint ID.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"checkpointId": map[string]interface{}{"type": "string", "description": "Checkpoint ID to restore."},
+				},
+				"required": []string{"checkpointId"},
+			},
+		},
+		{
+			Name:        "jade.job_status",
+			Description: "Fetch the status and decisive summary for a background validation job.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"id": map[string]interface{}{"type": "string", "description": "Background job ID."},
+				},
+				"required": []string{"id"},
+			},
+		},
+		{
+			Name:        "jade.job_output",
+			Description: "Fetch the raw output for a background validation job after a summary was already returned.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"id": map[string]interface{}{"type": "string", "description": "Background job ID."},
+				},
+				"required": []string{"id"},
+			},
+		},
+		{
+			Name:        "jade.events",
+			Description: "Poll the event stream starting after a cursor position.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"after": map[string]interface{}{"type": "integer", "description": "Cursor to start after."},
+					"limit": map[string]interface{}{"type": "integer", "description": "Maximum number of events to return."},
+				},
+			},
+		},
 	}
 }
 
