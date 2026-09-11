@@ -22,6 +22,16 @@ type Symbol struct {
 	To   int
 }
 
+// OutlineSections groups declarations for progressive disclosure consumers.
+type OutlineSections struct {
+	Imports   []string
+	Types     []Symbol
+	Classes   []Symbol
+	Functions []Symbol
+	Methods   []Symbol
+	Other     []Symbol
+}
+
 // Index provides lightweight structural inspection primitives.
 // It intentionally prioritizes bounded context and deterministic results.
 type Index struct {
@@ -60,6 +70,37 @@ func (i *Index) Outline(path string) ([]Symbol, error) {
 	}
 
 	return symbols, nil
+}
+
+func (i *Index) OutlineStructured(path string) (OutlineSections, []Symbol, error) {
+	absolute := i.resolvePath(path)
+	rel, err := filepath.Rel(i.root, absolute)
+	if err != nil {
+		return OutlineSections{}, nil, err
+	}
+
+	data, err := os.ReadFile(absolute)
+	if err != nil {
+		return OutlineSections{}, nil, err
+	}
+
+	lines := splitLines(string(data))
+	symbols := extractSymbols(rel, lines)
+	sections := groupSymbols(symbols)
+	sections.Imports = extractImports(lines)
+
+	if i.bus != nil {
+		i.bus.Publish(events.Event{
+			Type:   "INDEX_UPDATED",
+			Entity: "code_index",
+			Payload: map[string]string{
+				"path":    rel,
+				"symbols": fmt.Sprintf("%d", len(symbols)),
+			},
+		})
+	}
+
+	return sections, symbols, nil
 }
 
 func (i *Index) ReadSymbol(path string, symbolID string, maxLines int) (Symbol, string, error) {
@@ -226,4 +267,43 @@ func findEndLine(lines []string, start int) int {
 	}
 
 	return max + 1
+}
+
+func groupSymbols(symbols []Symbol) OutlineSections {
+	sections := OutlineSections{}
+	for _, symbol := range symbols {
+		switch symbol.Kind {
+		case "type":
+			sections.Types = append(sections.Types, symbol)
+		case "class":
+			sections.Classes = append(sections.Classes, symbol)
+		case "function":
+			sections.Functions = append(sections.Functions, symbol)
+		case "method":
+			sections.Methods = append(sections.Methods, symbol)
+		default:
+			sections.Other = append(sections.Other, symbol)
+		}
+	}
+	return sections
+}
+
+func extractImports(lines []string) []string {
+	imports := make([]string, 0)
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "import ") || strings.HasPrefix(trimmed, "use ") {
+			imports = append(imports, trimmed)
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "package ") || strings.HasPrefix(trimmed, "mod ") {
+			imports = append(imports, trimmed)
+		}
+	}
+	return imports
 }

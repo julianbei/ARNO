@@ -78,6 +78,68 @@ Notes:
 
 ### Task: <task-id / task-name>
 
+Run mode: baseline-shell-file
+
+Date: 2026-09-11
+
+Commit start: f60da96
+
+Commit end: f60da96
+
+Build/test result: pass
+
+Wall-clock minutes: <1
+
+Tool calls (count): 1
+
+LLM turns (count): 1
+
+Estimated token usage: low
+
+Files touched: none
+
+Notes:
+
+- Used `rg` pattern scan on [docs/fixtures/outline_sections.ts](docs/fixtures/outline_sections.ts) to manually infer sections.
+- Result was human-readable but not returned in a structured API shape.
+
+---
+
+### Task: 2 / File Outline Sections
+
+Run mode: jade-first
+
+Date: 2026-09-11
+
+Commit start: f60da96
+
+Commit end: in-progress
+
+Build/test result: pass
+
+Wall-clock minutes: ~8
+
+Tool calls (count): 2
+
+LLM turns (count): 1
+
+Estimated token usage: low-medium
+
+Files touched:
+
+- [internal/protocol/types.go](../internal/protocol/types.go)
+- [internal/code/index.go](../internal/code/index.go)
+- [internal/transport/internalapi/server.go](../internal/transport/internalapi/server.go)
+- [internal/transport/mcp/server.go](../internal/transport/mcp/server.go)
+- [cmd/jade/main.go](../cmd/jade/main.go)
+- [docs/fixtures/outline_sections.ts](fixtures/outline_sections.ts)
+
+Notes:
+
+- `go run ./cmd/jade api-outline-sections docs/fixtures/outline_sections.ts` returned:
+	`imports=2 types=1 classes=1 functions=1 methods=1 other=0`
+- Flat outline remains present for compatibility while structured sections are now returned.
+
 Run mode: baseline-shell-file | jade-first
 
 Date:

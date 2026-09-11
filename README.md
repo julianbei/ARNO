@@ -30,6 +30,7 @@ The scaffold now includes the first source-grounded runtime behavior inspired by
 - Workspace revision and freshness checks against git HEAD and dirty paths in [internal/workspace/manager.go](internal/workspace/manager.go)
 - Non-blocking in-process event bus in [internal/events/bus.go](internal/events/bus.go)
 - Progressive disclosure primitives for code outlines and symbol reads in [internal/code/index.go](internal/code/index.go)
+- Structured outline sections for imports/types/classes/functions/methods in [internal/code/index.go](internal/code/index.go)
 - Edit responses with immediate diagnostics and async job IDs in [internal/edit/service.go](internal/edit/service.go)
 - Job lifecycle status and events in [internal/jobs/runner.go](internal/jobs/runner.go)
 - Internal API and MCP transport parity for inspect/modify/state/job/event operations in [internal/transport/internalapi/server.go](internal/transport/internalapi/server.go) and [internal/transport/mcp/server.go](internal/transport/mcp/server.go)
@@ -52,6 +53,9 @@ make build
 
 # show file-level declarations
 go run ./cmd/jade outline README.md
+
+# show structured outline section counts
+go run ./cmd/jade api-outline-sections docs/fixtures/outline_sections.ts
 ```
 
 ---

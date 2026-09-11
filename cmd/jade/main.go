@@ -77,6 +77,23 @@ func main() {
 		return
 	}
 
+	if len(os.Args) == 3 && os.Args[1] == "api-outline-sections" {
+		response, outlineErr := internalServer.Outline(protocol.OutlineRequest{Path: os.Args[2]})
+		if outlineErr != nil {
+			log.Fatalf("api outline failed: %v", outlineErr)
+		}
+		fmt.Printf(
+			"imports=%d types=%d classes=%d functions=%d methods=%d other=%d\n",
+			len(response.Sections.Imports),
+			len(response.Sections.Types),
+			len(response.Sections.Classes),
+			len(response.Sections.Functions),
+			len(response.Sections.Methods),
+			len(response.Sections.Other),
+		)
+		return
+	}
+
 	if len(os.Args) == 4 && os.Args[1] == "api-read-symbol" {
 		response, readErr := internalServer.ReadSymbol(protocol.ReadSymbolRequest{
 			Path:       os.Args[2],

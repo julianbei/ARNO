@@ -95,6 +95,16 @@ type OutlineItem struct {
 	To   int
 }
 
+// OutlineSections groups outline information by semantic category.
+type OutlineSections struct {
+	Imports   []string
+	Types     []OutlineItem
+	Classes   []OutlineItem
+	Functions []OutlineItem
+	Methods   []OutlineItem
+	Other     []OutlineItem
+}
+
 // Freshness describes whether index data may be stale relative to workspace state.
 type Freshness struct {
 	IndexedCommit string
@@ -109,6 +119,7 @@ type Freshness struct {
 type InspectResponse struct {
 	Revision  string
 	Outline   []OutlineItem
+	Sections  OutlineSections
 	Source    string
 	Freshness Freshness
 	Resolve   SymbolResolution

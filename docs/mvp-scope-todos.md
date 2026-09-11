@@ -72,6 +72,7 @@ Artifacts:
 Progress:
 
 - Task 1 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
+- Task 2 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
 
 ### F. Documentation
 

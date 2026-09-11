@@ -50,7 +50,7 @@ func (s *Server) Start(context.Context) error {
 }
 
 func (s *Server) Outline(req protocol.OutlineRequest) (protocol.InspectResponse, error) {
-	symbols, err := s.index.Outline(req.Path)
+	sections, symbols, err := s.index.OutlineStructured(req.Path)
 	if err != nil {
 		return protocol.InspectResponse{}, err
 	}
@@ -67,10 +67,33 @@ func (s *Server) Outline(req protocol.OutlineRequest) (protocol.InspectResponse,
 		})
 	}
 
+	convert := func(in []code.Symbol) []protocol.OutlineItem {
+		out := make([]protocol.OutlineItem, 0, len(in))
+		for _, symbol := range in {
+			out = append(out, protocol.OutlineItem{
+				ID:   symbol.ID,
+				Kind: symbol.Kind,
+				Name: symbol.Name,
+				Path: symbol.Path,
+				From: symbol.From,
+				To:   symbol.To,
+			})
+		}
+		return out
+	}
+
 	freshness := s.workspace.Freshness(req.IndexedCommit)
 	return protocol.InspectResponse{
 		Revision: s.workspace.Revision(),
 		Outline:  outline,
+		Sections: protocol.OutlineSections{
+			Imports:   sections.Imports,
+			Types:     convert(sections.Types),
+			Classes:   convert(sections.Classes),
+			Functions: convert(sections.Functions),
+			Methods:   convert(sections.Methods),
+			Other:     convert(sections.Other),
+		},
 		Freshness: protocol.Freshness{
 			IndexedCommit: freshness.IndexedCommit,
 			HeadCommit:    freshness.HeadCommit,
