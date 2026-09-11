@@ -171,8 +171,18 @@ type CheckpointResponse struct {
 // JobStatusResponse returns asynchronous validation job status.
 type JobStatusResponse struct {
 	ID      string
+	Kind    string
 	Status  string
 	Summary string
+}
+
+// JobOutputResponse returns raw output for explicit expansion requests.
+type JobOutputResponse struct {
+	ID        string
+	Kind      string
+	Status    string
+	Summary   string
+	RawOutput string
 }
 
 // EditResponse is the baseline shape for mutation feedback.

@@ -52,16 +52,16 @@ Out of scope for MVP:
   - [ ] TypeScript: tsserver/tsc + lint
   - [ ] Go: gopls/go vet
   - [ ] Rust: rust-analyzer/cargo check
-- [ ] Add async job runner for tests/build/check.
-- [ ] Summarize decisive failure lines before raw logs.
+- [x] Add async job runner for tests/build/check.
+- [x] Summarize decisive failure lines before raw logs.
 
 ### E. Dogfooding Harness
 
 - [x] Define 3-5 feature tasks to build with JADE itself.
-- [ ] Record baseline metrics using shell/file workflow.
-- [ ] Re-run same tasks through JADE primitives.
-- [ ] Capture: tokens, tool calls, turns, wall-clock, pass/fail.
-- [ ] Publish per-task comparison in a markdown report.
+- [x] Record baseline metrics using shell/file workflow.
+- [x] Re-run same tasks through JADE primitives.
+- [x] Capture: tokens, tool calls, turns, wall-clock, pass/fail.
+- [x] Publish per-task comparison in a markdown report.
 
 Artifacts:
 
@@ -74,6 +74,7 @@ Progress:
 - Task 1 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
 - Task 2 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
 - Task 3 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
+- Task 4 completed and logged with baseline vs JADE-first evidence on 2026-09-11.
 
 ### F. Documentation
 

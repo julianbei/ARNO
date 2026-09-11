@@ -266,14 +266,30 @@ func (s *Server) Revert(req protocol.RevertRequest) (protocol.CheckpointResponse
 }
 
 func (s *Server) JobStatus(id string) (protocol.JobStatusResponse, error) {
-	status, summary, ok := s.jobs.Status(id)
+	kind, status, summary, ok := s.jobs.Status(id)
 	if !ok {
 		return protocol.JobStatusResponse{}, fmt.Errorf("job not found: %s", id)
 	}
 	return protocol.JobStatusResponse{
 		ID:      id,
+		Kind:    kind,
 		Status:  status,
 		Summary: summary,
+	}, nil
+}
+
+func (s *Server) JobOutput(id string) (protocol.JobOutputResponse, error) {
+	kind, status, summary, rawOutput, ok := s.jobs.Output(id)
+	if !ok {
+		return protocol.JobOutputResponse{}, fmt.Errorf("job not found: %s", id)
+	}
+
+	return protocol.JobOutputResponse{
+		ID:        id,
+		Kind:      kind,
+		Status:    status,
+		Summary:   summary,
+		RawOutput: rawOutput,
 	}, nil
 }
 

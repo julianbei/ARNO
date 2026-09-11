@@ -3,6 +3,7 @@ package jobs
 import (
 	"sync"
 
+	"github.com/julianbei/jade/internal/diagnostics"
 	"github.com/julianbei/jade/internal/events"
 )
 
@@ -10,16 +11,20 @@ import (
 type Runner struct {
 	mu      sync.Mutex
 	next    int
+	kind    map[string]string
 	status  map[string]string
 	summary map[string]string
+	raw     map[string]string
 	bus     *events.Bus
 }
 
 func NewRunner(bus *events.Bus) *Runner {
 	return &Runner{
 		next:    1,
+		kind:    make(map[string]string),
 		status:  make(map[string]string),
 		summary: make(map[string]string),
+		raw:     make(map[string]string),
 		bus:     bus,
 	}
 }
@@ -28,6 +33,7 @@ func (r *Runner) Start(kind string) string {
 	r.mu.Lock()
 	id := "job-" + itoa(r.next)
 	r.next++
+	r.kind[id] = kind
 	r.status[id] = "running"
 	r.mu.Unlock()
 
@@ -46,9 +52,17 @@ func (r *Runner) Start(kind string) string {
 }
 
 func (r *Runner) Complete(id string, summary string) {
+	r.CompleteWithOutput(id, summary)
+}
+
+func (r *Runner) CompleteWithOutput(id string, output string) {
+	summary := diagnostics.DecisiveSummary(output)
+
 	r.mu.Lock()
 	r.status[id] = "completed"
 	r.summary[id] = summary
+	r.raw[id] = output
+	kind := r.kind[id]
 	r.mu.Unlock()
 
 	if r.bus != nil {
@@ -57,21 +71,33 @@ func (r *Runner) Complete(id string, summary string) {
 			Entity: "job",
 			Payload: map[string]string{
 				"id":      id,
+				"kind":    kind,
 				"summary": summary,
 			},
 		})
 	}
 }
 
-func (r *Runner) Status(id string) (string, string, bool) {
+func (r *Runner) Status(id string) (string, string, string, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	status, ok := r.status[id]
 	if !ok {
-		return "", "", false
+		return "", "", "", false
 	}
-	return status, r.summary[id], true
+	return r.kind[id], status, r.summary[id], true
+}
+
+func (r *Runner) Output(id string) (string, string, string, string, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	status, ok := r.status[id]
+	if !ok {
+		return "", "", "", "", false
+	}
+	return r.kind[id], status, r.summary[id], r.raw[id], true
 }
 
 func itoa(n int) string {

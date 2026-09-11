@@ -150,5 +150,24 @@ func main() {
 		return
 	}
 
+	if len(os.Args) == 2 && os.Args[1] == "api-job-summary-demo" {
+		jobID := jr.Start("tests")
+		jr.CompleteWithOutput(jobID, "ok setup\nFAIL: session refresh expected 401 got 500\npanic: token expired in auth pipeline\nstack line 1")
+
+		status, statusErr := internalServer.JobStatus(jobID)
+		if statusErr != nil {
+			log.Fatalf("api job status failed: %v", statusErr)
+		}
+		output, outputErr := internalServer.JobOutput(jobID)
+		if outputErr != nil {
+			log.Fatalf("api job output failed: %v", outputErr)
+		}
+
+		fmt.Printf("job=%s kind=%s status=%s\n", status.ID, status.Kind, status.Status)
+		fmt.Printf("summary=%s\n", status.Summary)
+		fmt.Printf("raw=%s\n", output.RawOutput)
+		return
+	}
+
 	log.Println("jade runtime initialized")
 }
