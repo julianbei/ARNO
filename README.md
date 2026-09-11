@@ -8,6 +8,29 @@
 **Initial languages:** TypeScript, Go, Rust  
 **Later languages:** Java, Python, JavaScript, C#, Ruby, Scala, others
 
+## Scaffold Status
+
+The repository now includes an initial Go scaffold aligned with the architecture in [scope.md](scope.md):
+
+- [cmd/jade/main.go](cmd/jade/main.go): runtime entrypoint and service wiring
+- [internal/workspace](internal/workspace): workspace state and revision manager
+- [internal/code](internal/code): structural code index placeholder
+- [internal/edit](internal/edit): mutation service placeholders
+- [internal/diagnostics](internal/diagnostics): immediate diagnostics abstraction
+- [internal/jobs](internal/jobs): asynchronous job runner abstraction
+- [internal/languages](internal/languages): language adapter registry and stubs
+- [internal/transport/mcp](internal/transport/mcp) and [internal/transport/internalapi](internal/transport/internalapi): transport facades
+- [internal/protocol/types.go](internal/protocol/types.go): shared protocol types
+- [configs/jade.example.yaml](configs/jade.example.yaml): starter runtime config
+
+Quick commands:
+
+```sh
+make fmt
+make test
+make build
+```
+
 ---
 
 ## 1. Executive summary

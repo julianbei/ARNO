@@ -1,0 +1,9 @@
+# Binaries
+bin/
+
+# Go build artifacts
+*.test
+*.out
+
+# macOS
+.DS_Store

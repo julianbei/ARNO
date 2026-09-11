@@ -1,0 +1,23 @@
+workspace:
+  root: .
+  use_git_worktree: true
+
+languages:
+  typescript:
+    enabled: true
+    diagnostics: tsserver
+  go:
+    enabled: true
+    diagnostics: gopls
+  rust:
+    enabled: true
+    diagnostics: rust-analyzer
+
+validation:
+  immediate:
+    - parse
+    - syntax
+    - lsp
+  async:
+    - typecheck
+    - tests
