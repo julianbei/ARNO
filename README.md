@@ -23,12 +23,30 @@ The repository now includes an initial Go scaffold aligned with the architecture
 - [internal/protocol/types.go](internal/protocol/types.go): shared protocol types
 - [configs/jade.example.yaml](configs/jade.example.yaml): starter runtime config
 
+## Current Runtime Slice
+
+The scaffold now includes the first source-grounded runtime behavior inspired by proven droneship patterns:
+
+- Workspace revision and freshness checks against git HEAD and dirty paths in [internal/workspace/manager.go](internal/workspace/manager.go)
+- Non-blocking in-process event bus in [internal/events/bus.go](internal/events/bus.go)
+- Progressive disclosure primitives for code outlines and symbol reads in [internal/code/index.go](internal/code/index.go)
+- Edit responses with immediate diagnostics and async job IDs in [internal/edit/service.go](internal/edit/service.go)
+- Job lifecycle status and events in [internal/jobs/runner.go](internal/jobs/runner.go)
+
+## Reference Notes
+
+- Source-grounded droneship extraction and decisions: [docs/droneship-findings.md](docs/droneship-findings.md)
+- Follow-up implementation queue: [docs/mvp-next-steps.md](docs/mvp-next-steps.md)
+
 Quick commands:
 
 ```sh
 make fmt
 make test
 make build
+
+# show file-level declarations
+go run ./cmd/jade outline README.md
 ```
 
 ---

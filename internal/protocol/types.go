@@ -38,6 +38,41 @@ type Diagnostic struct {
 	Message string
 }
 
+// OutlineItem is a declaration-level view used for progressive disclosure.
+type OutlineItem struct {
+	ID   string
+	Kind string
+	Name string
+	Path string
+	From int
+	To   int
+}
+
+// Freshness describes whether index data may be stale relative to workspace state.
+type Freshness struct {
+	IndexedCommit string
+	HeadCommit    string
+	Drifted       bool
+	ChangedPaths  []string
+	DirtyPaths    []string
+	Unknown       string
+}
+
+// InspectResponse returns a scoped code view plus freshness metadata.
+type InspectResponse struct {
+	Revision  string
+	Outline   []OutlineItem
+	Source    string
+	Freshness Freshness
+}
+
+// Event is a normalized asynchronous status signal.
+type Event struct {
+	Type    string
+	Entity  string
+	Payload map[string]string
+}
+
 // EditResponse is the baseline shape for mutation feedback.
 type EditResponse struct {
 	OldRevision  string

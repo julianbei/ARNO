@@ -1,17 +1,42 @@
 package workspace
 
-import "sync"
+import (
+	"bufio"
+	"bytes"
+	"os/exec"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
+
+	"github.com/julianbei/jade/internal/events"
+)
 
 // Manager tracks in-memory scaffold state. The concrete implementation will
 // persist revisions and map to git worktrees in later phases.
 type Manager struct {
 	mu       sync.RWMutex
+	root     string
+	bus      *events.Bus
 	revision int
 	changed  map[string]struct{}
 }
 
-func NewManager() *Manager {
+// Freshness reports whether caller-visible workspace state drifted relative to
+// an index snapshot commit.
+type Freshness struct {
+	IndexedCommit string
+	HeadCommit    string
+	Drifted       bool
+	ChangedPaths  []string
+	DirtyPaths    []string
+	Unknown       string
+}
+
+func NewManager(root string, bus *events.Bus) *Manager {
 	return &Manager{
+		root:     root,
+		bus:      bus,
 		revision: 1,
 		changed:  make(map[string]struct{}),
 	}
@@ -35,7 +60,18 @@ func (m *Manager) BumpRevision(changedPaths ...string) (oldRevision, newRevision
 		if p == "" {
 			continue
 		}
-		m.changed[p] = struct{}{}
+		m.changed[filepath.Clean(p)] = struct{}{}
+	}
+
+	if m.bus != nil {
+		m.bus.Publish(events.Event{
+			Type:   "REVISION_BUMPED",
+			Entity: "workspace",
+			Payload: map[string]string{
+				"old_revision": oldRevision,
+				"new_revision": newRevision,
+			},
+		})
 	}
 
 	return oldRevision, newRevision
@@ -48,6 +84,141 @@ func (m *Manager) Changes() []string {
 	out := make([]string, 0, len(m.changed))
 	for p := range m.changed {
 		out = append(out, p)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func (m *Manager) HeadCommit() (string, error) {
+	return m.git("rev-parse", "HEAD")
+}
+
+func (m *Manager) DirtyPaths() ([]string, error) {
+	stdout, err := m.gitRaw("status", "--porcelain")
+	if err != nil {
+		return nil, err
+	}
+
+	paths := make([]string, 0)
+	scanner := bufio.NewScanner(strings.NewReader(stdout))
+	for scanner.Scan() {
+		line := scanner.Text()
+		if len(line) < 4 {
+			continue
+		}
+		path := strings.TrimSpace(line[3:])
+		if path == "" {
+			continue
+		}
+		paths = append(paths, filepath.Clean(path))
+	}
+
+	sort.Strings(paths)
+	return dedupe(paths), nil
+}
+
+func (m *Manager) Freshness(indexedCommit string) Freshness {
+	f := Freshness{IndexedCommit: indexedCommit}
+
+	head, err := m.HeadCommit()
+	if err != nil {
+		f.Unknown = err.Error()
+		return f
+	}
+	f.HeadCommit = head
+
+	dirty, err := m.DirtyPaths()
+	if err != nil {
+		f.Unknown = err.Error()
+		return f
+	}
+	f.DirtyPaths = dirty
+
+	if indexedCommit == "" {
+		f.Drifted = true
+		f.ChangedPaths = append([]string(nil), dirty...)
+		return f
+	}
+
+	changed, err := m.diffNames(indexedCommit, head)
+	if err != nil {
+		f.Unknown = err.Error()
+		return f
+	}
+	f.ChangedPaths = dedupe(append(changed, dirty...))
+	f.Drifted = indexedCommit != head || len(dirty) > 0
+	return f
+}
+
+func (m *Manager) diffNames(base string, head string) ([]string, error) {
+	stdout, err := m.gitRaw("diff", "--name-only", base+"..."+head)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]string, 0)
+	scanner := bufio.NewScanner(strings.NewReader(stdout))
+	for scanner.Scan() {
+		path := strings.TrimSpace(scanner.Text())
+		if path == "" {
+			continue
+		}
+		out = append(out, filepath.Clean(path))
+	}
+
+	sort.Strings(out)
+	return dedupe(out), nil
+}
+
+func (m *Manager) git(args ...string) (string, error) {
+	stdout, err := m.gitRaw(args...)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(stdout), nil
+}
+
+func (m *Manager) gitRaw(args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = m.root
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		msg := strings.TrimSpace(stderr.String())
+		if msg == "" {
+			msg = err.Error()
+		}
+		return "", execError{message: msg}
+	}
+
+	return out.String(), nil
+}
+
+type execError struct {
+	message string
+}
+
+func (e execError) Error() string {
+	return e.message
+}
+
+func dedupe(in []string) []string {
+	if len(in) <= 1 {
+		return in
+	}
+
+	out := make([]string, 0, len(in))
+	last := ""
+	for i, v := range in {
+		if i == 0 || v != last {
+			out = append(out, v)
+			last = v
+		}
 	}
 	return out
 }
