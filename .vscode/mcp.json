@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "jade": {
+      "type": "stdio",
+      "command": "go",
+      "args": [
+        "run",
+        "./cmd/jade-mcp"
+      ],
+      "env": {
+        "JADE_WORKSPACE_ROOT": "${workspaceFolder}"
+      }
+    }
+  }
+}

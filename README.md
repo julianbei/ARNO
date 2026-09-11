@@ -71,6 +71,27 @@ go run ./cmd/jade api-job-summary-demo
 go run ./cmd/jade api-go-parser-compare docs/fixtures/go_treesitter_spike.go
 ```
 
+## Use JADE In Copilot Session (MCP)
+
+This repo now includes a local MCP stdio server entrypoint:
+
+- [cmd/jade-mcp/main.go](cmd/jade-mcp/main.go)
+
+Workspace MCP config is included in:
+
+- [.vscode/mcp.json](.vscode/mcp.json)
+
+To attach it to a GitHub Copilot chat session in VS Code:
+
+1. Reload window after pulling latest changes.
+2. Open a new Copilot chat session in this workspace.
+3. Confirm the `jade` MCP server is enabled in MCP server settings.
+4. Call JADE tools from chat (for example `jade.outline` and `jade.read_symbol`).
+
+The server uses this env var for workspace root:
+
+- `JADE_WORKSPACE_ROOT=${workspaceFolder}`
+
 ---
 
 ## 1. Executive summary
