@@ -32,6 +32,7 @@ The scaffold now includes the first source-grounded runtime behavior inspired by
 - Progressive disclosure primitives for code outlines and symbol reads in [internal/code/index.go](internal/code/index.go)
 - Edit responses with immediate diagnostics and async job IDs in [internal/edit/service.go](internal/edit/service.go)
 - Job lifecycle status and events in [internal/jobs/runner.go](internal/jobs/runner.go)
+- Internal API and MCP transport parity for inspect/modify/state/job/event operations in [internal/transport/internalapi/server.go](internal/transport/internalapi/server.go) and [internal/transport/mcp/server.go](internal/transport/mcp/server.go)
 
 ## Reference Notes
 

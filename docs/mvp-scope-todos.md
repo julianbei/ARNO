@@ -29,9 +29,9 @@ Out of scope for MVP:
 
 ### A. Transport and API
 
-- [ ] Finalize internal API request/response contracts for inspect/modify/validate/state.
-- [ ] Implement MCP transport endpoints that map 1:1 to internal API operations.
-- [ ] Add events(after_cursor, limit) polling endpoint with stable cursor semantics.
+- [x] Finalize internal API request/response contracts for inspect/modify/validate/state.
+- [x] Implement MCP transport endpoints that map 1:1 to internal API operations.
+- [x] Add events(after_cursor, limit) polling endpoint with stable cursor semantics.
 
 ### B. Inspection
 
