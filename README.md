@@ -85,9 +85,12 @@ config instead of the bare `jade-mcp` shown below.
 
 ### From a release binary
 
-Prebuilt static binaries for linux and darwin on amd64 and arm64 are attached
-to each [GitHub release](https://github.com/julianbei/jade/releases), with a
-`checksums.txt` alongside them.
+Prebuilt binaries for linux and darwin on amd64 and arm64 are attached to each
+[GitHub release](https://github.com/julianbei/jade/releases), with a
+`checksums.txt` alongside them. Each is built natively on its own platform —
+Jade links tree-sitter through cgo, so the linux builds need a reasonably
+current glibc. On an older distro, build from source or use the container
+image, which is statically linked against musl.
 
 ```bash
 VERSION=v0.0.1

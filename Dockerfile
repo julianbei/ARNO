@@ -11,8 +11,9 @@
 
 FROM golang:1.24-alpine AS build
 
-# git is needed for the version stamp; the build itself is pure Go.
-RUN apk add --no-cache git
+# tree-sitter's Go binding is cgo, so a C toolchain is required — jade cannot
+# be built with CGO_ENABLED=0. git is for the version stamp fallback.
+RUN apk add --no-cache build-base git
 
 WORKDIR /src
 
@@ -25,17 +26,21 @@ COPY . .
 # VERSION is passed in by the release workflow (the git tag). It falls back to
 # git describe for local builds, and to "dev" when neither is available, rather
 # than failing — a binary that cannot say what it is still beats no binary.
+#
+# The binary is statically linked against musl so it can run in a scratch or
+# distroless image despite needing cgo.
 ARG VERSION
 RUN VERSION="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo dev)}" && \
-    CGO_ENABLED=0 go build -trimpath \
-        -ldflags "-s -w -X main.version=${VERSION}" \
-        -o /jade-mcp ./cmd/jade-mcp
+    CGO_ENABLED=1 go build -trimpath \
+        -ldflags "-s -w -linkmode external -extldflags '-static' -X main.version=${VERSION}" \
+        -o /jade-mcp ./cmd/jade-mcp && \
+    /jade-mcp --version
 
 # Runtime stage. Distroless static: jade shells out to git, gopls and the
 # project's own build tools when they exist, and degrades with an explicit
 # message when they do not — so a minimal image is a usable image, just with
 # `references`/`rename` in their textual fallback and `changes`/`diff` off.
-# Use the build stage instead if you want git in the same layer.
+# Install git and gopls in your own image if you want the full surface.
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /jade-mcp /jade-mcp

@@ -9,8 +9,29 @@ permissions:
   packages: write
 
 jobs:
+  # Jade parses with tree-sitter, whose Go binding is cgo, not pure Go — so
+  # there is no cross-compiling without arranging a C toolchain per target.
+  # Building each target on its own native runner is the cheaper trade: no
+  # cross-toolchain to maintain, and each binary is built by the platform it
+  # will run on.
   binaries:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            os: linux
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+          - runner: macos-13
+            os: darwin
+            arch: amd64
+          - runner: macos-14
+            os: darwin
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
@@ -19,28 +40,42 @@ jobs:
           go-version: '1.24'
           cache: true
 
-      # Cross-compiled, CGO-free static binaries. jade parses with
-      # tree-sitter through a pure-Go binding, so there is no C toolchain to
-      # arrange per target.
-      - name: Build release binaries
+      - name: Build
         run: |
           set -e
-          version="${GITHUB_REF_NAME}"
+          name="jade-mcp_${GITHUB_REF_NAME}_${{ matrix.os }}_${{ matrix.arch }}"
           mkdir -p dist
-          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
-            os="${target%/*}"
-            arch="${target#*/}"
-            out="dist/jade-mcp_${version}_${os}_${arch}"
-            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
-              -ldflags "-s -w -X main.version=${version}" \
-              -o "$out" ./cmd/jade-mcp
-            ( cd dist && tar czf "$(basename "$out").tar.gz" "$(basename "$out")" && rm "$(basename "$out")" )
-          done
-          ( cd dist && sha256sum *.tar.gz > checksums.txt )
-          ls -l dist
+          CGO_ENABLED=1 go build -trimpath \
+            -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" \
+            -o "dist/${name}" ./cmd/jade-mcp
+          "dist/${name}" --version
+          ( cd dist && tar czf "${name}.tar.gz" "${name}" && rm "${name}" )
 
-      - name: Publish GitHub release
-        uses: softprops/action-gh-release@v2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jade-mcp_${{ matrix.os }}_${{ matrix.arch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    needs: binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      # Checksums are computed once, over everything, after all four
+      # architectures have landed — a per-runner checksum file would give four
+      # partial lists rather than one manifest.
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum *.tar.gz > checksums.txt
+          cat checksums.txt
+
+      - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           generate_release_notes: true
@@ -61,6 +96,8 @@ jobs:
 
       # Published so other projects can pull the binary into their own image
       # with a single COPY --from, without a Go toolchain in their build.
+      # linux/arm64 is compiled under emulation here, which is slow but avoids
+      # a second runner just for the image.
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
