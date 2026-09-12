@@ -15,3 +15,9 @@ bin/
 # it is the repo's declared command vocabulary — but the telemetry log is
 # local measurement data that would conflict on every pull.
 .jade/telemetry.jsonl
+
+# Conformance fixtures are prepared inside the container, not committed.
+test/conformance/repos/*/node_modules/
+test/conformance/repos/*/package-lock.json
+test/conformance/repos/ruby/Gemfile.lock
+test/conformance/repos/*/target/

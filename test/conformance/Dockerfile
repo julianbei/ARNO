@@ -36,10 +36,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # --- Go: gopls -------------------------------------------------------------
-RUN go install golang.org/x/tools/gopls@latest
+# GOTOOLCHAIN=auto lets the go command fetch whatever toolchain a dependency
+# requires. gopls tracks the Go release closely and already needs a newer one
+# than this base image ships, so pinning a gopls version instead would just
+# move the breakage to the next release.
+RUN GOTOOLCHAIN=auto go install golang.org/x/tools/gopls@latest
 
 # --- TypeScript / JavaScript ----------------------------------------------
-RUN npm install -g typescript typescript-language-server
+RUN npm install -g typescript@5 typescript-language-server
 
 # --- Python: pyright -------------------------------------------------------
 # The npm distribution is used rather than pip's because it ships the
@@ -49,7 +53,7 @@ RUN npm install -g pyright
 # --- Ruby ------------------------------------------------------------------
 # ruby-lsp is jade's first choice; solargraph is its configured alternative,
 # so installing both exercises the alternative-resolution path too.
-RUN gem install --no-document ruby-lsp solargraph
+RUN gem install --no-document bundler ruby-lsp solargraph
 
 # --- Rust: rust-analyzer ---------------------------------------------------
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
@@ -69,10 +73,20 @@ RUN mkdir -p /opt/jdtls \
 
 # --- Scala: metals ---------------------------------------------------------
 # Installed through coursier, which is how metals is actually distributed.
-RUN curl -fsSL "https://github.com/coursier/launchers/raw/master/cs-x86_64-pc-linux.gz" \
-        | gzip -d > /usr/local/bin/cs \
+# No `|| true` here. An install that silently fails produces an image whose
+# Scala results are "skipped" rather than "broken", which is the same lie the
+# rustup shim told — and the whole point of this image is that a missing
+# server is visible.
+RUN ARCH="$(uname -m)" \
+    && case "$ARCH" in \
+         x86_64) CS_URL="https://github.com/coursier/launchers/raw/master/cs-x86_64-pc-linux.gz" ;; \
+         aarch64) CS_URL="https://github.com/coursier/launchers/raw/master/cs-aarch64-pc-linux.gz" ;; \
+         *) echo "unsupported architecture $ARCH for coursier" >&2; exit 1 ;; \
+       esac \
+    && curl -fsSL "$CS_URL" | gzip -d > /usr/local/bin/cs \
     && chmod +x /usr/local/bin/cs \
-    && cs install metals --install-dir /usr/local/bin || true
+    && cs install metals --install-dir /usr/local/bin \
+    && metals --version 2>&1 | head -1
 
 WORKDIR /jade
 COPY . .
@@ -81,8 +95,27 @@ COPY . .
 RUN go build -o /usr/local/bin/jade-mcp ./cmd/jade-mcp
 ENV JADE_MCP_BINARY=/usr/local/bin/jade-mcp
 
-# Warm the module cache for the fixture repos that need one, so the first
-# language server to start is not also downloading a toolchain.
-RUN cd test/conformance/repos/rust && cargo fetch || true
+# Prepare the fixture repositories the way a real checkout would be prepared.
+#
+# This is not convenience. Two servers refuse to start against a bare source
+# tree, and each refusal was initially mistaken for a jade bug:
+#
+#   typescript-language-server: "Could not find a valid TypeScript
+#   installation" unless typescript is resolvable from the workspace. A real
+#   TypeScript project has it in node_modules; the fixture needs the same.
+#
+#   ruby-lsp: "Project contains a Gemfile, but no Gemfile.lock. Run
+#   `bundle install`" — and then exits.
+#
+# jade degrades correctly in both cases, which the suite proves separately.
+# What it cannot prove against an unprepared fixture is that the semantic
+# path works, which is the thing being tested here.
+# typescript@5 specifically: typescript-language-server drives tsserver.js,
+# which TypeScript 7 restructured away — installing "latest" produces
+# "provides no tsserver.js" and a server that exits at initialize.
+RUN cd test/conformance/repos/typescript && npm install --silent typescript@5 \
+    && cd ../javascript && npm install --silent typescript@5 \
+    && cd ../ruby && bundle install --quiet \
+    && cd ../rust && cargo fetch
 
 CMD ["go", "test", "./test/conformance/", "-v", "-timeout", "30m"]

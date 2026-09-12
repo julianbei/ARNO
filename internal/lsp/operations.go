@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -42,6 +43,15 @@ func References(ctx context.Context, client *Client, path string, lineText strin
 	return locations, true
 }
 
+// Rename failures a caller must be able to tell apart. "No server" means
+// install one; "unsupported" and "no edits" mean the server is there and
+// declined, which is a different action entirely.
+var (
+	ErrNoServer          = errors.New("no language server is running for this file")
+	ErrRenameUnsupported = errors.New("the language server does not implement rename")
+	ErrRenameNoEdits     = errors.New("the language server produced no edits for this symbol")
+)
+
 // FileEdit is one file's worth of a rename, in jade's coordinates.
 type FileEdit struct {
 	Path string
@@ -66,12 +76,12 @@ type PositionedEdit struct {
 // belongs: jade's edit service owns revisions, formatting and validation, and
 // a rename that wrote files behind its back would produce a change with no
 // revision bump and no diagnostics.
-func Rename(ctx context.Context, client *Client, path string, lineText string, line int, column int, newName string) ([]FileEdit, bool) {
+func Rename(ctx context.Context, client *Client, path string, lineText string, line int, column int, newName string) ([]FileEdit, error) {
 	if client == nil {
-		return nil, false
+		return nil, ErrNoServer
 	}
 	if !client.Supports("renameProvider") {
-		return nil, false
+		return nil, ErrRenameUnsupported
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, RequestTimeout)
@@ -84,7 +94,10 @@ func Rename(ctx context.Context, client *Client, path string, lineText string, l
 		NewName:      newName,
 	}, &edit)
 	if err != nil {
-		return nil, false
+		// The server's own words. Reporting "no language server is
+		// available" for a server that is running and answered is a lie that
+		// sends the reader to install something they already have.
+		return nil, err
 	}
 
 	byPath := make(map[string][]TextEdit)
@@ -96,7 +109,7 @@ func Rename(ctx context.Context, client *Client, path string, lineText string, l
 		byPath[path] = append(byPath[path], documentEdit.Edits...)
 	}
 	if len(byPath) == 0 {
-		return nil, false
+		return nil, ErrRenameNoEdits
 	}
 
 	out := make([]FileEdit, 0, len(byPath))
@@ -125,7 +138,7 @@ func Rename(ctx context.Context, client *Client, path string, lineText string, l
 	}
 
 	sort.Slice(out, func(a, b int) bool { return out[a].Path < out[b].Path })
-	return out, true
+	return out, nil
 }
 
 // utf16Column converts a 1-based byte column into the 0-based UTF-16 code unit

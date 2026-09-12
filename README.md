@@ -321,6 +321,13 @@ and shuts it down on exit.
 | Scala | ✅ built in | `metals` |
 | Everything else | text scan, announced | — |
 
+Every row is verified end-to-end by `make conformance`, which builds an image
+containing all eight servers and runs jade against a real repository per
+language. One known server limitation is recorded rather than hidden:
+**ruby-lsp advertises rename and then produces no edits for a method**, so
+jade reports the server's own reason instead of claiming no server is
+installed.
+
 "Structure" is outline, symbol read, edit-by-symbol, grep and search.
 "Semantics" is exact `references`, cross-file `rename`, and type-level
 diagnostics on edit.

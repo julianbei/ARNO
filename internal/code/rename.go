@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/julianbei/jade/internal/lsp"
 	"github.com/julianbei/jade/internal/toolchain"
 )
 
@@ -61,8 +62,16 @@ func (i *Index) RenameSymbol(path string, symbolID string, newName string) ([]st
 	// Go at all. The refusal below is still the right answer when no server
 	// is available: applying a rename from name matching would silently
 	// rewrite unrelated identifiers that happen to share a name.
-	if changed, ok := i.languageServerRename(symbol, line, column, newName); ok {
+	changed, lspErr := i.languageServerRename(symbol, line, column, newName)
+	if lspErr == nil {
 		return changed, nil
+	}
+	// A running server that declined is not the same as no server at all.
+	// Saying "install a language server" to someone whose server just
+	// answered sends them after the wrong problem entirely.
+	if !errors.Is(lspErr, lsp.ErrNoServer) {
+		return nil, fmt.Errorf("rename refused by the %s language server: %w",
+			lsp.LanguageForPath(symbol.Path), lspErr)
 	}
 
 	if !strings.EqualFold(filepath.Ext(symbol.Path), ".go") {
@@ -78,7 +87,7 @@ func (i *Index) RenameSymbol(path string, symbolID string, newName string) ([]st
 	if err != nil {
 		return nil, fmt.Errorf("rename rejected by gopls: %w", err)
 	}
-	changed := parseRenameDiffPaths(preview, i.relativePath)
+	changed = parseRenameDiffPaths(preview, i.relativePath)
 	if len(changed) == 0 {
 		return nil, fmt.Errorf("gopls reported no edits for %s", symbolID)
 	}

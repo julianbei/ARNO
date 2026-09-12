@@ -79,9 +79,9 @@ func TestAgainstRealGopls(t *testing.T) {
 		t.Fatal("gopls returned no references for a function that is definitely used")
 	}
 
-	edits, ok := Rename(ctx, client, root+"/"+file, lineText, line, column, "toUTF16Column")
-	if !ok {
-		t.Fatal("rename produced no edits")
+	edits, err := Rename(ctx, client, root+"/"+file, lineText, line, column, "toUTF16Column")
+	if err != nil {
+		t.Fatalf("rename failed: %v", err)
 	}
 	if len(edits) < 2 {
 		t.Fatalf("utf16Column is used from its test file too, so a rename must span at least 2 files, got %d", len(edits))

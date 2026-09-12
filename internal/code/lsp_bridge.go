@@ -2,6 +2,7 @@ package code
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,19 +62,22 @@ func (i *Index) languageServerReferences(symbol Symbol, line int, column int) ([
 // files: a server that wrote them itself would produce a change with no
 // revision bump, no formatting and no diagnostics, which is precisely the
 // invisible edit jade exists to prevent.
-func (i *Index) languageServerRename(symbol Symbol, line int, column int, newName string) ([]string, bool) {
+func (i *Index) languageServerRename(symbol Symbol, line int, column int, newName string) ([]string, error) {
 	ctx := context.Background()
 	absolute := i.resolvePath(symbol.Path)
 
 	client, _, ok := i.languageClient(ctx, symbol.Path)
 	if !ok {
-		return nil, false
+		return nil, lsp.ErrNoServer
 	}
 
 	lineText := i.lineAt(absolute, line)
-	fileEdits, ok := lsp.Rename(ctx, client, absolute, lineText, line, column, newName)
-	if !ok || len(fileEdits) == 0 {
-		return nil, false
+	fileEdits, err := lsp.Rename(ctx, client, absolute, lineText, line, column, newName)
+	if err != nil {
+		return nil, err
+	}
+	if len(fileEdits) == 0 {
+		return nil, lsp.ErrRenameNoEdits
 	}
 
 	// Preflight every file before writing any of them. A rename that succeeds
@@ -83,7 +87,7 @@ func (i *Index) languageServerRename(symbol Symbol, line int, column int, newNam
 	for _, fileEdit := range fileEdits {
 		data, err := os.ReadFile(fileEdit.Path)
 		if err != nil {
-			return nil, false
+			return nil, err
 		}
 		contents[fileEdit.Path] = splitLines(string(data))
 	}
@@ -93,7 +97,7 @@ func (i *Index) languageServerRename(symbol Symbol, line int, column int, newNam
 		for _, edit := range fileEdit.Edits {
 			updated, ok := applyPositionedEdit(lines, edit)
 			if !ok {
-				return nil, false
+				return nil, fmt.Errorf("language server returned an edit that does not fit %s", fileEdit.Path)
 			}
 			lines = updated
 		}
@@ -104,11 +108,11 @@ func (i *Index) languageServerRename(symbol Symbol, line int, column int, newNam
 	for _, fileEdit := range fileEdits {
 		body := strings.Join(contents[fileEdit.Path], "\n") + "\n"
 		if err := os.WriteFile(fileEdit.Path, []byte(body), 0o644); err != nil {
-			return nil, false
+			return nil, err
 		}
 		changed = append(changed, i.relativePath(fileEdit.Path))
 	}
-	return changed, true
+	return changed, nil
 }
 
 // applyPositionedEdit replaces one range. Edits arrive ordered last-to-first,

@@ -53,6 +53,13 @@ type languageCase struct {
 
 	// renamed is the new name, and what must appear in both files afterwards.
 	renamed string
+
+	// renameLimitation records a server that advertises renameProvider but
+	// cannot actually rename this kind of symbol. Recorded rather than
+	// skipped: the assertion becomes "jade reports the limitation
+	// accurately", which is the behaviour that matters when a server
+	// declines. Empty means rename is expected to work.
+	renameLimitation string
 }
 
 func cases() []languageCase {
@@ -81,6 +88,11 @@ func cases() []languageCase {
 			name: "ruby", dir: "ruby", file: "store.rb", symbol: "put",
 			declarations: []string{"Store", "put", "new_store"},
 			server:       "ruby-lsp", otherFile: "use.rb", renamed: "store2",
+			// ruby-lsp advertises renameProvider and then returns no edits
+			// for a method. References work and are exact, so the useful
+			// assertion is that jade says what happened instead of blaming a
+			// missing server the user has installed.
+			renameLimitation: "produced no edits",
 		},
 		{
 			name: "rust", dir: "rust", file: "src/lib.rs", symbol: "put",
@@ -150,8 +162,13 @@ func TestSemantics(t *testing.T) {
 				references = session.call(t, "jade.references", map[string]any{
 					"path": tc.file, "symbolName": tc.symbol,
 				})
-				if strings.Contains(references, "(approximate") || strings.Contains(references, "0 references") {
-					time.Sleep(2 * time.Second)
+				// Match the wording the renderer actually produces. An earlier
+				// version looked for "(approximate" with a leading paren,
+				// which never matched "2 approximate references" — so the
+				// retry never fired and every language that needed a moment
+				// to index was reported as a jade failure at 0.3s.
+				if strings.Contains(references, "approximate") || strings.Contains(references, "0 references") {
+					time.Sleep(3 * time.Second)
 					continue
 				}
 				break
@@ -165,6 +182,22 @@ func TestSemantics(t *testing.T) {
 			renameOut := session.call(t, "jade.rename", map[string]any{
 				"path": tc.file, "symbolName": tc.symbol, "newName": tc.renamed,
 			})
+
+			if tc.renameLimitation != "" {
+				// The server declined. jade must name the server and repeat
+				// its reason, never claim no server is available — that
+				// sends someone to install what they already have.
+				if !strings.Contains(renameOut, tc.renameLimitation) {
+					t.Fatalf("%s: expected jade to report the server's own reason (%q), got:\n%s",
+						tc.name, tc.renameLimitation, renameOut)
+				}
+				if strings.Contains(renameOut, "none is available") {
+					t.Fatalf("%s: jade blamed a missing server for a running one's refusal:\n%s",
+						tc.name, renameOut)
+				}
+				return
+			}
+
 			if strings.Contains(renameOut, "requires a language server") {
 				t.Fatalf("%s: rename refused despite a running server:\n%s", tc.name, renameOut)
 			}
@@ -194,14 +227,14 @@ const serverDeadline = 90 * time.Second
 // alone tries to use it and reports a jade failure for someone else's
 // packaging.
 //
-// Servers absent from this list are assumed usable if present: jdtls and
-// metals are launcher scripts with no fast, reliable version flag, and a
-// wrong probe there would skip a language silently in the container that
-// exists precisely to test it.
+// Servers absent from this list are assumed usable if present. jdtls and
+// metals are launcher scripts with no fast, reliable version flag, and
+// pyright-langserver rejects --version outright ("Connection input stream is
+// not set") because it only speaks LSP — probing it wrongly skipped Python
+// in the very container built to test it.
 var versionProbe = map[string][]string{
 	"gopls":                      {"version"},
 	"typescript-language-server": {"--version"},
-	"pyright-langserver":         {"--version"},
 	"rust-analyzer":              {"--version"},
 	"ruby-lsp":                   {"--version"},
 	"solargraph":                 {"--version"},
