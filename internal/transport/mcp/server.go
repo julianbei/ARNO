@@ -50,10 +50,11 @@ func (s *Server) Start(context.Context) error {
 }
 
 func (s *Server) Outline(req protocol.OutlineRequest) (protocol.InspectResponse, error) {
-	sections, symbols, err := s.index.OutlineStructured(req.Path)
+	sections, symbols, parser, err := s.index.OutlineStructured(req.Path)
 	if err != nil {
 		return protocol.InspectResponse{}, err
 	}
+	_ = parser
 
 	outline := make([]protocol.OutlineItem, 0, len(symbols))
 	for _, symbol := range symbols {
@@ -208,22 +209,20 @@ func (s *Server) ReplaceSymbol(req protocol.ReplaceSymbolRequest) (protocol.Edit
 	if req.SymbolID == "" {
 		return protocol.EditResponse{}, fmt.Errorf("symbol id is required")
 	}
-	return s.edit.ReplaceSymbol(req.SymbolID, req.NewCode), nil
+	return s.edit.ReplaceSymbol(req.SymbolID, req.ExpectedRevision, req.NewCode)
 }
 
 func (s *Server) ReplaceRange(req protocol.ReplaceRangeRequest) (protocol.EditResponse, error) {
-	response, ok := s.edit.ReplaceRange(req.Path, req.ExpectedRevision, req.StartLine, req.EndLine, req.NewCode)
-	if !ok {
-		return protocol.EditResponse{}, fmt.Errorf("edit rejected: stale revision")
-	}
-	return response, nil
+	return s.edit.ReplaceRange(req.Path, req.ExpectedRevision, req.StartLine, req.EndLine, req.NewCode)
 }
 
 func (s *Server) Changes() protocol.ChangesResponse {
-	return protocol.ChangesResponse{
-		Revision: s.workspace.Revision(),
-		Paths:    s.workspace.Changes(),
-	}
+	return s.workspace.ChangesResponse()
+}
+
+func (s *Server) SearchNudge(req protocol.SearchNudgeRequest) protocol.SearchNudgeResponse {
+	footer, ok := s.index.SearchNudge(req.Command, req.OutputLength, req.FirstInSession)
+	return protocol.SearchNudgeResponse{Footer: footer, Nudged: ok}
 }
 
 func (s *Server) Checkpoint(req protocol.CheckpointRequest) protocol.CheckpointResponse {
@@ -268,17 +267,18 @@ func (s *Server) JobStatus(id string) (protocol.JobStatusResponse, error) {
 }
 
 func (s *Server) JobOutput(id string) (protocol.JobOutputResponse, error) {
-	kind, status, summary, rawOutput, ok := s.jobs.Output(id)
+	output, ok := s.jobs.Output(id)
 	if !ok {
 		return protocol.JobOutputResponse{}, fmt.Errorf("job not found: %s", id)
 	}
 
 	return protocol.JobOutputResponse{
-		ID:        id,
-		Kind:      kind,
-		Status:    status,
-		Summary:   summary,
-		RawOutput: rawOutput,
+		ID:           id,
+		Kind:         output.Kind,
+		Status:       output.Status,
+		Summary:      output.Summary,
+		RawOutput:    output.Raw,
+		OmittedBytes: output.OmittedBytes,
 	}, nil
 }
 

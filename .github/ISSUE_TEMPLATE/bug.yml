@@ -1,0 +1,83 @@
+name: "Bug — a tool did the wrong thing"
+description: A jade tool returned a wrong answer, failed when it should not have, or changed something it should not have.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: checkboxes
+    id: reconnect
+    attributes:
+      label: Reconnect check
+      description: |
+        Please confirm this first — it is by far the most common false alarm.
+
+        The MCP tool catalog is fixed at connection time. A newly added tool
+        does not appear, and a newly built binary is not used, until the client
+        reconnects. During jade's own development this accounted for every
+        single "the tool is missing" report.
+      options:
+        - label: I reconnected my MCP client (or restarted it) and the problem persists.
+          required: true
+
+  - type: textarea
+    id: call
+    attributes:
+      label: The call
+      description: Tool name and arguments.
+      render: json
+      placeholder: |
+        {"name": "jade.replace_text", "arguments": {"path": "a.go", "oldText": "…", "newText": "…"}}
+    validations:
+      required: true
+
+  - type: textarea
+    id: response
+    attributes:
+      label: What came back
+      description: Paste the response verbatim. Jade's responses are plain text and usually short.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: telemetry
+    attributes:
+      label: Telemetry (optional, very helpful)
+      description: |
+        Output of the `jade.telemetry` tool. It records **no arguments, no
+        response bodies and no error text** — only tool names, sizes, timings
+        and failure classes — so it is safe to paste from a private repo.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `jade-mcp --version`.
+      placeholder: jade-mcp v0.0.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language of the file involved
+      description: |
+        Jade has real tree-sitter grammars for Go, TypeScript, TSX and Rust
+        only. Everything else uses a text-scan fallback that finds some
+        declarations and misses others — a known limitation, not a bug, though
+        we do want to hear if the fallback is worse than you expected.
+      options:
+        - Go
+        - TypeScript / TSX
+        - Rust
+        - Other (text-scan fallback)
+        - Not language-specific
+    validations:
+      required: true

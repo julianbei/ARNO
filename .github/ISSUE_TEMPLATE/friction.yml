@@ -1,0 +1,56 @@
+name: "Friction — I reached for the shell instead"
+description: A jade tool existed but you (or your agent) used bash anyway. This is the most useful report you can file.
+title: "friction: "
+labels: ["friction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This is the report jade most wants.**
+
+        Jade's whole premise is that an agent falling back to `grep`/`sed`/`cat`
+        is operating outside any tooling you control — no revision tracking, no
+        guardrails, no telemetry. So every fallback is a design problem, even
+        when jade had a tool that would have worked.
+
+        **"It was just habit" is a valid and valuable answer.** It means the
+        jade path was not the obvious one at the moment of choosing, which is
+        our problem, not yours. Please do not filter these out as user error.
+
+  - type: textarea
+    id: command
+    attributes:
+      label: What did you run instead?
+      description: The actual shell command, as typed.
+      placeholder: grep -rn "handleRequest" --include=*.go . | grep -v _test
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why that instead of a jade tool?
+      description: |
+        Pick whichever fits, or write your own:
+
+        - No jade tool does this at all
+        - A tool exists but takes more calls
+        - A tool exists but I did not know / did not think of it
+        - A tool exists but its output was harder to read
+        - I tried the tool and it gave a wrong or confusing answer
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: If you tried a jade tool first, what happened?
+      description: The call and the response. Skip if you went straight to the shell.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `jade-mcp --version`.
+      placeholder: jade-mcp v0.0.1

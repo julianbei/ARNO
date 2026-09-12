@@ -35,7 +35,7 @@ func main() {
 
 	wm := workspace.NewManager(root, bus)
 	ci := code.NewIndex(root, bus)
-	ds := diagnostics.NewService()
+	ds := diagnostics.NewService(root)
 	jr := jobs.NewRunner(bus)
 	es := edit.NewService(wm, ci, ds, jr)
 	lr := languages.NewRegistry()
@@ -142,10 +142,10 @@ func main() {
 			}
 		}
 
-		fmt.Printf("before=%s paths=%d\n", before.Revision, len(before.Paths))
+		fmt.Printf("before=%s paths=%d\n", before.Revision, len(before.Files))
 		fmt.Printf("checkpoint=%s revision=%s\n", checkpoint.ID, checkpoint.Revision)
-		fmt.Printf("during=%s paths=%d\n", during.Revision, len(during.Paths))
-		fmt.Printf("after=%s paths=%d restored=%s\n", after.Revision, len(after.Paths), restored.ID)
+		fmt.Printf("during=%s paths=%d\n", during.Revision, len(during.Files))
+		fmt.Printf("after=%s paths=%d restored=%s\n", after.Revision, len(after.Files), restored.ID)
 		fmt.Printf("checkpoint_events=%d\n", checkpointEvents)
 		return
 	}

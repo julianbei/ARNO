@@ -8,8 +8,8 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 	"strings"
+	"time"
 
 	"github.com/julianbei/jade/internal/code"
 	"github.com/julianbei/jade/internal/diagnostics"
@@ -18,6 +18,8 @@ import (
 	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/languages"
 	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/jade/internal/render"
+	"github.com/julianbei/jade/internal/telemetry"
 	"github.com/julianbei/jade/internal/transport/internalapi"
 	"github.com/julianbei/jade/internal/workspace"
 )
@@ -55,27 +57,54 @@ type mcpTextContent struct {
 type mcpToolResult struct {
 	Content []mcpTextContent `json:"content"`
 	IsError bool             `json:"isError,omitempty"`
+
+	// outcome carries an in-band failure the response reported about itself —
+	// a not_found or ambiguous symbol resolution, say. Unexported so it never
+	// reaches the wire: it exists only to get from jsonResult, which sees the
+	// typed response, to handleToolCall, which does the recording.
+	outcome telemetry.Outcome
 }
 
 type mcpServer struct {
-	api *internalapi.Server
+	api       *internalapi.Server
+	telemetry *telemetry.Recorder
 }
 
+// version is stamped at build time via -ldflags (see the Makefile). It is
+// "dev" for a plain `go build` or `go run`, which is itself useful
+// information: it says the server was not built through the release path.
+var version = "dev"
+
 func main() {
-	ctx := context.Background()
-	root := os.Getenv("JADE_WORKSPACE_ROOT")
-	if strings.TrimSpace(root) == "" {
-		cwd, err := os.Getwd()
-		if err != nil {
-			fatalf("failed to resolve working directory: %v", err)
+	// Answered before anything else is constructed, so `--version` works even
+	// when the workspace root is wrong or missing — which is exactly when
+	// someone is trying to find out what they are running.
+	for _, arg := range os.Args[1:] {
+		if arg == "--version" || arg == "-version" || arg == "version" {
+			fmt.Fprintf(os.Stdout, "jade-mcp %s\n", version)
+			return
 		}
-		root = cwd
 	}
+
+	ctx := context.Background()
+
+	resolved, err := resolveWorkspaceRoot(os.Args[1:], os.Getenv, os.Getwd)
+	if err != nil {
+		fatalf("%v", err)
+	}
+
+	// Startup reporting goes to stderr, never stdout: stdout carries the
+	// JSON-RPC stream and a stray line there breaks the protocol framing.
+	fmt.Fprintf(os.Stderr, "jade-mcp %s · workspace %s (from %s)\n", version, resolved.Path, resolved.Source)
+	if resolved.Warning != "" {
+		fmt.Fprintf(os.Stderr, "jade-mcp warning: %s\n", resolved.Warning)
+	}
+	root := resolved.Path
 
 	bus := events.NewBus()
 	wm := workspace.NewManager(root, bus)
 	ci := code.NewIndex(root, bus)
-	ds := diagnostics.NewService()
+	ds := diagnostics.NewService(root)
 	jr := jobs.NewRunner(bus)
 	es := edit.NewService(wm, ci, ds, jr)
 	lr := languages.NewRegistry()
@@ -89,7 +118,7 @@ func main() {
 		fatalf("failed to start internal api: %v", err)
 	}
 
-	s := &mcpServer{api: api}
+	s := &mcpServer{api: api, telemetry: telemetry.New(root)}
 	if err := s.loop(os.Stdin, os.Stdout); err != nil {
 		fatalf("mcp loop failed: %v", err)
 	}
@@ -190,6 +219,10 @@ func (s *mcpServer) handleRequest(req rpcRequest) rpcResponse {
 	}
 }
 
+// handleToolCall is the single point every tool call passes through, which is
+// why the measurement lives here rather than in each handler: a per-handler
+// approach would drift the moment a tool was added, and the tool most worth
+// measuring is always the newest one.
 func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 	var req struct {
 		Name      string                 `json:"name"`
@@ -204,7 +237,40 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 		args = map[string]interface{}{}
 	}
 
-	switch req.Name {
+	started := time.Now()
+	result, err := s.dispatchToolCall(req.Name, args)
+
+	// A returned error always wins: it is the stronger signal, and a handler
+	// that errors never produced a typed response to read an outcome from.
+	outcome := telemetry.Classify(err)
+	if err == nil && result.outcome != "" {
+		outcome = result.outcome
+	}
+	s.telemetry.RecordOutcome(req.Name, time.Since(started), resultBytes(result), outcome)
+	return result, err
+}
+
+// resultBytes measures what the caller actually pays for: the rendered text,
+// not the wire frame around it. Response size is half the reason an agent
+// prefers one tool over another, so measuring the envelope instead of the
+// payload would make the number useless for the comparison it exists to serve.
+func resultBytes(result mcpToolResult) int {
+	total := 0
+	for _, content := range result.Content {
+		total += len(content.Text)
+	}
+	return total
+}
+
+func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (mcpToolResult, error) {
+	switch name {
+	case "jade.workspace_tree":
+		maxEntries := intArg(args, "maxEntries")
+		res, err := s.api.WorkspaceTree(protocol.WorkspaceTreeRequest{MaxEntries: maxEntries})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
 	case "jade.outline":
 		path := stringArg(args, "path")
 		res, err := s.api.Outline(protocol.OutlineRequest{Path: path})
@@ -227,10 +293,118 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
+	case "jade.read_range":
+		path := stringArg(args, "path")
+		startLine := intArg(args, "startLine")
+		endLine := intArg(args, "endLine")
+		res, err := s.api.ReadRange(protocol.ReadRangeRequest{
+			Path:      path,
+			StartLine: startLine,
+			EndLine:   endLine,
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.history":
+		res, err := s.api.History(protocol.HistoryRequest{
+			Path:         stringArg(args, "path"),
+			SymbolID:     stringArg(args, "symbolId"),
+			SymbolName:   stringArg(args, "symbolName"),
+			Limit:        intArg(args, "limit"),
+			IncludePatch: boolArg(args, "includePatch"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.context":
+		res, err := s.api.Context(protocol.ContextRequest{
+			Path:       stringArg(args, "path"),
+			SymbolID:   stringArg(args, "symbolId"),
+			SymbolName: stringArg(args, "symbolName"),
+			Purpose:    stringArg(args, "purpose"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.references":
+		path := stringArg(args, "path")
+		symbolID := stringArg(args, "symbolId")
+		symbolName := stringArg(args, "symbolName")
+		res, err := s.api.References(protocol.ReferencesRequest{
+			Path:       path,
+			SymbolID:   symbolID,
+			SymbolName: symbolName,
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.rename":
+		res, err := s.api.Rename(protocol.RenameRequest{
+			Path:             stringArg(args, "path"),
+			SymbolID:         stringArg(args, "symbolId"),
+			SymbolName:       stringArg(args, "symbolName"),
+			NewName:          stringArg(args, "newName"),
+			ExpectedRevision: stringArg(args, "expectedRevision"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.repository_map":
+		query := stringArg(args, "query")
+		maxTokens := intArg(args, "maxTokens")
+		res, err := s.api.RepositoryMap(protocol.RepositoryMapRequest{Query: query, MaxTokens: maxTokens})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.find":
+		res, err := s.api.Find(protocol.FindRequest{
+			Query:    stringArg(args, "query"),
+			Kind:     stringArg(args, "kind"),
+			Limit:    intArg(args, "limit"),
+			MaxLines: intArg(args, "maxLines"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.search":
+		query := stringArg(args, "query")
+		mode := stringArg(args, "mode")
+		limit := intArg(args, "limit")
+		res, err := s.api.Search(protocol.SearchRequest{Query: query, Mode: mode, Limit: limit})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.search_nudge":
+		command := stringArg(args, "command")
+		outputLength := intArg(args, "outputLength")
+		firstInSession := boolArg(args, "firstInSession")
+		res := s.api.SearchNudge(protocol.SearchNudgeRequest{
+			Command:        command,
+			OutputLength:   outputLength,
+			FirstInSession: firstInSession,
+		})
+		return jsonResult(res)
+	case "jade.retrieve":
+		query := stringArg(args, "query")
+		maxTokens := intArg(args, "maxTokens")
+		res, err := s.api.Retrieve(protocol.RetrievalRequest{Query: query, MaxTokens: maxTokens})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
 	case "jade.replace_symbol":
 		symbolID := stringArg(args, "symbolId")
 		newCode := stringArg(args, "newCode")
-		res, err := s.api.ReplaceSymbol(protocol.ReplaceSymbolRequest{SymbolID: symbolID, NewCode: newCode})
+		expected := stringArg(args, "expectedRevision")
+		res, err := s.api.ReplaceSymbol(protocol.ReplaceSymbolRequest{SymbolID: symbolID, NewCode: newCode, ExpectedRevision: expected})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
@@ -252,8 +426,141 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
+	case "jade.replace_text":
+		res, err := s.api.ReplaceText(protocol.ReplaceTextRequest{
+			Path:             stringArg(args, "path"),
+			ExpectedRevision: stringArg(args, "expectedRevision"),
+			OldText:          stringArg(args, "oldText"),
+			NewText:          stringArg(args, "newText"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.create_file":
+		path := stringArg(args, "path")
+		content := stringArg(args, "content")
+		res, err := s.api.CreateFile(protocol.CreateFileRequest{Path: path, Content: content})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.replace_file":
+		res, err := s.api.ReplaceFile(protocol.ReplaceFileRequest{
+			Path:    stringArg(args, "path"),
+			Content: stringArg(args, "content"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.apply":
+		edits, err := editOpsArg(args, "edits")
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		res, err := s.api.Apply(protocol.ApplyRequest{
+			Edits:            edits,
+			ExpectedRevision: stringArg(args, "expectedRevision"),
+			Format:           boolArgDefault(args, "format", true),
+			Check:            stringArg(args, "check"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.delete_symbol":
+		res, err := s.api.DeleteSymbol(protocol.DeleteSymbolRequest{
+			Path:             stringArg(args, "path"),
+			SymbolID:         stringArg(args, "symbolId"),
+			SymbolName:       stringArg(args, "symbolName"),
+			ExpectedRevision: stringArg(args, "expectedRevision"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.delete_file":
+		path := stringArg(args, "path")
+		res, err := s.api.DeleteFile(protocol.DeleteFileRequest{Path: path})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.check":
+		res, err := s.api.Check(protocol.CheckRequest{
+			Kind:           stringArg(args, "kind"),
+			Wait:           boolArgDefault(args, "wait", true),
+			TimeoutSeconds: intArg(args, "timeoutSeconds"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.telemetry":
+		res, err := s.api.Telemetry(protocol.TelemetryRequest{Reset: boolArg(args, "reset")})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.grep":
+		res, err := s.api.Grep(protocol.GrepRequest{
+			Query:      stringArg(args, "query"),
+			Regex:      boolArg(args, "regex"),
+			IgnoreCase: boolArg(args, "ignoreCase"),
+			Glob:       stringArg(args, "glob"),
+			Exclude:    stringArg(args, "exclude"),
+			Context:    intArg(args, "context"),
+			Limit:      intArg(args, "limit"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.run_command":
+		res, err := s.api.RunCommand(protocol.RunCommandRequest{
+			Name:           stringArg(args, "name"),
+			Wait:           boolArgDefault(args, "wait", true),
+			TimeoutSeconds: intArg(args, "timeoutSeconds"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.declare_command":
+		res, err := s.api.DeclareCommand(protocol.DeclareCommandRequest{
+			Name:        stringArg(args, "name"),
+			Run:         stringArg(args, "run"),
+			Description: stringArg(args, "description"),
+			Remove:      boolArg(args, "remove"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.run_tests":
+		scope := stringArg(args, "scope")
+		file := stringArg(args, "file")
+		testName := stringArg(args, "test")
+		res := s.api.RunTests(protocol.RunTestsRequest{
+			Wait:           boolArgDefault(args, "wait", true),
+			TimeoutSeconds: intArg(args, "timeoutSeconds"),
+			Scope:          scope,
+			File:           file,
+			Test:           testName,
+		})
+		return jsonResult(res)
 	case "jade.changes":
 		res := s.api.Changes()
+		return jsonResult(res)
+	case "jade.diff":
+		res, err := s.api.Diff(protocol.DiffRequest{
+			Target: stringArg(args, "target"),
+			Since:  stringArg(args, "since"),
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
 		return jsonResult(res)
 	case "jade.checkpoint":
 		note := stringArg(args, "note")
@@ -286,12 +593,22 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 		res := s.api.Events(after, limit)
 		return jsonResult(res)
 	default:
-		return mcpToolResult{}, fmt.Errorf("unknown tool: %s", req.Name)
+		return mcpToolResult{}, fmt.Errorf("unknown tool: %s", name)
 	}
 }
 
 func tools() []mcpTool {
 	return []mcpTool{
+		{
+			Name:        "jade.workspace_tree",
+			Description: "Return a plain, bounded directory/file structure listing for orientation (not relevance-ranked).",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"maxEntries": map[string]interface{}{"type": "integer", "description": "Maximum number of entries to return (default 500)."},
+				},
+			},
+		},
 		{
 			Name:        "jade.outline",
 			Description: "Return the declaration outline for a file, along with freshness and structured section buckets.",
@@ -318,13 +635,148 @@ func tools() []mcpTool {
 			},
 		},
 		{
+			Name:        "jade.read_range",
+			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":      map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
+					"startLine": map[string]interface{}{"type": "integer", "description": "Inclusive start line. Omit to start at line 1."},
+					"endLine":   map[string]interface{}{"type": "integer", "description": "Inclusive end line. Omit to read to the end of the file."},
+				},
+				"required": []string{"path"},
+			},
+		},
+		{
+			Name:        "jade.history",
+			Description: "List the commits that touched one symbol's lines, via git log -L — 'why does this code exist' without reading a whole file's history. Commits only by default; set includePatch for the diff hunks.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":         map[string]interface{}{"type": "string", "description": "File containing the symbol's declaration."},
+					"symbolId":     map[string]interface{}{"type": "string", "description": "Exact symbol ID if already known."},
+					"symbolName":   map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
+					"limit":        map[string]interface{}{"type": "integer", "description": "Maximum commits to return (default 10)."},
+					"includePatch": map[string]interface{}{"type": "boolean", "description": "Include diff hunks for each commit."},
+				},
+				"required": []string{"path"},
+			},
+		},
+		{
+			Name:        "jade.context",
+			Description: "Assemble everything needed to act on one symbol in a single call: implementation, related types, direct callers, tests exercising it, current diagnostics, and whether it changed since HEAD. Replaces read_symbol + references + test search + diagnostics round trips.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":       map[string]interface{}{"type": "string", "description": "File containing the symbol's declaration."},
+					"symbolId":   map[string]interface{}{"type": "string", "description": "Exact symbol ID if already known."},
+					"symbolName": map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
+					"purpose":    map[string]interface{}{"type": "string", "description": "What the context is for: modify (default), understand, debug, test. Narrows which sections are returned."},
+				},
+				"required": []string{"path"},
+			},
+		},
+		{
+			Name:        "jade.references",
+			Description: "Find where a symbol is referenced. Uses gopls when available (Source=lsp, compiler-resolved); otherwise falls back to the approximate name-matched call graph (Source=approximate).",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":       map[string]interface{}{"type": "string", "description": "File containing the symbol's declaration."},
+					"symbolId":   map[string]interface{}{"type": "string", "description": "Exact symbol ID if already known."},
+					"symbolName": map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
+				},
+				"required": []string{"path"},
+			},
+		},
+		{
+			Name:        "jade.rename",
+			Description: "Rename a symbol repository-wide via gopls, rewriting every call site deterministically. Refuses rather than guessing when gopls is unavailable or the language is unsupported — it never renames from approximate name matches.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":             map[string]interface{}{"type": "string", "description": "File containing the symbol's declaration."},
+					"symbolId":         map[string]interface{}{"type": "string", "description": "Exact symbol ID if already known."},
+					"symbolName":       map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
+					"newName":          map[string]interface{}{"type": "string", "description": "New identifier for the symbol."},
+					"expectedRevision": map[string]interface{}{"type": "string", "description": "Revision expected before editing."},
+				},
+				"required": []string{"path", "newName"},
+			},
+		},
+		{
+			Name:        "jade.repository_map",
+			Description: "Rank the most relevant repository files for a query and return the included/omitted slice within a token budget.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"query":     map[string]interface{}{"type": "string", "description": "Task description or symbol name to rank against."},
+					"maxTokens": map[string]interface{}{"type": "integer", "description": "Maximum cost budget to keep the map under."},
+				},
+				"required": []string{"query"},
+			},
+		},
+		{
+			Name:        "jade.find",
+			Description: "Locate declarations by name AND return their source in one call — the fused search-and-read that replaces `grep -n 'func X' -A 30`. Exact name matches win over substring ones. Use this instead of outline+read_symbol when you have not located the symbol yet.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"query":    map[string]interface{}{"type": "string", "description": "Symbol name, exact or partial."},
+					"kind":     map[string]interface{}{"type": "string", "description": "Narrow by kind. func/function, type/struct/class/interface, method, const, var — spellings within a family are equivalent. Empty matches any."},
+					"limit":    map[string]interface{}{"type": "integer", "description": "Maximum declarations to return (default 5)."},
+					"maxLines": map[string]interface{}{"type": "integer", "description": "Maximum lines of each body (default 40)."},
+				},
+				"required": []string{"query"},
+			},
+		},
+		{
+			Name:        "jade.search",
+			Description: "Rank DECLARATIONS by name similarity to a query. This matches symbol names only — it does not search file contents, so it will not find a struct field, string literal or comment, and it returns name-similar declarations even when none contain the query text. For text search use grep; to locate a declaration and read its body use find.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"query": map[string]interface{}{"type": "string", "description": "Search text or symbol name."},
+					"mode":  map[string]interface{}{"type": "string", "description": "One of exact, symbol, semantic, or auto."},
+					"limit": map[string]interface{}{"type": "integer", "description": "Maximum number of hits to return."},
+				},
+				"required": []string{"query"},
+			},
+		},
+		{
+			Name:        "jade.search_nudge",
+			Description: "Given a raw shell search command (grep/rg/ag/ack/find/fd) a harness already ran, decide whether jade index hits should be appended below its output, and return them.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"command":        map[string]interface{}{"type": "string", "description": "The raw shell command that was run."},
+					"outputLength":   map[string]interface{}{"type": "integer", "description": "Length in characters of that command's output."},
+					"firstInSession": map[string]interface{}{"type": "boolean", "description": "Whether this is the first search-style command of the session."},
+				},
+				"required": []string{"command"},
+			},
+		},
+		{
+			Name:        "jade.retrieve",
+			Description: "Select the most relevant files and symbols within a token budget for a task query.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"query":     map[string]interface{}{"type": "string", "description": "Task description or symbol name to retrieve."},
+					"maxTokens": map[string]interface{}{"type": "integer", "description": "Maximum budget to keep retrieval under."},
+				},
+				"required": []string{"query"},
+			},
+		},
+		{
 			Name:        "jade.replace_symbol",
 			Description: "Replace the source for an identified symbol using its stable symbol ID.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"symbolId": map[string]interface{}{"type": "string", "description": "Symbol ID to replace."},
-					"newCode":  map[string]interface{}{"type": "string", "description": "Replacement source code."},
+					"symbolId":         map[string]interface{}{"type": "string", "description": "Symbol ID to replace."},
+					"newCode":          map[string]interface{}{"type": "string", "description": "Replacement source code."},
+					"expectedRevision": map[string]interface{}{"type": "string", "description": "Revision expected before editing. Reject if the workspace has moved on."},
 				},
 				"required": []string{"symbolId", "newCode"},
 			},
@@ -336,18 +788,213 @@ func tools() []mcpTool {
 				"type": "object",
 				"properties": map[string]interface{}{
 					"path":             map[string]interface{}{"type": "string", "description": "File path to edit."},
-					"expectedRevision": map[string]interface{}{"type": "string", "description": "Revision expected before editing."},
+					"expectedRevision": map[string]interface{}{"type": "string", "description": "Optional. Revision expected before editing; the edit is rejected if the workspace has moved on. Omit for no precondition."},
 					"startLine":        map[string]interface{}{"type": "integer", "description": "Inclusive start line."},
 					"endLine":          map[string]interface{}{"type": "integer", "description": "Inclusive end line."},
 					"newCode":          map[string]interface{}{"type": "string", "description": "Replacement code to insert in the target range."},
 				},
-				"required": []string{"path", "expectedRevision", "startLine", "endLine", "newCode"},
+				// expectedRevision is deliberately not required: the server treats
+				// an empty value as "no precondition", exactly as apply and
+				// replace_symbol do. Declaring it required made the schema state a
+				// contract the implementation does not enforce, which is worse than
+				// either behaviour on its own — a client that trusts the schema
+				// sends a value it did not need, and one that does not is told it
+				// is wrong when it is not.
+				"required": []string{"path", "startLine", "endLine", "newCode"},
+			},
+		},
+		{
+			Name:        "jade.replace_text",
+			Description: "Replace an exact, unique string in a file. Preferred over replace_range for follow-up edits: an anchor string does not move when the lines around it do. Refuses when the anchor is absent or matches more than once — extend it with surrounding context to disambiguate.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":             map[string]interface{}{"type": "string", "description": "File path to edit."},
+					"expectedRevision": map[string]interface{}{"type": "string", "description": "Revision expected before editing."},
+					"oldText":          map[string]interface{}{"type": "string", "description": "Exact text to replace. Must appear exactly once."},
+					"newText":          map[string]interface{}{"type": "string", "description": "Replacement text."},
+				},
+				// See replace_range: empty means "no precondition", so requiring it
+				// would be a contract the server does not enforce.
+				"required": []string{"path", "oldText", "newText"},
+			},
+		},
+		{
+			Name:        "jade.create_file",
+			Description: "Create a brand-new file. Refuses to overwrite an existing one — use replace_symbol/replace_range to modify existing content.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":    map[string]interface{}{"type": "string", "description": "File path to create."},
+					"content": map[string]interface{}{"type": "string", "description": "File content."},
+				},
+				"required": []string{"path", "content"},
+			},
+		},
+		{
+			Name:        "jade.apply",
+			Description: "Apply several edits as one atomic unit: all land or none do. Ops: replace_text, replace_range, replace_symbol, delete_symbol, insert. Anchors are validated before anything is written, touched files are formatted, and one validation runs at the end instead of one per edit. Prefer this over several single edits when changing more than one site.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"edits": map[string]interface{}{
+						"type":        "array",
+						"description": "Edits to apply in order.",
+						"items": map[string]interface{}{
+							"type": "object",
+							"properties": map[string]interface{}{
+								"op":         map[string]interface{}{"type": "string", "description": "replace_text, replace_range, replace_symbol, delete_symbol or insert."},
+								"path":       map[string]interface{}{"type": "string", "description": "File to edit."},
+								"oldText":    map[string]interface{}{"type": "string", "description": "replace_text: exact text to replace, must be unique."},
+								"newText":    map[string]interface{}{"type": "string", "description": "Replacement or inserted text."},
+								"symbolId":   map[string]interface{}{"type": "string", "description": "replace_symbol/delete_symbol: exact symbol ID."},
+								"symbolName": map[string]interface{}{"type": "string", "description": "replace_symbol/delete_symbol: symbol name."},
+								"startLine":  map[string]interface{}{"type": "integer", "description": "replace_range: inclusive start."},
+								"endLine":    map[string]interface{}{"type": "integer", "description": "replace_range: inclusive end."},
+								"anchor":     map[string]interface{}{"type": "string", "description": "insert: unique text to insert relative to."},
+								"position":   map[string]interface{}{"type": "string", "description": "insert: end (default), start, before or after."},
+							},
+							"required": []string{"op", "path"},
+						},
+					},
+					"expectedRevision": map[string]interface{}{"type": "string", "description": "Revision expected before editing."},
+					"format":           map[string]interface{}{"type": "boolean", "description": "Format touched files afterwards (default true)."},
+					"check":            map[string]interface{}{"type": "string", "description": "Run one validation after all edits: build, typecheck or tests."},
+				},
+				"required": []string{"edits"},
+			},
+		},
+		{
+			Name:        "jade.delete_symbol",
+			Description: "Delete one declaration entirely. The range comes from jade's parse, so the caller never has to find the closing brace; the blank line the declaration left behind is removed too.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":             map[string]interface{}{"type": "string", "description": "File containing the declaration."},
+					"symbolId":         map[string]interface{}{"type": "string", "description": "Exact symbol ID if already known."},
+					"symbolName":       map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
+					"expectedRevision": map[string]interface{}{"type": "string", "description": "Revision expected before editing."},
+				},
+				"required": []string{"path"},
+			},
+		},
+		{
+			Name:        "jade.delete_file",
+			Description: "Delete a file.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path": map[string]interface{}{"type": "string", "description": "File path to delete."},
+				},
+				"required": []string{"path"},
+			},
+		},
+		{
+			Name:        "jade.check",
+			Description: "Run a validation command on demand and wait for the verdict: kind build (default), typecheck or tests. Uses the repository's own Makefile target, npm script or cargo command when present. Waits by default and returns pass/fail directly.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"kind":           map[string]interface{}{"type": "string", "description": "build (default), typecheck, or tests."},
+					"wait":           map[string]interface{}{"type": "boolean", "description": "Wait for the result (default true). False returns a job ID to poll."},
+					"timeoutSeconds": map[string]interface{}{"type": "integer", "description": "Bound on the wait (default 90, max 300)."},
+				},
+			},
+		},
+		{
+			Name:        "jade.replace_file",
+			Description: "Overwrite an existing file's entire contents — for rewriting a document rather than amending it, where there is no anchor to edit against. Refuses to create a new file; use create_file for that. Prefer replace_text or apply when only part of the file changes.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":    map[string]interface{}{"type": "string", "description": "Existing file to overwrite."},
+					"content": map[string]interface{}{"type": "string", "description": "The file's complete new contents."},
+				},
+				"required": []string{"path", "content"},
+			},
+		},
+		{
+			Name:        "jade.telemetry",
+			Description: "Report how jade's own tools have been used in this workspace: calls, response bytes and timing per tool, plus the failure classes that most often end with a caller falling back to the shell. Records no arguments, no response bodies and no error text.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"reset": map[string]interface{}{"type": "boolean", "description": "Clear the log instead of summarizing it."},
+				},
+			},
+		},
+		{
+			Name:        "jade.grep",
+			Description: "Literal or regex text search across the workspace, returning path:line matches with optional trailing context — the replacement for `grep -rn`. Use this for anything that is not a declaration name: struct fields, string literals, error messages, config keys, or any search needing a path filter. Use find instead when you want a declaration and its body.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"query":      map[string]interface{}{"type": "string", "description": "Text to find."},
+					"regex":      map[string]interface{}{"type": "boolean", "description": "Treat query as a regular expression."},
+					"ignoreCase": map[string]interface{}{"type": "boolean", "description": "Case-insensitive match."},
+					"glob":       map[string]interface{}{"type": "string", "description": "Restrict by path, e.g. *.go or internal/code/*."},
+					"exclude":    map[string]interface{}{"type": "string", "description": "Skip paths containing this substring, e.g. testdata."},
+					"context":    map[string]interface{}{"type": "integer", "description": "Trailing lines to show per match, like grep -A (max 40)."},
+					"limit":      map[string]interface{}{"type": "integer", "description": "Maximum matches returned (default 40). The true total is always reported."},
+				},
+				"required": []string{"query"},
+			},
+		},
+		{
+			Name:        "jade.run_command",
+			Description: "Run one of the repository's declared commands by name and wait for the verdict — lint, vet, codegen, migrate, anything check() does not cover. Call with no name to list what this repo declares. Use this instead of a shell: it returns pass/fail with the decisive output, and an unknown name answers with the commands that do exist.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name":           map[string]interface{}{"type": "string", "description": "Declared command to run. Omit to list the declared commands."},
+					"wait":           map[string]interface{}{"type": "boolean", "description": "Wait for the result (default true). False returns a job ID to poll."},
+					"timeoutSeconds": map[string]interface{}{"type": "integer", "description": "Bound on the wait (default 90, max 300)."},
+				},
+			},
+		},
+		{
+			Name:        "jade.declare_command",
+			Description: "Declare a named command in .jade/commands.json so it can be replayed by name later. Declare once, then invoke with run_command — do not redeclare a command that already exists just to run it.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"name":        map[string]interface{}{"type": "string", "description": "Command name: lowercase letters, digits, ':', '_' or '-'."},
+					"run":         map[string]interface{}{"type": "string", "description": "Shell command to run from the workspace root."},
+					"description": map[string]interface{}{"type": "string", "description": "Optional note on what the command is for."},
+					"remove":      map[string]interface{}{"type": "boolean", "description": "Delete the named command instead of declaring it."},
+				},
+				"required": []string{"name"},
+			},
+		},
+		{
+			Name:        "jade.run_tests",
+			Description: "Run a scoped test run (all/file/test/changed) and wait for the verdict. Waits by default and returns pass/fail with the decisive summary; set wait=false for a job ID to poll instead.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"scope":          map[string]interface{}{"type": "string", "description": "One of: all, file, test, changed. Defaults to all."},
+					"file":           map[string]interface{}{"type": "string", "description": "File whose containing package to test, for scope=file."},
+					"test":           map[string]interface{}{"type": "string", "description": "Exact test name to run across all packages, for scope=test."},
+					"wait":           map[string]interface{}{"type": "boolean", "description": "Wait for the result (default true). False returns a job ID to poll."},
+					"timeoutSeconds": map[string]interface{}{"type": "integer", "description": "Bound on the wait (default 90, max 300)."},
+				},
 			},
 		},
 		{
 			Name:        "jade.changes",
 			Description: "Return the current workspace revision and a list of changed paths.",
 			InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+		{
+			Name:        "jade.diff",
+			Description: "Return the actual patch text for the workspace or one path — the 'what changed' companion to changes()'s 'how much changed'. Includes untracked files. Pass since to diff against another revision (HEAD~3, a branch, a SHA), which is how to see what a branch has done once part of the work is already committed. Large patches are clamped with an explicit omission marker.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"target": map[string]interface{}{"type": "string", "description": "Optional file path. Omit to diff the whole working tree."},
+					"since":  map[string]interface{}{"type": "string", "description": "Optional git revision to diff against, e.g. HEAD~3, main, or a commit SHA. Omit for the working-tree diff against HEAD."},
+				},
+			},
 		},
 		{
 			Name:        "jade.checkpoint",
@@ -407,40 +1054,25 @@ func tools() []mcpTool {
 }
 
 func readMessage(r *bufio.Reader) ([]byte, error) {
-	contentLength := 0
 	for {
-		line, err := r.ReadString('\n')
+		line, err := r.ReadBytes('\n')
 		if err != nil {
-			return nil, err
+			if err == io.EOF && len(line) == 0 {
+				return nil, io.EOF
+			}
+			if err != io.EOF {
+				return nil, err
+			}
 		}
-		line = strings.TrimRight(line, "\r\n")
-		if line == "" {
-			break
-		}
-		parts := strings.SplitN(line, ":", 2)
-		if len(parts) != 2 {
+		trimmed := strings.TrimSpace(string(line))
+		if trimmed == "" {
+			if err == io.EOF {
+				return nil, io.EOF
+			}
 			continue
 		}
-		key := strings.TrimSpace(strings.ToLower(parts[0]))
-		value := strings.TrimSpace(parts[1])
-		if key == "content-length" {
-			n, err := strconv.Atoi(value)
-			if err != nil {
-				return nil, fmt.Errorf("invalid content-length: %w", err)
-			}
-			contentLength = n
-		}
+		return []byte(trimmed), nil
 	}
-
-	if contentLength <= 0 {
-		return nil, fmt.Errorf("missing content-length")
-	}
-
-	payload := make([]byte, contentLength)
-	if _, err := io.ReadFull(r, payload); err != nil {
-		return nil, err
-	}
-	return payload, nil
 }
 
 func writeMessage(w *bufio.Writer, v interface{}) error {
@@ -448,10 +1080,10 @@ func writeMessage(w *bufio.Writer, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(w, "Content-Length: %d\r\n\r\n", len(payload)); err != nil {
+	if _, err := w.Write(payload); err != nil {
 		return err
 	}
-	if _, err := w.Write(payload); err != nil {
+	if _, err := w.Write([]byte("\n")); err != nil {
 		return err
 	}
 	return nil
@@ -496,6 +1128,52 @@ func intArg(args map[string]interface{}, key string) int {
 	}
 }
 
+// editOpsArg decodes the edits array for jade.apply. It round-trips through
+// JSON rather than unpacking each field by hand: the op struct has ten
+// fields across five op shapes, and hand-unpacking would silently drop a
+// field whenever a new op is added.
+func editOpsArg(args map[string]interface{}, key string) ([]protocol.EditOp, error) {
+	raw, present := args[key]
+	if !present {
+		return nil, fmt.Errorf("%s is required", key)
+	}
+
+	encoded, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s: %w", key, err)
+	}
+
+	var ops []protocol.EditOp
+	if err := json.Unmarshal(encoded, &ops); err != nil {
+		return nil, fmt.Errorf("invalid %s: %w", key, err)
+	}
+	if len(ops) == 0 {
+		return nil, fmt.Errorf("%s must contain at least one edit", key)
+	}
+	return ops, nil
+}
+
+// boolArgDefault reads a bool argument that defaults to true when absent —
+// distinct from boolArg, whose zero value is false.
+func boolArgDefault(args map[string]interface{}, key string, fallback bool) bool {
+	if _, present := args[key]; !present {
+		return fallback
+	}
+	return boolArg(args, key)
+}
+
+func boolArg(args map[string]interface{}, key string) bool {
+	v, ok := args[key]
+	if !ok {
+		return false
+	}
+	b, ok := v.(bool)
+	if !ok {
+		return false
+	}
+	return b
+}
+
 func int64Arg(args map[string]interface{}, key string) int64 {
 	v, ok := args[key]
 	if !ok {
@@ -513,12 +1191,40 @@ func int64Arg(args map[string]interface{}, key string) int64 {
 	}
 }
 
+// jadeJSONOutput forces the legacy JSON wire format. Plain text is the
+// default because the consumer is a language model, but a consumer that
+// genuinely parses responses can set JADE_JSON=1 to opt out.
+func jadeJSONOutput() bool {
+	value := strings.TrimSpace(os.Getenv("JADE_JSON"))
+	return value == "1" || strings.EqualFold(value, "true")
+}
+
+// jsonResult encodes a tool response for the wire. Despite the name it now
+// renders plain text by default, falling back to JSON for any type without a
+// renderer so an unrendered response degrades rather than losing content.
+// jsonResult is the one place every typed response passes through on its way
+// to the wire, which is why the in-band outcome is read here: it is the last
+// point at which the concrete type still exists.
 func jsonResult(v interface{}) (mcpToolResult, error) {
+	outcome, _ := telemetry.ClassifyResponse(v)
+
+	if !jadeJSONOutput() {
+		if text, ok := render.Text(v); ok {
+			return mcpToolResult{
+				Content: []mcpTextContent{{Type: "text", Text: text}},
+				outcome: outcome,
+			}, nil
+		}
+	}
+
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return mcpToolResult{}, err
 	}
-	return mcpToolResult{Content: []mcpTextContent{{Type: "text", Text: string(data)}}}, nil
+	return mcpToolResult{
+		Content: []mcpTextContent{{Type: "text", Text: string(data)}},
+		outcome: outcome,
+	}, nil
 }
 
 func fatalf(format string, args ...interface{}) {

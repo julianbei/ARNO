@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: What makes a useful jade report
+    url: https://github.com/julianbei/jade/blob/main/docs/reporting.md
+    about: Two minutes of reading that will save a round trip on your issue.

@@ -87,7 +87,7 @@ func firstName(node *sitter.Node, source []byte) string {
 			continue
 		}
 		t := child.Type()
-		if t == "identifier" || t == "field_identifier" || t == "type_identifier" {
+		if t == "identifier" || t == "field_identifier" || t == "type_identifier" || t == "property_identifier" {
 			return child.Content(source)
 		}
 	}

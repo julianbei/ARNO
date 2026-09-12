@@ -2,13 +2,164 @@
 
 ![Jade logo](logo-cropped.png)
 
-**Status:** Initial concept / team briefing  
-**Project name:** **Jade**  
-**Expansion:** **Julian's Agentic Development Environment**  
-**Initial languages:** TypeScript, Go, Rust  
-**Later languages:** Java, Python, JavaScript, C#, Ruby, Scala, others
+**Status:** 0.0.1 — early, usable, and looking for feedback.
 
-## Scaffold Status
+Jade is an MCP server that gives a coding agent structural access to a
+codebase: read and edit by *symbol* rather than by line number, validate the
+result, and track what changed — without shelling out.
+
+The bet is narrow and testable. An agent that falls back to `grep`/`sed`/`cat`
+is operating outside any tooling you control: no revision tracking, no
+guardrails, no telemetry. So jade tries to be the cheaper option for the things
+agents actually do, and measures whether it succeeded. On this repo's own
+benchmark, jade answers seven realistic questions in **0.85x** the tokens of
+the equivalent shell commands (it was 5.63x before the plain-text renderer —
+see [docs/response-style.md](docs/response-style.md)).
+
+```bash
+make binary
+./bin/jade-mcp --version
+```
+
+Then point your MCP client at `bin/jade-mcp` — see [Install](#install) for the
+JSON stanza. Jade works on any directory; it does not have to be its own
+checkout.
+
+## What Jade gives an agent
+
+**Read** — `outline` (file structure), `read_symbol` (one declaration by name
+or ID), `read_range` (verbatim lines, or a whole file), `find` (locate a
+declaration *and* get its body in one call), `grep` (literal or regex text
+search with path filters), `search` (rank declarations by name similarity),
+`references` (find usages, gopls-backed for Go), `repository_map` (rank files
+against a task within a token budget), `retrieve`, `context`,
+`workspace_tree`, `search_nudge`.
+
+**Edit** — `replace_text` (anchored on exact unique text, not line numbers),
+`replace_symbol`, `replace_range`, `delete_symbol`, `create_file`,
+`replace_file`, `delete_file`, `rename` (gopls-backed, cross-file), and
+`apply` — several edits as one atomic unit: anchors validated up front, all
+applied or none, one revision bump and one validation at the end. `apply` also
+carries an `insert` op (append, or place text before/after an anchor), which
+has no standalone tool of its own.
+
+**Validate** — `check` (build/typecheck/tests, discovering the repo's own
+Makefile target, npm script or cargo command), `run_tests` (scoped to a file,
+a test name, or changed files), `run_command` + `declare_command` (a
+version-controlled registry of project commands — lint, codegen, migrate — run
+by name), `job_status`, `job_output`.
+
+**State** — `changes` (what moved, by file and by symbol), `diff` (the patch,
+including untracked files; `since` for any git revision), `history` (which
+commits touched one symbol, via `git log -L`), `checkpoint` / `revert`,
+`events`, `telemetry`.
+
+Every response is plain text, shaped to lead with the decisive line.
+
+## What Jade does not do yet
+
+This list is more useful than the one above — it tells you what is worth
+reporting and what is already known.
+
+- **Only Go, TypeScript, TSX and Rust get a real grammar.** Everything else
+  falls back to a text scan that finds some declarations and misses others.
+  Jade says so in the response (`! no python grammar — …`) rather than
+  pretending the outline is complete, but it is still a fallback.
+- **`references` and `rename` are Go-only in their precise form.** They use
+  `gopls`; without it, or in another language, `references` degrades to a
+  textual approximation and `rename` refuses rather than guessing.
+- **No LSP client.** Jade shells out to `gopls` subcommands. Cross-language
+  semantic analysis is not there.
+- **No `blame`, no cross-repo work, no remote execution.**
+- **Formatting covers gofmt and rustfmt only.** TypeScript, JSON and Markdown
+  are deliberately left alone, since their formatters take project config and
+  could reformat far more than the agent touched.
+- **Revision tracking is jade's own counter, not git's.** It detects
+  concurrent edits within a session; it is not a VCS.
+- **Telemetry is local only.** It writes `.jade/telemetry.jsonl` in your
+  workspace and is never transmitted. `JADE_TELEMETRY=0` disables it.
+- **Not hardened for untrusted input.** It runs shell commands you declare and
+  edits files you point it at. Treat it as a development tool.
+
+Bug reports and "this made me reach for bash instead" reports are both
+valuable — the second kind especially.
+
+**Reporting:** [docs/reporting.md](docs/reporting.md) says what makes a useful
+report, and there are three issue templates — **bug**, **friction** ("I used
+the shell instead") and **feature**. If you are unsure which, pick friction;
+it is the cheapest to write and the easiest to act on. "It was just habit" is
+a real answer and we want it.
+
+[feedback.md](feedback.md) is the same log kept from the inside during jade's
+own development — sixteen tasks of recording every shell fallback and why.
+
+## Stability
+
+Tool names and required arguments are frozen for 0.0.1 and enforced by a test
+— see [docs/tool-contract.md](docs/tool-contract.md) for the full surface and
+the policy on what counts as a breaking change.
+
+Two things worth knowing up front: the MCP catalog is fixed at connection time,
+so a newly added tool does not appear until the client reconnects; and response
+*wording* is not frozen — treat responses as text for a model to read, not as a
+format to parse. `JADE_JSON=1` gives machine-readable output instead.
+
+## Install
+
+Build the MCP server binary:
+
+```bash
+make binary          # produces bin/jade-mcp, version stamped from git describe
+./bin/jade-mcp --version
+```
+
+Or install it onto your `PATH`:
+
+```bash
+make install         # go install, into $GOBIN or $GOPATH/bin
+```
+
+### MCP client configuration
+
+Point your MCP client at the built binary:
+
+```json
+{
+  "mcpServers": {
+    "jade": {
+      "type": "stdio",
+      "command": "/absolute/path/to/jade/bin/jade-mcp",
+      "env": {
+        "JADE_WORKSPACE_ROOT": "/absolute/path/to/the/repo/you/want/jade/to/work/on"
+      }
+    }
+  }
+}
+```
+
+`JADE_WORKSPACE_ROOT` is the repository jade inspects and edits. It does not
+have to be the jade checkout — that is the whole point of pointing it
+somewhere else. A `--root /path/to/repo` flag takes precedence over it, and
+jade prints which of the two (or the working directory) it used at startup, so
+an agent can never quietly operate on the wrong repository.
+
+Jade works on a non-git directory and on a repository with no commits yet. In
+both cases it says what is degraded — `changes`, `diff`, `history` and
+`checkpoint` need git — and everything else keeps working.
+
+**Use the binary, not `go run ./cmd/jade-mcp`.** A `go run` stanza recompiles
+at every process start: measured here at 284–584ms to first handshake against
+14ms for the binary, and that is with a warm build cache. A cold one is
+seconds. It also means the server silently changes whenever the source does,
+which is useful while developing jade itself and confusing everywhere else.
+
+If you are hacking on jade, the reverse applies — a `go run` stanza picks up
+your changes on reconnect, where the binary needs `make binary` first. This
+repo's own `.mcp.json` deliberately still uses `go run` for that reason.
+
+## Internals and design notes
+
+### Scaffold status
 
 The repository now includes an initial Go scaffold aligned with the architecture in [scope.md](scope.md):
 
@@ -23,7 +174,7 @@ The repository now includes an initial Go scaffold aligned with the architecture
 - [internal/protocol/types.go](internal/protocol/types.go): shared protocol types
 - [configs/jade.example.yaml](configs/jade.example.yaml): starter runtime config
 
-## Current Runtime Slice
+### Current runtime slice
 
 The scaffold now includes the first source-grounded runtime behavior inspired by proven droneship patterns:
 
@@ -31,6 +182,7 @@ The scaffold now includes the first source-grounded runtime behavior inspired by
 - Non-blocking in-process event bus in [internal/events/bus.go](internal/events/bus.go)
 - Progressive disclosure primitives for code outlines and symbol reads in [internal/code/index.go](internal/code/index.go)
 - Structured outline sections for imports/types/classes/functions/methods in [internal/code/index.go](internal/code/index.go)
+- Repository map + token-budget ranking for relevant files in [internal/code/index.go](internal/code/index.go)
 - Go tree-sitter symbol extraction with regex fallback switch in [internal/code/index.go](internal/code/index.go) and [internal/code/treesitter_go.go](internal/code/treesitter_go.go)
 - Edit responses with immediate diagnostics and async job IDs in [internal/edit/service.go](internal/edit/service.go)
 - Job lifecycle status and events in [internal/jobs/runner.go](internal/jobs/runner.go)
@@ -38,7 +190,20 @@ The scaffold now includes the first source-grounded runtime behavior inspired by
 - Internal API and MCP transport parity for inspect/modify/state/job/event operations in [internal/transport/internalapi/server.go](internal/transport/internalapi/server.go) and [internal/transport/mcp/server.go](internal/transport/mcp/server.go)
 - Checkpoint/revert state primitives with event emission in [internal/workspace/manager.go](internal/workspace/manager.go)
 
-## Reference Notes
+### Repository map behavior
+
+JADE now exposes a repo-level relevance ranking tool so an agent can ask:
+
+```text
+query: "session refresh bug"
+maxTokens: 4096
+```
+
+and receive a prioritized shortlist of likely files, plus the omitted remainder. The score is based on the task terms matching the file path, basename, and content, with a bias toward implementation code under `internal/` and a down-weight for documentation-heavy files.
+
+Because the tool is exposed through the local MCP server, the same call pattern works in the Copilot session via `jade.repository_map`.
+
+### Reference notes
 
 - Source-grounded droneship extraction and decisions: [docs/droneship-findings.md](docs/droneship-findings.md)
 - Follow-up implementation queue: [docs/mvp-next-steps.md](docs/mvp-next-steps.md)

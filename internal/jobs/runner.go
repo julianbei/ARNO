@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"sync"
+	"time"
 
 	"github.com/julianbei/jade/internal/diagnostics"
 	"github.com/julianbei/jade/internal/events"
@@ -15,7 +16,23 @@ type Runner struct {
 	status  map[string]string
 	summary map[string]string
 	raw     map[string]string
-	bus     *events.Bus
+	omitted map[string]int
+	// failed records that a job's process exited non-zero.
+	//
+	// Kept separate from the output text because the verdict was previously
+	// derived from that text alone — scanning for "fail", "error", "panic:" —
+	// which meant any command that exited non-zero while printing something
+	// cheerful was reported as passing. Demonstrated with
+	// `echo "everything looks fine"; exit 3`, which returned `pass`. That is
+	// tolerable for Go's build/vet/test, which announce their own failures in
+	// words, and simply wrong for the arbitrary project commands the repo
+	// command registry exists to run: lint, codegen and migrate signal by exit
+	// code.
+	failed map[string]bool
+	// done carries one channel per job, closed when the job completes, so
+	// waiting is a block rather than a poll loop.
+	done map[string]chan struct{}
+	bus  *events.Bus
 }
 
 func NewRunner(bus *events.Bus) *Runner {
@@ -25,6 +42,9 @@ func NewRunner(bus *events.Bus) *Runner {
 		status:  make(map[string]string),
 		summary: make(map[string]string),
 		raw:     make(map[string]string),
+		omitted: make(map[string]int),
+		failed:  make(map[string]bool),
+		done:    make(map[string]chan struct{}),
 		bus:     bus,
 	}
 }
@@ -35,6 +55,7 @@ func (r *Runner) Start(kind string) string {
 	r.next++
 	r.kind[id] = kind
 	r.status[id] = "running"
+	r.done[id] = make(chan struct{})
 	r.mu.Unlock()
 
 	if r.bus != nil {
@@ -55,15 +76,44 @@ func (r *Runner) Complete(id string, summary string) {
 	r.CompleteWithOutput(id, summary)
 }
 
+// CompleteWithOutput marks a job complete with no exit-status information.
+// Callers that ran a real process should use CompleteWithResult instead, so
+// the verdict does not have to be guessed from the output text.
 func (r *Runner) CompleteWithOutput(id string, output string) {
+	r.CompleteWithResult(id, output, false)
+}
+
+// CompleteWithResult marks a job complete and records whether its process
+// failed. failed is authoritative: a non-zero exit is a failure regardless of
+// how reassuring the output reads.
+func (r *Runner) CompleteWithResult(id string, output string, failed bool) {
+	// The summary is computed from the FULL output, before clamping. The
+	// decisive line of a long failure is frequently in the middle — exactly
+	// the part the clamp drops — so summarizing the clamped text would let
+	// the size bound silently degrade the answer jade is best at giving.
 	summary := diagnostics.DecisiveSummary(output)
+	clamped, omitted := clampRawOutput(output)
 
 	r.mu.Lock()
 	r.status[id] = "completed"
 	r.summary[id] = summary
-	r.raw[id] = output
+	r.raw[id] = clamped
+	r.omitted[id] = omitted
+	r.failed[id] = failed
 	kind := r.kind[id]
+	done := r.done[id]
 	r.mu.Unlock()
+
+	// Closing rather than sending: every waiter is released, and a job that
+	// nobody waited on costs nothing.
+	if done != nil {
+		select {
+		case <-done:
+			// Already closed — Complete called twice. Nothing to do.
+		default:
+			close(done)
+		}
+	}
 
 	if r.bus != nil {
 		r.bus.Publish(events.Event{
@@ -89,15 +139,41 @@ func (r *Runner) Status(id string) (string, string, string, bool) {
 	return r.kind[id], status, r.summary[id], true
 }
 
-func (r *Runner) Output(id string) (string, string, string, string, bool) {
+// JobOutput is a completed job's stored result. It replaced a five-value
+// positional return once 8.1 added a sixth field — at that width, callers
+// start mixing up same-typed positions.
+type JobOutput struct {
+	Kind    string
+	Status  string
+	Summary string
+	Raw     string
+	// Failed reports that the job's process exited non-zero. It is the
+	// authoritative verdict; output text is only a secondary signal, for tools
+	// that exit 0 while reporting a failure.
+	Failed bool
+	// OmittedBytes is how much of the raw output the size clamp dropped, 0
+	// when nothing was cut. Callers should surface it: silently truncated
+	// output is worse than visibly truncated output, because a reader who
+	// cannot see that bytes are missing will read the remainder as complete.
+	OmittedBytes int
+}
+
+func (r *Runner) Output(id string) (JobOutput, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	status, ok := r.status[id]
 	if !ok {
-		return "", "", "", "", false
+		return JobOutput{}, false
 	}
-	return r.kind[id], status, r.summary[id], r.raw[id], true
+	return JobOutput{
+		Kind:         r.kind[id],
+		Status:       status,
+		Summary:      r.summary[id],
+		Raw:          r.raw[id],
+		Failed:       r.failed[id],
+		OmittedBytes: r.omitted[id],
+	}, true
 }
 
 func itoa(n int) string {
@@ -113,4 +189,34 @@ func itoa(n int) string {
 		n /= 10
 	}
 	return string(digits[i:])
+}
+
+// Wait blocks until job id completes or timeout elapses. The bool reports
+// whether the job finished: false means it is still running, which is a
+// different answer from "finished with no output" and callers must not
+// collapse the two.
+//
+// This exists because an agent asking "does it build" wants the answer, not
+// a job ID to poll. The async model is right for long runs; making every
+// short run cost two calls plus a poll is why the native shell command kept
+// winning in the dogfood friction log.
+func (r *Runner) Wait(id string, timeout time.Duration) (JobOutput, bool) {
+	r.mu.Lock()
+	done, known := r.done[id]
+	r.mu.Unlock()
+
+	if !known {
+		// Unknown job, or one that completed before any channel existed.
+		output, ok := r.Output(id)
+		return output, ok && output.Status == "completed"
+	}
+
+	select {
+	case <-done:
+		output, ok := r.Output(id)
+		return output, ok
+	case <-time.After(timeout):
+		output, _ := r.Output(id)
+		return output, false
+	}
 }
