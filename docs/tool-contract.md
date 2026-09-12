@@ -110,6 +110,7 @@ reading.
 | `jade.find` | `query` |
 | `jade.grep` | `query` |
 | `jade.history` | `path` |
+| `jade.insert` | `path`, `text` |
 | `jade.job_output` | `id` |
 | `jade.job_status` | `id` |
 | `jade.outline` | `path` |

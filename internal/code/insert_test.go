@@ -105,3 +105,44 @@ func TestInsertAtStartOfFile(t *testing.T) {
 		t.Fatalf("expected the text at the very start, got:\n%q", readBack(t, dir, "main.go"))
 	}
 }
+
+// Found by driving the new insert tool over MCP: an anchor supplied without a
+// position was silently ignored and the text appended to the end of the file.
+// An anchor is an instruction about placement — ignoring it puts code
+// somewhere the caller never looked, which is the one outcome this refuses.
+func TestAnchorWithoutPositionIsHonouredNotIgnored(t *testing.T) {
+	out, err := insertInto("alpha\nbeta\ngamma\n", "beta", "", "inserted")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "beta\ninserted") {
+		t.Fatalf("text should land after the anchor, got:\n%s", out)
+	}
+	if strings.HasSuffix(strings.TrimRight(out, "\n"), "inserted") {
+		t.Fatalf("text was appended to the end instead of the anchor:\n%s", out)
+	}
+}
+
+// The same path must still refuse an ambiguous anchor rather than falling back
+// to appending — the case that exposed the bug.
+func TestAmbiguousAnchorWithoutPositionIsRefused(t *testing.T) {
+	_, err := insertInto("a string\nb string\nc string\n", "string", "", "x")
+	if err == nil {
+		t.Fatal("an anchor matching three times must be refused")
+	}
+	if !errors.Is(err, ErrTextAmbiguous) {
+		t.Fatalf("expected an ambiguity error, got: %v", err)
+	}
+}
+
+// With no anchor at all, an empty position still means append — that is the
+// plain "add to the end of this file" case and must not start requiring one.
+func TestNoAnchorStillAppends(t *testing.T) {
+	out, err := insertInto("alpha\n", "", "", "omega")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != "alpha\nomega\n" {
+		t.Fatalf("expected a plain append, got %q", out)
+	}
+}

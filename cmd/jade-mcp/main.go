@@ -259,6 +259,10 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 		args = map[string]interface{}{}
 	}
 
+	if err := checkArguments(req.Name, args); err != nil {
+		return mcpToolResult{}, err
+	}
+
 	started := time.Now()
 	result, err := s.dispatchToolCall(req.Name, args)
 
@@ -443,6 +447,18 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			StartLine:        startLine,
 			EndLine:          endLine,
 			NewCode:          newCode,
+		})
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
+	case "jade.insert":
+		res, err := s.api.Insert(protocol.InsertRequest{
+			Path:             stringArg(args, "path"),
+			ExpectedRevision: stringArg(args, "expectedRevision"),
+			Anchor:           stringArg(args, "anchor"),
+			Position:         stringArg(args, "position"),
+			Text:             stringArg(args, "text"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -792,11 +808,11 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.replace_symbol",
-			Description: "Replace the source for an identified symbol using its stable symbol ID.",
+			Description: "Replace a whole declaration. symbolId takes either the full path::Name@line ID or just path::Name when that name is unique in the file — no lookup call needed first. An ambiguous name is refused with the candidates listed.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"symbolId":         map[string]interface{}{"type": "string", "description": "Symbol ID to replace."},
+					"symbolId":         map[string]interface{}{"type": "string", "description": "path::Name@line, or path::Name when unique in the file."},
 					"newCode":          map[string]interface{}{"type": "string", "description": "Replacement source code."},
 					"expectedRevision": map[string]interface{}{"type": "string", "description": "Revision expected before editing. Reject if the workspace has moved on."},
 				},
@@ -823,6 +839,21 @@ func tools() []mcpTool {
 				// sends a value it did not need, and one that does not is told it
 				// is wrong when it is not.
 				"required": []string{"path", "startLine", "endLine", "newCode"},
+			},
+		},
+		{
+			Name:        "jade.insert",
+			Description: "Add text to a file without replacing anything — a new function, a new section, an extra case. Use this for additive work instead of rewriting a surrounding symbol. With no anchor it appends to the end of the file; with one it places the text before or after that anchor, refusing if the anchor is absent or matches more than once.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path":             map[string]interface{}{"type": "string", "description": "File to add to."},
+					"text":             map[string]interface{}{"type": "string", "description": "Text to insert."},
+					"anchor":           map[string]interface{}{"type": "string", "description": "Optional. Exact, unique text to place the insertion beside. Omit to append to the end of the file."},
+					"position":         map[string]interface{}{"type": "string", "description": "Optional. \"before\" or \"after\" the anchor. Defaults to after."},
+					"expectedRevision": map[string]interface{}{"type": "string", "description": "Optional. Revision expected before editing; the edit is rejected if the workspace has moved on. Omit for no precondition."},
+				},
+				"required": []string{"path", "text"},
 			},
 		},
 		{

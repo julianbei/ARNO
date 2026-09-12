@@ -971,28 +971,25 @@ func (i *Index) ReadSymbol(path string, symbolID string, maxLines int) (Symbol, 
 
 	lines := splitLines(string(data))
 	symbols, _ := i.symbolsForPath(absolute, rel, data, lines)
-	for _, symbol := range symbols {
-		if symbol.ID != symbolID {
-			continue
-		}
-
-		to := symbol.To
-		if to-symbol.From+1 > maxLines {
-			to = symbol.From + maxLines - 1
-		}
-
-		if symbol.From < 1 || to > len(lines) || symbol.From > to {
-			return Symbol{}, "", fmt.Errorf("symbol %s has invalid range", symbol.ID)
-		}
-
-		body := strings.Join(lines[symbol.From-1:to], "\n")
-		if to < symbol.To {
-			body += "\n// ... truncated"
-		}
-		return symbol, body, nil
+	symbol, err := resolveSymbolInFile(symbols, symbolID)
+	if err != nil {
+		return Symbol{}, "", err
 	}
 
-	return Symbol{}, "", symbolNotFoundError(symbolID, symbols)
+	to := symbol.To
+	if to-symbol.From+1 > maxLines {
+		to = symbol.From + maxLines - 1
+	}
+
+	if symbol.From < 1 || to > len(lines) || symbol.From > to {
+		return Symbol{}, "", fmt.Errorf("symbol %s has invalid range", symbol.ID)
+	}
+
+	body := strings.Join(lines[symbol.From-1:to], "\n")
+	if to < symbol.To {
+		body += "\n// ... truncated"
+	}
+	return symbol, body, nil
 }
 
 // ReadRange reads lines [start,end] (inclusive, 1-indexed) of path verbatim
@@ -1072,22 +1069,19 @@ func (i *Index) ReplaceSymbolSource(symbolID string, newCode string) (Symbol, []
 
 	lines := splitLines(string(data))
 	symbols, _ := i.symbolsForPath(absolute, relPath, data, lines)
-	for _, symbol := range symbols {
-		if symbol.ID != symbolID {
-			continue
-		}
-		if symbol.From < 1 || symbol.To > len(lines) || symbol.From > symbol.To {
-			return Symbol{}, nil, fmt.Errorf("symbol %s has invalid range", symbolID)
-		}
-
-		oldLines, err := spliceAndWrite(absolute, lines, symbol.From, symbol.To, newCode)
-		if err != nil {
-			return Symbol{}, nil, err
-		}
-		return symbol, oldLines, nil
+	symbol, err := resolveSymbolInFile(symbols, symbolID)
+	if err != nil {
+		return Symbol{}, nil, err
+	}
+	if symbol.From < 1 || symbol.To > len(lines) || symbol.From > symbol.To {
+		return Symbol{}, nil, fmt.Errorf("symbol %s has invalid range", symbol.ID)
 	}
 
-	return Symbol{}, nil, symbolNotFoundError(symbolID, symbols)
+	oldLines, err := spliceAndWrite(absolute, lines, symbol.From, symbol.To, newCode)
+	if err != nil {
+		return Symbol{}, nil, err
+	}
+	return symbol, oldLines, nil
 }
 
 // ReplaceRangeSource splices newCode over lines [start,end] (inclusive,

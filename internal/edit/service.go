@@ -48,6 +48,11 @@ func (s *Service) ReplaceSymbol(symbolID string, expectedRevision string, newCod
 		return protocol.EditResponse{}, err
 	}
 
+	// Report the ID that was actually edited, not the one the caller typed:
+	// a bare "greet.go::Greet" resolves to "greet.go::Greet@3", and echoing
+	// the input back would hide which declaration moved.
+	symbolID = symbol.ID
+
 	formatted := s.formatTouched(symbol.Path)
 	oldRev, newRev := s.workspace.BumpRevision(symbolID)
 	jobID := s.jobs.Start("typecheck")
@@ -119,6 +124,42 @@ func (s *Service) ReplaceText(path string, expectedRevision string, oldText stri
 		Changed:      []string{path},
 		AddedLines:   countLines(newText),
 		RemovedLines: removedLines,
+		Formatted:    formatted,
+		Diagnostics:  s.diag.Immediate(path),
+		Jobs:         []string{jobID},
+	}, nil
+}
+
+// Insert adds text without replacing anything — the additive counterpart to
+// ReplaceText, carrying the same revision precondition.
+//
+// It existed only as an `apply` op until now, which meant additive work (a new
+// test function, a section appended to a document) had no tool of its own and
+// was reported as faster to do with a plain file edit. That is the same
+// failure mode the op was written for: when jade has no cheap way to add
+// something, adding it happens somewhere jade cannot see.
+func (s *Service) Insert(path string, expectedRevision string, anchor string, position string, text string) (protocol.EditResponse, error) {
+	current := s.workspace.Revision()
+	if expectedRevision != "" && expectedRevision != current {
+		return protocol.EditResponse{}, ErrStaleRevision
+	}
+
+	addedLines, err := s.index.InsertSource(path, anchor, position, text)
+	if err != nil {
+		return protocol.EditResponse{}, err
+	}
+
+	formatted := s.formatTouched(path)
+	oldRev, newRev := s.workspace.BumpRevision(path)
+	jobID := s.jobs.Start("typecheck")
+	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "typecheck")
+
+	return protocol.EditResponse{
+		OldRevision:  oldRev,
+		NewRevision:  newRev,
+		Changed:      []string{path},
+		AddedLines:   addedLines,
+		RemovedLines: 0,
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
 		Jobs:         []string{jobID},

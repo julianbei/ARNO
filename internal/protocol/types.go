@@ -101,6 +101,18 @@ type ReplaceRangeRequest struct {
 	NewCode          string
 }
 
+// InsertRequest adds text without replacing anything. Anchor follows
+// ReplaceTextRequest's rule — exactly one match or refuse — because inserting
+// beside an arbitrary one of several matches silently places code somewhere
+// the caller never looked. An empty Anchor appends to the end of the file.
+type InsertRequest struct {
+	Path             string
+	ExpectedRevision string
+	Anchor           string
+	Position         string
+	Text             string
+}
+
 // ReplaceTextRequest replaces an exact, unique string. Anchoring by text
 // rather than by line number means a sequence of edits does not invalidate
 // its own addresses — the reason this exists alongside ReplaceRangeRequest.

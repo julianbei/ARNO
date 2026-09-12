@@ -203,7 +203,7 @@ Jade will find them.
 
 ## The tools
 
-34 tools, in four groups. Every response is plain text, shaped to lead with the
+35 tools, in four groups. Every response is plain text, shaped to lead with the
 decisive line — the answer first, the supporting detail after, raw output only
 when you ask for it.
 
@@ -237,7 +237,7 @@ rather than guessing.
 
 | Tool | What it does |
 |---|---|
-| `replace_symbol` | Replace a whole declaration by ID. |
+| `replace_symbol` | Replace a whole declaration. Takes the full `path::Name@line` ID, or just `path::Name` when that name is unique in the file. |
 | `replace_text` | Replace exact, unique text. Anchored on content, not line numbers. |
 | `replace_range` | Replace a line range. |
 | `replace_file` | Replace an entire file's contents. |
@@ -245,7 +245,8 @@ rather than guessing.
 | `delete_file` | Delete a file. |
 | `delete_symbol` | Delete one declaration. |
 | `rename` | Cross-file rename. gopls-backed; refuses rather than guessing when it cannot be exact. |
-| `apply` | Several edits as one atomic unit — anchors validated up front, all applied or none, one revision bump and one validation at the end. Also carries an `insert` op (append, or place text before/after an anchor) that has no standalone tool. |
+| `insert` | Add text without replacing anything — a new function, a new section, an extra case. Appends with no anchor; places before or after a unique anchor with one. |
+| `apply` | Several edits as one atomic unit — anchors validated up front, all applied or none, one revision bump and one validation at the end. |
 
 Every edit returns consequences, not "success": the revision transition, which
 symbols moved, immediate diagnostics, and the IDs of any background validation

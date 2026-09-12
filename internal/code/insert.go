@@ -52,6 +52,15 @@ func (i *Index) InsertSource(path string, anchor string, position string, text s
 }
 
 func insertInto(source string, anchor string, position string, text string) (string, error) {
+	// An anchor with no position used to fall through to the append branch,
+	// which ignored the anchor and put the text at the end of the file — the
+	// exact silent misplacement the anchor exists to prevent. Supplying an
+	// anchor is an instruction about where the text goes, so the only safe
+	// readings are "after it" or an error, never "somewhere else entirely".
+	if position == "" && anchor != "" {
+		position = InsertAfter
+	}
+
 	switch position {
 	case "", InsertEnd:
 		return joinWithNewline(source, text), nil

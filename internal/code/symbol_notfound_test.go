@@ -7,10 +7,10 @@ import (
 	"testing"
 )
 
-// The reported case: a caller who knows the name guesses the ID without its
-// "@line" suffix. Before this, the answer was a bare "symbol not found" and a
-// second call to find out what the ID actually was.
-func TestReadSymbolSuggestsTheRealIDWhenTheLineSuffixIsMissing(t *testing.T) {
+// The reported case: a caller who knows the name should not have to learn a
+// line number first. A bare "path::Name" now resolves when it is unambiguous,
+// which removes the outline/read_symbol round trip that preceded every edit.
+func TestReadSymbolResolvesABareNameWhenItIsUnique(t *testing.T) {
 	index := indexWithFile(t, "greet.go", `package main
 
 func Greet(name string) string {
@@ -18,18 +18,21 @@ func Greet(name string) string {
 }
 `)
 
-	_, _, err := index.ReadSymbol("greet.go", "greet.go::Greet", 0)
-	if err == nil {
-		t.Fatal("expected an error for an ID with no line suffix")
+	symbol, body, err := index.ReadSymbol("greet.go", "greet.go::Greet", 0)
+	if err != nil {
+		t.Fatalf("a unique bare name should resolve, got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "did you mean greet.go::Greet@3?") {
-		t.Fatalf("error should name the real ID, got: %v", err)
+	if symbol.ID != "greet.go::Greet@3" {
+		t.Fatalf("expected the resolved ID, got %q", symbol.ID)
+	}
+	if !strings.Contains(body, "hello ") {
+		t.Fatalf("expected the real body, got %q", body)
 	}
 }
 
-// A stale ID — the symbol moved since the caller last looked — is the same
-// recoverable mistake and gets the same answer.
-func TestReadSymbolSuggestsTheRealIDWhenTheLineIsStale(t *testing.T) {
+// A stale ID — the symbol moved since the caller last looked — resolves the
+// same way, since the name still identifies exactly one declaration.
+func TestReadSymbolResolvesAStaleLineNumber(t *testing.T) {
 	index := indexWithFile(t, "greet.go", `package main
 
 func Greet(name string) string {
@@ -37,12 +40,12 @@ func Greet(name string) string {
 }
 `)
 
-	_, _, err := index.ReadSymbol("greet.go", "greet.go::Greet@99", 0)
-	if err == nil {
-		t.Fatal("expected an error for a stale line number")
+	symbol, _, err := index.ReadSymbol("greet.go", "greet.go::Greet@99", 0)
+	if err != nil {
+		t.Fatalf("a stale line should still resolve by name, got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "did you mean greet.go::Greet@3?") {
-		t.Fatalf("error should name the real ID, got: %v", err)
+	if symbol.ID != "greet.go::Greet@3" {
+		t.Fatalf("expected the current ID, got %q", symbol.ID)
 	}
 }
 
@@ -96,7 +99,7 @@ func Greet(name string) string {
 
 // ReplaceSymbolSource is the tool the report actually hit, so it gets its own
 // check rather than relying on the shared helper being wired everywhere.
-func TestReplaceSymbolSuggestsTheRealID(t *testing.T) {
+func TestReplaceSymbolResolvesABareName(t *testing.T) {
 	index := indexWithFile(t, "greet.go", `package main
 
 func Greet(name string) string {
@@ -104,12 +107,12 @@ func Greet(name string) string {
 }
 `)
 
-	_, _, err := index.ReplaceSymbolSource("greet.go::Greet", "func Greet() {}")
-	if err == nil {
-		t.Fatal("expected an error for an ID with no line suffix")
+	symbol, _, err := index.ReplaceSymbolSource("greet.go::Greet", "func Greet() string { return \"hi\" }")
+	if err != nil {
+		t.Fatalf("a unique bare name should resolve, got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "did you mean greet.go::Greet@3?") {
-		t.Fatalf("error should name the real ID, got: %v", err)
+	if symbol.ID != "greet.go::Greet@3" {
+		t.Fatalf("expected the resolved ID, got %q", symbol.ID)
 	}
 }
 

@@ -42,6 +42,44 @@ func symbolNotFoundError(symbolID string, symbols []Symbol) error {
 	}
 }
 
+// resolveSymbolInFile finds the symbol symbolID names among the file's parsed
+// symbols: an exact ID match first, and failing that a unique match on the
+// name the ID carries.
+//
+// The fallback removes a round trip that use kept paying. A caller who knows a
+// declaration is called Greet has to spell "greet.go::Greet@3", and the line
+// number is knowable only by asking — so every edit was preceded by an outline
+// or read_symbol call whose only purpose was to learn a number the file
+// already determines. Resolving a unique name is not guessing: there is
+// exactly one thing it can mean, and if there is more than one, this refuses
+// and names them.
+//
+// An exact ID still wins outright, so a caller who supplies one gets precisely
+// that symbol and never a near neighbour.
+func resolveSymbolInFile(symbols []Symbol, symbolID string) (Symbol, error) {
+	for _, symbol := range symbols {
+		if symbol.ID == symbolID {
+			return symbol, nil
+		}
+	}
+
+	name, ok := symbolIDName(symbolID)
+	if !ok {
+		return Symbol{}, symbolNotFoundError(symbolID, symbols)
+	}
+
+	matches := make([]Symbol, 0, 2)
+	for _, symbol := range symbols {
+		if symbol.Name == name {
+			matches = append(matches, symbol)
+		}
+	}
+	if len(matches) == 1 {
+		return matches[0], nil
+	}
+	return Symbol{}, symbolNotFoundError(symbolID, symbols)
+}
+
 // CandidatesForID returns the symbols in path whose name matches the one
 // embedded in symbolID. It is the transport-facing half of
 // symbolNotFoundError: read_symbol reports a failed exact lookup as a

@@ -413,6 +413,10 @@ func (s *Server) ReplaceRange(req protocol.ReplaceRangeRequest) (protocol.EditRe
 	return s.edit.ReplaceRange(req.Path, req.ExpectedRevision, req.StartLine, req.EndLine, req.NewCode)
 }
 
+func (s *Server) Insert(req protocol.InsertRequest) (protocol.EditResponse, error) {
+	return s.edit.Insert(req.Path, req.ExpectedRevision, req.Anchor, req.Position, req.Text)
+}
+
 func (s *Server) ReplaceText(req protocol.ReplaceTextRequest) (protocol.EditResponse, error) {
 	return s.edit.ReplaceText(req.Path, req.ExpectedRevision, req.OldText, req.NewText)
 }
