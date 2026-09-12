@@ -1,10 +1,10 @@
-# Jade — Just Agentic Developer Environment
+# Jade — Just Agentic Development Environment
 
 ## Product, Architecture and Implementation Concept
 
 **Status:** Initial concept / team briefing
 **Project name:** **Jade**
-**Expansion:** **Just Agentic Developer Environment**
+**Expansion:** **Just Agentic Development Environment**
 **Initial languages:** TypeScript, Go, Rust
 **Later languages:** Java, Python, JavaScript, C#, Ruby, Scala, others
 

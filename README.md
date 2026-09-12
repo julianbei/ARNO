@@ -1,6 +1,9 @@
-# Jade — Just Agentic Developer Environment
+# Jade — Just Agentic Development Environment
 
-![Jade logo](logo-cropped.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="logo-dark.png">
+  <img src="logo.png" alt="Jade — Just Agentic Development Environment" width="520">
+</picture>
 
 **An MCP server that gives a coding agent structural access to a codebase** —
 read and edit by *symbol* rather than by line number, validate the result, and
