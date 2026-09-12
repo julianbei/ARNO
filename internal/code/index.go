@@ -97,19 +97,28 @@ func (i *Index) Outline(path string) ([]Symbol, error) {
 // grammarLanguages maps the extensions jade has a real tree-sitter grammar
 // for. Anything absent here is served by the heuristic scanner.
 var grammarLanguages = map[string]string{
-	".go":  "go",
-	".ts":  "typescript",
-	".tsx": "tsx",
-	".rs":  "rust",
+	".go":    "go",
+	".ts":    "typescript",
+	".tsx":   "tsx",
+	".rs":    "rust",
+	".py":    "python",
+	".rb":    "ruby",
+	".java":  "java",
+	".scala": "scala",
+	".sc":    "scala",
+	".js":    "javascript",
+	".jsx":   "javascript",
+	".mjs":   "javascript",
+	".cjs":   "javascript",
 }
 
 // knownLanguages names extensions jade recognises but does not parse with a
 // grammar, so the heuristic's note can say which language it is guessing at
 // rather than the unhelpful "this file".
 var knownLanguages = map[string]string{
-	".py":    "python",
-	".rb":    "ruby",
-	".java":  "java",
+	// Extensions with a real grammar live in grammarLanguages and must not be
+	// repeated here: ParserFor consults that map first, so a duplicate entry
+	// would be unreachable and would drift the moment one of them changed.
 	".kt":    "kotlin",
 	".swift": "swift",
 	".c":     "c",
@@ -119,12 +128,8 @@ var knownLanguages = map[string]string{
 	".hpp":   "c++",
 	".cs":    "c#",
 	".php":   "php",
-	".js":    "javascript",
-	".jsx":   "javascript",
-	".mjs":   "javascript",
 	".sh":    "shell",
 	".sql":   "sql",
-	".scala": "scala",
 	".ex":    "elixir",
 	".exs":   "elixir",
 	".lua":   "lua",
@@ -1267,6 +1272,16 @@ func (i *Index) parseSymbolsForPath(absolute string, relPath string, data []byte
 			symbols, err = extractTSXSymbolsTreeSitter(relPath, data)
 		case ".rs":
 			symbols, err = extractRustSymbolsTreeSitter(relPath, data)
+		case ".py":
+			symbols, err = extractPythonSymbolsTreeSitter(relPath, data)
+		case ".rb":
+			symbols, err = extractRubySymbolsTreeSitter(relPath, data)
+		case ".java":
+			symbols, err = extractJavaSymbolsTreeSitter(relPath, data)
+		case ".scala", ".sc":
+			symbols, err = extractScalaSymbolsTreeSitter(relPath, data)
+		case ".js", ".jsx", ".mjs", ".cjs":
+			symbols, err = extractJavaScriptSymbolsTreeSitter(relPath, data)
 		}
 		if err == nil && len(symbols) > 0 {
 			return symbols, "tree-sitter"

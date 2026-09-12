@@ -94,8 +94,10 @@ func TestOutlineStructuredReportsItsParser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OutlineStructured(py): %v", err)
 	}
-	if pyParser.Complete {
-		t.Fatalf("expected python to be reported as heuristic, got %+v", pyParser)
+	// Python gained a real grammar, so this is now the complete case. The
+	// heuristic assertion below moved to a language that still has no grammar.
+	if !pyParser.Complete {
+		t.Fatalf("expected a complete python parse, got %+v", pyParser)
 	}
 	if pyParser.Language != "python" {
 		t.Fatalf("expected python named, got %+v", pyParser)

@@ -39,6 +39,85 @@ var cargoArgsByKind = map[string][]string{
 	"build":     {"build", "--workspace"},
 }
 
+// ecosystemCommands maps a manifest file to the command that validates a
+// project built around it. Order within each list is preference order.
+//
+// These are manifest-verified only, like the cargo path: the manifest proves
+// the ecosystem, and the tool's own subcommands are built in rather than
+// project-declared, so there is nothing further worth probing. A project that
+// wants something else declares a Makefile target or a jade command, both of
+// which are consulted first.
+var ecosystemCommands = []struct {
+	manifest string
+	name     string
+	byKind   map[string][]string
+}{
+	{
+		manifest: "pom.xml",
+		name:     "mvn",
+		byKind: map[string][]string{
+			"build":     {"-q", "compile"},
+			"typecheck": {"-q", "compile"},
+			"tests":     {"-q", "test"},
+		},
+	},
+	{
+		manifest: "build.sbt",
+		name:     "sbt",
+		byKind: map[string][]string{
+			"build":     {"compile"},
+			"typecheck": {"compile"},
+			"tests":     {"test"},
+		},
+	},
+	{
+		manifest: "build.gradle",
+		name:     "gradle",
+		byKind: map[string][]string{
+			"build":     {"build", "-x", "test"},
+			"typecheck": {"compileJava"},
+			"tests":     {"test"},
+		},
+	},
+	{
+		manifest: "build.gradle.kts",
+		name:     "gradle",
+		byKind: map[string][]string{
+			"build":     {"build", "-x", "test"},
+			"typecheck": {"compileKotlin"},
+			"tests":     {"test"},
+		},
+	},
+	{
+		manifest: "pyproject.toml",
+		name:     "python3",
+		byKind: map[string][]string{
+			// Python has no build step to speak of, and compileall is the
+			// closest honest equivalent: it reports syntax errors across the
+			// tree without pretending to be a compiler.
+			"build":     {"-m", "compileall", "-q", "."},
+			"typecheck": {"-m", "mypy", "."},
+			"tests":     {"-m", "pytest"},
+		},
+	},
+	{
+		manifest: "setup.py",
+		name:     "python3",
+		byKind: map[string][]string{
+			"build":     {"-m", "compileall", "-q", "."},
+			"typecheck": {"-m", "mypy", "."},
+			"tests":     {"-m", "pytest"},
+		},
+	},
+	{
+		manifest: "Gemfile",
+		name:     "bundle",
+		byKind: map[string][]string{
+			"tests": {"exec", "rake", "test"},
+		},
+	},
+}
+
 var makeTargetPattern = regexp.MustCompile(`(?m)^([A-Za-z0-9_.-]+)\s*:`)
 
 // npmScriptLine matches the indented script names `npm run` prints.
@@ -69,6 +148,24 @@ func discoverCommand(dir string, kind string) (name string, args []string, ok bo
 		if cargoArgs, found := cargoArgsFor(dir, kind); found {
 			return "cargo", cargoArgs, true
 		}
+	}
+
+	for _, ecosystem := range ecosystemCommands {
+		if !fileExists(filepath.Join(dir, ecosystem.manifest)) {
+			continue
+		}
+		if ecosystemArgs, found := ecosystem.byKind[kind]; found {
+			return ecosystem.name, ecosystemArgs, true
+		}
+	}
+
+	// The Go default applies to Go projects, not to everything left over.
+	// Falling through to `go build ./...` in a Python or Java repository is
+	// not a degraded answer, it is a wrong one: it fails for a reason that
+	// has nothing to do with the code, and sends the reader after the wrong
+	// problem. Saying no command was found is the useful answer.
+	if !fileExists(filepath.Join(dir, "go.mod")) {
+		return "", nil, false
 	}
 
 	commandArgs, found := goCommandsByKind[kind]

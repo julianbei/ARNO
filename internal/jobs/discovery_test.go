@@ -17,6 +17,7 @@ func hasMake(t *testing.T) {
 
 func TestDiscoverCommandFallsBackToGoSubcommandWithoutMakefile(t *testing.T) {
 	dir := t.TempDir()
+	writeGoMod(t, dir)
 
 	name, args, ok := discoverCommand(dir, "typecheck")
 	if !ok {
@@ -57,6 +58,7 @@ func TestDiscoverCommandPrefersVerifiedMakefileTarget(t *testing.T) {
 func TestDiscoverCommandIgnoresUndeclaredMakefileTargets(t *testing.T) {
 	hasMake(t)
 	dir := t.TempDir()
+	writeGoMod(t, dir)
 
 	// Makefile exists but declares no target matching any candidate for
 	// "tests" (only "vet" is declared) — should fall back to go test.
@@ -98,5 +100,57 @@ func TestRunValidationCommandActuallyInvokesTheMakefileTarget(t *testing.T) {
 	}
 	if !strings.Contains(output.Raw, "makefile-build-target-ran") {
 		t.Fatalf("expected the real Makefile target to have run, got %q", output.Raw)
+	}
+}
+
+// writeGoMod marks a directory as a Go project. The Go default is no longer a
+// catch-all for anything unrecognised: it applies to Go projects, so a test
+// that wants it has to say so.
+func writeGoMod(t *testing.T, dir string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module probe\n\ngo 1.24\n"), 0o644); err != nil {
+		t.Fatalf("write go.mod: %v", err)
+	}
+}
+
+// A project jade cannot identify must say so rather than running Go commands
+// in it. `go build ./...` in a Python repository fails for a reason that has
+// nothing to do with the code, which sends the reader after the wrong problem.
+func TestDiscoverCommandRefusesToGuessGoForANonGoProject(t *testing.T) {
+	dir := t.TempDir()
+
+	if _, _, ok := discoverCommand(dir, "build"); ok {
+		t.Fatal("an unidentifiable project must not resolve to the Go default")
+	}
+}
+
+func TestDiscoverCommandFindsEcosystemsByManifest(t *testing.T) {
+	cases := []struct {
+		manifest string
+		kind     string
+		want     string
+	}{
+		{"pom.xml", "tests", "mvn"},
+		{"build.sbt", "tests", "sbt"},
+		{"build.gradle", "tests", "gradle"},
+		{"build.gradle.kts", "build", "gradle"},
+		{"pyproject.toml", "tests", "python3"},
+		{"setup.py", "tests", "python3"},
+		{"Gemfile", "tests", "bundle"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.manifest, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, tc.manifest), []byte("\n"), 0o644); err != nil {
+				t.Fatalf("write %s: %v", tc.manifest, err)
+			}
+			name, args, ok := discoverCommand(dir, tc.kind)
+			if !ok {
+				t.Fatalf("%s should resolve %s", tc.manifest, tc.kind)
+			}
+			if name != tc.want {
+				t.Fatalf("expected %q, got %q %v", tc.want, name, args)
+			}
+		})
 	}
 }

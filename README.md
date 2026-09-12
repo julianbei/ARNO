@@ -257,7 +257,7 @@ a stale edit fail loudly instead of silently clobbering a concurrent change.
 
 | Tool | What it does |
 |---|---|
-| `check` | Build, typecheck or tests — discovering the repository's own Makefile target, npm script or cargo command rather than assuming Go. |
+| `check` | Build, typecheck or tests — discovering the repository's own command rather than assuming one: Makefile target, then npm script, cargo, Maven, Gradle, sbt, pytest/mypy or bundler, by manifest. A project it cannot identify is reported as such rather than run with the wrong toolchain. |
 | `run_tests` | Tests scoped to a file, a test name, or the changed files. |
 | `run_command` | Run one of the repository's declared commands by name. |
 | `declare_command` | Add or remove a declared command. |
@@ -336,13 +336,17 @@ The longer design document is [docs/scope.md](docs/scope.md).
 This list is more useful than the feature list — it tells you what is worth
 reporting and what is already known.
 
-- **Only Go, TypeScript, TSX and Rust get a real grammar.** Everything else
-  falls back to a text scan that finds some declarations and misses others.
-  Jade says so in the response (`! no python grammar — …`) rather than
-  pretending the outline is complete, but it is still a fallback.
+- **Nine languages get a real grammar; the rest fall back to a text scan.**
+  Go, TypeScript, TSX, JavaScript, Python, Ruby, Java, Scala and Rust are
+  parsed properly. Anything else (Kotlin, Swift, C/C++, C#, PHP, …) is served
+  by a heuristic that finds some declarations and misses others — and the
+  amount it misses varies enormously by language, so treat those outlines as
+  a hint rather than an inventory. Jade always says which you got
+  (`! no kotlin grammar — …`).
 - **`references` and `rename` are Go-only in their precise form.** They shell
   out to `gopls`; without it, or in another language, `references` degrades to
-  a textual approximation and `rename` refuses.
+  a textual approximation and `rename` refuses. Structure is well covered in
+  nine languages; cross-file semantics are not.
 - **No LSP client.** Jade calls `gopls` subcommands. Cross-language semantic
   analysis is not there.
 - **No blame, no cross-repo work, no remote execution.**

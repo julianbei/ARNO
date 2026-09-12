@@ -66,6 +66,9 @@ func TestDiscoverCommandSkipsNPMWhenNoMatchingScriptExists(t *testing.T) {
 	// candidate — discovery must not invent one, and falls through to the
 	// Go default rather than returning a script npm would reject.
 	writePackageJSON(t, dir, `"start":"echo start"`)
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module probe\n\ngo 1.24\n"), 0o644); err != nil {
+		t.Fatalf("write go.mod: %v", err)
+	}
 
 	name, _, ok := discoverCommand(dir, "tests")
 	if !ok {
