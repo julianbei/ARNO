@@ -1,4 +1,4 @@
-.PHONY: build binary install test fmt clean
+.PHONY: build binary install test fmt clean conformance
 
 BIN := bin/jade-mcp
 
@@ -26,3 +26,11 @@ fmt:
 
 clean:
 	rm -rf bin
+
+# conformance builds an image containing every language server jade supports
+# and runs the conformance suite inside it. Slow and large on purpose: it is
+# the only way to prove the semantic path against real servers, none of which
+# are installed on a typical developer machine.
+conformance:
+	docker build -f test/conformance/Dockerfile -t jade-conformance .
+	docker run --rm jade-conformance
