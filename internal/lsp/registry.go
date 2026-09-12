@@ -1,0 +1,220 @@
+package lsp
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+)
+
+// ServerSpec describes how to launch one language server.
+type ServerSpec struct {
+	// Language is jade's own identifier, matching internal/code's grammar
+	// names so a file's language maps to a server without a second table.
+	Language string
+
+	Command string
+	Args    []string
+
+	// Alternatives are other binaries providing the same language, tried in
+	// order when Command is absent. Ecosystems rarely settle on one server —
+	// Python has pyright and pylsp, Ruby has ruby-lsp and solargraph — and
+	// insisting on a favourite means jade goes semantic-blind on a machine
+	// that has the other one installed.
+	Alternatives []AlternativeSpec
+
+	// InitializationOptions are passed through at initialize. Some servers
+	// are close to useless without them.
+	InitializationOptions map[string]any
+
+	// LanguageID is what the server expects in didOpen. It is usually but not
+	// always the same as Language: LSP's identifier for C# is "csharp", and
+	// for TSX it is "typescriptreact".
+	LanguageID string
+}
+
+// AlternativeSpec is a second choice of binary for the same language.
+type AlternativeSpec struct {
+	Command string
+	Args    []string
+}
+
+// specs is the server table, keyed by jade's language identifier.
+//
+// Every entry is a server that speaks LSP over stdio and needs no
+// configuration file to be useful. Servers requiring a project-specific setup
+// step (jdtls wants a data directory, metals wants a build import) are still
+// listed, because a machine that has them configured should get the benefit,
+// and one that does not simply fails to start and falls back.
+var specs = map[string]ServerSpec{
+	"go": {
+		Language:   "go",
+		Command:    "gopls",
+		LanguageID: "go",
+	},
+	"typescript": {
+		Language:   "typescript",
+		Command:    "typescript-language-server",
+		Args:       []string{"--stdio"},
+		LanguageID: "typescript",
+	},
+	"tsx": {
+		Language:   "tsx",
+		Command:    "typescript-language-server",
+		Args:       []string{"--stdio"},
+		LanguageID: "typescriptreact",
+	},
+	"javascript": {
+		Language:   "javascript",
+		Command:    "typescript-language-server",
+		Args:       []string{"--stdio"},
+		LanguageID: "javascript",
+	},
+	"rust": {
+		Language:   "rust",
+		Command:    "rust-analyzer",
+		LanguageID: "rust",
+	},
+	"python": {
+		Language:   "python",
+		Command:    "pyright-langserver",
+		Args:       []string{"--stdio"},
+		LanguageID: "python",
+		Alternatives: []AlternativeSpec{
+			{Command: "pylsp"},
+			{Command: "jedi-language-server"},
+		},
+	},
+	"ruby": {
+		Language:   "ruby",
+		Command:    "ruby-lsp",
+		LanguageID: "ruby",
+		Alternatives: []AlternativeSpec{
+			{Command: "solargraph", Args: []string{"stdio"}},
+		},
+	},
+	"java": {
+		Language:   "java",
+		Command:    "jdtls",
+		LanguageID: "java",
+	},
+	"scala": {
+		Language:   "scala",
+		Command:    "metals",
+		LanguageID: "scala",
+	},
+}
+
+// SpecFor returns the server spec for a jade language identifier.
+func SpecFor(language string) (ServerSpec, bool) {
+	spec, ok := specs[language]
+	return spec, ok
+}
+
+// Languages lists every language with a configured server, for reporting.
+func Languages() []string {
+	out := make([]string, 0, len(specs))
+	for name := range specs {
+		out = append(out, name)
+	}
+	return out
+}
+
+// Locate finds the binary to run, preferring Command and falling back through
+// Alternatives. The returned spec's Args belong to whichever was found, which
+// matters because the alternatives do not share a command line: solargraph
+// needs `stdio` and ruby-lsp does not.
+func (s ServerSpec) Locate() (string, bool) {
+	if path, ok := lookPath(s.Command); ok {
+		return path, true
+	}
+	for _, alternative := range s.Alternatives {
+		if path, ok := lookPath(alternative.Command); ok {
+			return path, true
+		}
+	}
+	return "", false
+}
+
+// Resolve returns the spec as it should actually be launched, with the args of
+// whichever binary was found. Calling Locate alone and reusing the original
+// args is the bug this exists to prevent.
+func (s ServerSpec) Resolve() (ServerSpec, bool) {
+	if _, ok := lookPath(s.Command); ok {
+		return s, true
+	}
+	for _, alternative := range s.Alternatives {
+		if _, ok := lookPath(alternative.Command); ok {
+			resolved := s
+			resolved.Command = alternative.Command
+			resolved.Args = alternative.Args
+			return resolved, true
+		}
+	}
+	return s, false
+}
+
+// lookPath finds an executable, searching the usual language-toolchain
+// directories in addition to PATH.
+//
+// This is not over-engineering: gopls is installed by `go install` into
+// ~/go/bin, which is not on PATH by default — on the machine jade was
+// developed on, `command -v gopls` finds nothing while gopls is installed and
+// working. A client that only consulted PATH would report Go as having no
+// language server on the very system that has one.
+func lookPath(command string) (string, bool) {
+	if command == "" {
+		return "", false
+	}
+	if path, err := exec.LookPath(command); err == nil {
+		return path, true
+	}
+
+	for _, dir := range extraBinDirs() {
+		candidate := filepath.Join(dir, executableName(command))
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() && isExecutable(info) {
+			return candidate, true
+		}
+	}
+	return "", false
+}
+
+// extraBinDirs lists toolchain install locations that are commonly not on
+// PATH.
+func extraBinDirs() []string {
+	dirs := make([]string, 0, 8)
+
+	if gobin := os.Getenv("GOBIN"); gobin != "" {
+		dirs = append(dirs, gobin)
+	}
+	if gopath := os.Getenv("GOPATH"); gopath != "" {
+		for _, entry := range filepath.SplitList(gopath) {
+			dirs = append(dirs, filepath.Join(entry, "bin"))
+		}
+	}
+
+	if home, err := os.UserHomeDir(); err == nil {
+		dirs = append(dirs,
+			filepath.Join(home, "go", "bin"),        // go install default
+			filepath.Join(home, ".cargo", "bin"),    // rustup
+			filepath.Join(home, ".local", "bin"),    // pip --user, pipx
+			filepath.Join(home, ".coursier", "bin"), // coursier, for metals
+		)
+	}
+	return dirs
+}
+
+func executableName(command string) string {
+	if runtime.GOOS == "windows" && !strings.HasSuffix(command, ".exe") {
+		return command + ".exe"
+	}
+	return command
+}
+
+func isExecutable(info os.FileInfo) bool {
+	if runtime.GOOS == "windows" {
+		return true
+	}
+	return info.Mode()&0o111 != 0
+}

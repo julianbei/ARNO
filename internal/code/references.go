@@ -40,6 +40,21 @@ func (i *Index) References(path string, symbolID string) (protocol.ReferencesRes
 		return protocol.ReferencesResponse{}, err
 	}
 
+	// A real language server first, for any language that has one. This is
+	// the path that makes references exact outside Go: before it existed,
+	// everything but Go fell straight through to name matching.
+	if refs, server, ok := i.languageServerReferences(symbol, line, column); ok {
+		return protocol.ReferencesResponse{
+			Query:      symbolID,
+			Source:     "lsp",
+			References: refs,
+			Summary:    fmt.Sprintf("%d references to %s (%s)", len(refs), symbol.Name, server),
+		}, nil
+	}
+
+	// The gopls CLI remains as a second path for Go. It costs a full process
+	// start and workspace load per call, but it needs no server running, so
+	// it still answers where the client could not start at all.
 	if strings.EqualFold(filepath.Ext(symbol.Path), ".go") {
 		if refs, ok := i.goplsReferences(symbol.Path, line, column); ok {
 			return protocol.ReferencesResponse{

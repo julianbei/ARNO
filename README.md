@@ -25,6 +25,7 @@ go install github.com/julianbei/jade/cmd/jade-mcp@latest
 - [Use it in a container](#use-it-in-a-container)
 - [The tools](#the-tools)
 - [Repository commands](#repository-commands)
+- [Language support](#language-support)
 - [Design principles](#design-principles)
 - [What Jade does not do yet](#what-jade-does-not-do-yet)
 - [Stability and versioning](#stability-and-versioning)
@@ -301,6 +302,38 @@ teaches rather than fails.
 
 ---
 
+## Language support
+
+Structure comes from tree-sitter grammars compiled into the binary, so it
+works with nothing installed. Semantics come from a real language server,
+which you provide — jade starts it on first use, reuses it for the session,
+and shuts it down on exit.
+
+| Language | Structure | Semantics, with this installed |
+|---|---|---|
+| Go | ✅ built in | `gopls` |
+| TypeScript / TSX | ✅ built in | `typescript-language-server` |
+| JavaScript | ✅ built in | `typescript-language-server` |
+| Rust | ✅ built in | `rust-analyzer` |
+| Python | ✅ built in | `pyright-langserver`, or `pylsp` / `jedi-language-server` |
+| Ruby | ✅ built in | `ruby-lsp`, or `solargraph` |
+| Java | ✅ built in | `jdtls` |
+| Scala | ✅ built in | `metals` |
+| Everything else | text scan, announced | — |
+
+"Structure" is outline, symbol read, edit-by-symbol, grep and search.
+"Semantics" is exact `references`, cross-file `rename`, and type-level
+diagnostics on edit.
+
+Jade looks for servers on `PATH` and in the places toolchains actually install
+them — `~/go/bin`, `~/.cargo/bin`, `~/.local/bin`, `~/.coursier/bin` — because
+`go install` puts `gopls` somewhere that is not on `PATH` by default, and a
+client that only checked `PATH` would report Go as unsupported on a machine
+that has a working `gopls`.
+
+A missing server is never an error. Jade degrades to the behaviour above and
+says which answer you got.
+
 ## Design principles
 
 1. **Structure before source.** Return the minimum sufficient representation
@@ -343,14 +376,18 @@ reporting and what is already known.
   amount it misses varies enormously by language, so treat those outlines as
   a hint rather than an inventory. Jade always says which you got
   (`! no kotlin grammar — …`).
-- **`references` and `rename` are Go-only in their precise form.** They shell
-  out to `gopls`; without it, or in another language, `references` degrades to
-  a textual approximation and `rename` refuses. Structure is well covered in
-  nine languages; cross-file semantics are not.
-- **No LSP client.** Jade calls `gopls` subcommands. Cross-language semantic
-  analysis is not there.
+- **Semantic features need a language server installed for that language.**
+  Jade speaks LSP to whatever is on the machine (see
+  [Language support](#language-support)). With a server, `references` and
+  `rename` are compiler-exact and cross-file. Without one, `references`
+  degrades to a textual approximation that says so, and `rename` refuses
+  rather than guessing — an approximate reference list is still useful to a
+  reader, but an approximate edit is corruption.
+- **No completion, hover or code actions.** Jade's LSP client implements what
+  the tools need — references, rename, diagnostics — not the whole protocol.
 - **No blame, no cross-repo work, no remote execution.**
-- **Formatting covers gofmt and rustfmt only.** TypeScript, JSON and Markdown
+- **Formatting covers gofmt and rustfmt only.** Other languages are left
+  alone rather than reformatted by a tool whose config jade cannot see. TypeScript, JSON and Markdown
   are deliberately left alone — their formatters take project config and could
   reformat far more than the agent touched.
 - **Revision tracking is Jade's own counter, not git's.** It detects concurrent

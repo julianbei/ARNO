@@ -18,6 +18,7 @@ import (
 	"github.com/julianbei/jade/internal/events"
 	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/languages"
+	"github.com/julianbei/jade/internal/lsp"
 	"github.com/julianbei/jade/internal/protocol"
 	"github.com/julianbei/jade/internal/render"
 	"github.com/julianbei/jade/internal/telemetry"
@@ -126,6 +127,14 @@ func main() {
 	bus := events.NewBus()
 	wm := workspace.NewManager(root, bus)
 	ci := code.NewIndex(root, bus)
+
+	// Language servers are started lazily on first use and shut down when
+	// jade exits. Leaking them is not hypothetical: jdtls and metals hold
+	// hundreds of megabytes each, and an agent harness may restart jade
+	// often.
+	servers := lsp.NewManager(root)
+	defer servers.Close()
+	ci.UseLanguageServers(servers)
 	ds := diagnostics.NewService(root)
 	jr := jobs.NewRunner(bus)
 	es := edit.NewService(wm, ci, ds, jr)

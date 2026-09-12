@@ -29,7 +29,7 @@ const goplsRenameTimeout = 30 * time.Second
 // edit that is merely approximate is corruption. Refusing is the correct
 // answer — docs/scope.md Rule 2 says to use the compiler's answer, not to guess
 // when the compiler is unavailable.
-var ErrRenameUnavailable = errors.New("rename requires gopls, which is not available")
+var ErrRenameUnavailable = errors.New("rename requires a language server for this file's language, and none is available")
 
 // ErrInvalidIdentifier is returned when newName could not be a valid
 // identifier, caught before touching the workspace rather than after gopls
@@ -57,10 +57,15 @@ func (i *Index) RenameSymbol(path string, symbolID string, newName string) ([]st
 	if symbol.Name == newName {
 		return nil, fmt.Errorf("symbol %s is already named %q", symbolID, newName)
 	}
+	// A real language server first, which is what makes rename work outside
+	// Go at all. The refusal below is still the right answer when no server
+	// is available: applying a rename from name matching would silently
+	// rewrite unrelated identifiers that happen to share a name.
+	if changed, ok := i.languageServerRename(symbol, line, column, newName); ok {
+		return changed, nil
+	}
+
 	if !strings.EqualFold(filepath.Ext(symbol.Path), ".go") {
-		// tsserver and rust-analyzer equivalents are the follow-on work
-		// described in Phase 7; until then jade refuses rather than
-		// pretending to support the language.
 		return nil, fmt.Errorf("%w (for %s)", ErrRenameUnavailable, symbol.Path)
 	}
 	if _, ok := toolchain.Gopls(); !ok {

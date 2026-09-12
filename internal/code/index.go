@@ -2,6 +2,7 @@ package code
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"unicode"
 
 	"github.com/julianbei/jade/internal/events"
+	"github.com/julianbei/jade/internal/lsp"
 	"github.com/julianbei/jade/internal/protocol"
 	"github.com/julianbei/jade/internal/textutil"
 )
@@ -45,6 +47,13 @@ type Index struct {
 	root string
 	bus  *events.Bus
 
+	// servers provides real language servers for references, rename and
+	// semantic diagnostics. Nil is a supported state and means jade behaves
+	// as it did before the LSP client existed: gopls CLI for Go, approximate
+	// name matching elsewhere, rename refused. Every use of this field must
+	// therefore tolerate nil rather than assume a server.
+	servers *lsp.Manager
+
 	cacheMu sync.RWMutex
 	cache   map[string]fileSymbolCache
 }
@@ -62,6 +71,35 @@ type fileSymbolCache struct {
 
 func NewIndex(root string, bus *events.Bus) *Index {
 	return &Index{root: root, bus: bus, cache: make(map[string]fileSymbolCache)}
+}
+
+// UseLanguageServers attaches a language server manager. Separate from
+// NewIndex so the three commands that build an Index can opt in individually:
+// the benchmark deliberately does not, since a warm language server would
+// measure something other than what it claims to.
+func (i *Index) UseLanguageServers(manager *lsp.Manager) {
+	i.servers = manager
+}
+
+// languageClient returns a started server for path's language, or false when
+// there is none. The false case is ordinary, not exceptional.
+func (i *Index) languageClient(ctx context.Context, path string) (*lsp.Client, string, bool) {
+	if i.servers == nil {
+		return nil, "", false
+	}
+	language := lsp.LanguageForPath(path)
+	if language == "" {
+		return nil, "", false
+	}
+	client, ok := i.servers.ClientFor(ctx, language)
+	if !ok {
+		return nil, language, false
+	}
+	spec, _ := lsp.SpecFor(language)
+	if err := i.servers.Sync(client, path, spec.LanguageID); err != nil {
+		return nil, language, false
+	}
+	return client, language, true
 }
 
 func (i *Index) Outline(path string) ([]Symbol, error) {
