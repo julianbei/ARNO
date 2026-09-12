@@ -3582,7 +3582,29 @@ anything invented here.
   called, what came back, what was expected), and a place to collect them.
   Without this, (c) and (d) do not happen.
 
-- [ ] **11.8 Tag 0.0.1 and write release notes**
+- [x] **11.8 Tag 0.0.1 and write release notes**
+  **Done: 2026-09-12 — tagged `v0.0.1`.** Owner authorized the commit after
+  the live re-verification below. All 91 files went in as one commit,
+  `6316c30`, since the tree is a single coherent state and splitting it
+  after the fact would have invented a history that never happened.
+  `git tag -a v0.0.1`; `make binary && ./bin/jade-mcp --version` reports
+  `jade-mcp v0.0.1`, so ldflags stamping works off a real tag, not just the
+  throwaway one used earlier. Tag is local — not pushed.
+
+  Unit tests: `go build && go vet && go test ./...` all green.
+
+  Verified live over MCP: **yes** — this was the first wake after a
+  reconnect, so 11.10's fix was finally testable through the running server
+  rather than the binary. Declared a trap command through
+  `jade_declare_command` (`echo "everything looks fine"; exit 3`), ran it
+  through `jade_run_command`, got `FAIL exit-status-probe … exit status 3`.
+  Before 11.10 that exact command returned `pass`. Removed the probe, then
+  ran `release-gate` live: `pass · 11 packages ok, 12 with no test files`.
+
+  The note below is the pre-tag history and is kept as written.
+
+  ---
+
   Picked up: 2026-09-12 — **release notes written; tag Blocked.**
 
   **Done:** `CHANGELOG.md` with the 0.0.1 entry — what jade is, the 34
