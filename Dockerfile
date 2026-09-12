@@ -4,7 +4,7 @@
 # spawns as a child process. So this image exists to *produce the binary*,
 # not to run as a long-lived container. The intended use is a build stage:
 #
-#   COPY --from=ghcr.io/julianbei/jade:v0.0.1 /jade-mcp /usr/local/bin/jade-mcp
+#   COPY --from=ghcr.io/julianbei/jade-mcp:v0.0.1 /jade-mcp /usr/local/bin/jade-mcp
 #
 # Running the image directly starts the server on stdio, which is only useful
 # if you are attaching an MCP client to the container's stdin/stdout.
