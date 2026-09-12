@@ -91,7 +91,7 @@ jobs:
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Published so other projects can pull the binary into their own image
@@ -106,5 +106,5 @@ jobs:
           push: true
           build-args: VERSION=${{ github.ref_name }}
           tags: |
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository_owner }}/jade-mcp:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/jade-mcp:latest

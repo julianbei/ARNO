@@ -183,7 +183,7 @@ Jade is a child process, not a service, so the useful shape is to copy the
 binary into your own image rather than run Jade's:
 
 ```dockerfile
-FROM ghcr.io/julianbei/jade:v0.0.1 AS jade
+FROM ghcr.io/julianbei/jade-mcp:v0.0.1 AS jade
 
 FROM your-project-base
 COPY --from=jade /jade-mcp /usr/local/bin/jade-mcp
