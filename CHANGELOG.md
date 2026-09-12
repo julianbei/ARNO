@@ -1,5 +1,88 @@
 # Changelog
 
+## 0.0.2
+
+Semantics. 0.0.1 could read and edit nine languages structurally but only
+understood one of them — `references` was compiler-exact for Go and a
+name-matched guess everywhere else, and `rename` refused outright outside Go.
+
+### Language servers
+
+Jade now speaks LSP. `internal/lsp` is a real client: process lifecycle,
+JSON-RPC over stdio, initialize handshake, document sync, capability gating.
+Servers start on first use, are reused for the session, and shut down on exit
+— a server's first answer is expensive because it indexes, every one after is
+cheap, which is exactly what the previous per-call CLI invocation threw away.
+
+With a server installed, `references` and `rename` are compiler-exact and
+cross-file in **Go, TypeScript, TSX, JavaScript, Python, Ruby, Rust, Java and
+Scala**. Without one, nothing is lost: the gopls CLI remains a second path for
+Go, `references` falls back to the name-matched graph and says so, and
+`rename` still refuses rather than guessing — an approximate reference list is
+useful to a reader, an approximate edit is corruption.
+
+Servers are found on `PATH` and in the places toolchains actually install
+them. `command -v gopls` finds nothing on a stock machine while gopls sits
+working in `~/go/bin`; a PATH-only client would report Go as unsupported on
+the system that supports it best.
+
+### Grammars
+
+Real tree-sitter grammars for **Python, Ruby, Java, Scala and JavaScript**.
+Measured against the text-scan fallback they replace, on a trivial file:
+
+    python      1 of 3 declarations found      now all
+    ruby        1 of 3                         now all
+    scala       1 of 4                         now all
+    java        0 of 2 — nothing at all        now all
+    javascript  3 of 4                         now all
+
+Java is the one that mattered: an empty outline carrying a note that some
+declarations "may be missing" reads as a small caveat, so the fallback was
+worse than an honest refusal.
+
+### Validation
+
+`check` discovers Maven, Gradle, sbt, pyproject/setup.py and Gemfile by
+manifest. Previously anything unrecognised fell through to the Go default, so
+validating a Python repository ran `go build ./...` — not a degraded answer
+but a wrong one, failing for a reason unrelated to the code. A project jade
+cannot identify now says so.
+
+### New tool
+
+`insert` adds text without replacing anything. It existed only as an `apply`
+op, so additive work had no tool to reach for and plain file editing won.
+Adding a tool is backward compatible, but the MCP catalog is fixed at
+connection time — **reconnect before `jade.insert` appears**. Surface is 35
+tools.
+
+### Fixes
+
+- **`run_command` and `check` ignored exit status.** A command printing a
+  success-looking line and exiting non-zero reported `pass`.
+- **An anchor passed to `insert` with no position was ignored entirely**, and
+  the text appended to the end of the file — the silent misplacement the
+  anchor exists to prevent.
+- **A guessed symbol ID dead-ended.** `path::Name` without the `@line` suffix
+  now resolves when unambiguous, removing a lookup call that preceded nearly
+  every edit. Ambiguous names are still refused, with candidates.
+- **A misspelled argument failed in the wrong place.** `old`/`new` instead of
+  `oldText`/`newText` was silently unread; now answered with the real name.
+- **jade blamed a missing language server for a running one's refusal**, which
+  sends someone to install what they already have.
+- `go install`-ed binaries reported their version as `dev`.
+
+### Verification
+
+`make conformance` builds an image containing all eight language servers and
+runs jade against a real repository per language: **8/8 structure, 8/8
+semantics**. It found five real problems while being written, four of which
+would otherwise have shipped.
+
+One server limitation is recorded rather than hidden: ruby-lsp advertises
+rename and then produces no edits for a method. Jade reports its reason.
+
 ## 0.0.1 — unreleased
 
 First tagged version. The point of it is to be usable somewhere other than its
