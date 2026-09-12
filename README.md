@@ -207,6 +207,11 @@ Jade will find them.
 decisive line — the answer first, the supporting detail after, raw output only
 when you ask for it.
 
+**Over MCP each one is registered as `jade.<name>`** — `jade.outline`,
+`jade.replace_symbol`, and so on. The tables below use the bare name for
+readability. Most MCP clients show you the prefixed name already; if you are
+speaking the protocol directly, send the prefixed one.
+
 ### Inspect
 
 | Tool | What it does |

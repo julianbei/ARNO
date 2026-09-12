@@ -123,7 +123,7 @@ func (s *Server) ReadSymbol(req protocol.ReadSymbolRequest) (protocol.InspectRes
 	if req.SymbolID != "" {
 		symbol, source, err := s.index.ReadSymbol(req.Path, req.SymbolID, req.MaxLines)
 		if err != nil {
-			base.Resolve = protocol.SymbolResolution{Status: protocol.ResolutionNotFound, Query: req.SymbolID}
+			base.Outline, base.Resolve = s.index.NotFoundResolution(req.Path, req.SymbolID)
 			return base, nil
 		}
 		base.Outline = []protocol.OutlineItem{{

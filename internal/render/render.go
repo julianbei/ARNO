@@ -115,6 +115,25 @@ func ambiguous(resolve protocol.SymbolResolution) string {
 	return strings.Join(lines, "\n")
 }
 
+// notFound renders a missing symbol, naming the same-named declarations that
+// do exist when there are any. The usual cause is a caller who knows the name
+// and guessed the ID — an omitted "@line" suffix, or one that has gone stale
+// since they last looked — and that is recoverable in the response rather
+// than in another round trip.
+//
+// With no candidates it stays a bare "not found": inventing a near-miss for a
+// name that is genuinely absent would be a confident wrong answer.
+func notFound(resolve protocol.SymbolResolution) string {
+	if len(resolve.CandidateIDs) == 0 {
+		return fmt.Sprintf("not found: %s", resolve.Query)
+	}
+	if len(resolve.CandidateIDs) == 1 {
+		return fmt.Sprintf("not found: %s — did you mean %s?", resolve.Query, resolve.CandidateIDs[0])
+	}
+	return fmt.Sprintf("not found: %s — did you mean one of: %s?",
+		resolve.Query, strings.Join(resolve.CandidateIDs, ", "))
+}
+
 // parserNote renders the incompleteness warning, and nothing at all when the
 // outline came from a real grammar. Silence is correct in the common case:
 // a caveat printed on every Go file would be ignored by the time it mattered.
@@ -135,7 +154,7 @@ func inspect(r protocol.InspectResponse) string {
 	case protocol.ResolutionAmbiguous:
 		return ambiguous(r.Resolve)
 	case protocol.ResolutionNotFound:
-		return fmt.Sprintf("not found: %s", r.Resolve.Query)
+		return notFound(r.Resolve)
 	}
 
 	header := make([]string, 0, 3)

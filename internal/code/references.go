@@ -99,7 +99,7 @@ func (i *Index) locateSymbolPosition(path string, symbolID string) (Symbol, int,
 		return symbol, symbol.From, offset + 1, nil
 	}
 
-	return Symbol{}, 0, 0, fmt.Errorf("symbol not found: %s", symbolID)
+	return Symbol{}, 0, 0, symbolNotFoundError(symbolID, symbols)
 }
 
 // goplsReferences shells out to `gopls references`. The bool reports

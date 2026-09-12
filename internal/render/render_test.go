@@ -432,3 +432,47 @@ func TestAmbiguousSurvivesAMissingSignature(t *testing.T) {
 		t.Fatalf("expected the ID, got:\n%s", out)
 	}
 }
+
+// The reported friction: a guessed symbol ID answered with a bare "not found"
+// and no way forward. The candidates are already in hand by the time the
+// lookup fails, so withholding them only costs the caller another call.
+func TestNotFoundOffersTheCandidateID(t *testing.T) {
+	out, _ := Text(protocol.InspectResponse{
+		Resolve: protocol.SymbolResolution{
+			Status:       protocol.ResolutionNotFound,
+			Query:        "greet.go::Greet",
+			CandidateIDs: []string{"greet.go::Greet@3"},
+		},
+	})
+	if !strings.Contains(out, "did you mean greet.go::Greet@3?") {
+		t.Fatalf("expected a suggestion, got: %q", out)
+	}
+}
+
+func TestNotFoundOffersEveryCandidateWhenSeveralShareTheName(t *testing.T) {
+	out, _ := Text(protocol.InspectResponse{
+		Resolve: protocol.SymbolResolution{
+			Status:       protocol.ResolutionNotFound,
+			Query:        "store.go::Put",
+			CandidateIDs: []string{"store.go::Put@6", "store.go::Put@8"},
+		},
+	})
+	for _, want := range []string{"did you mean one of:", "store.go::Put@6", "store.go::Put@8"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("expected %q in: %q", want, out)
+		}
+	}
+}
+
+// A name that is genuinely absent must not acquire an invented suggestion.
+func TestNotFoundStaysBareWithNoCandidates(t *testing.T) {
+	out, _ := Text(protocol.InspectResponse{
+		Resolve: protocol.SymbolResolution{
+			Status: protocol.ResolutionNotFound,
+			Query:  "greet.go::Nope",
+		},
+	})
+	if strings.Contains(out, "did you mean") {
+		t.Fatalf("nothing should be suggested, got: %q", out)
+	}
+}

@@ -992,7 +992,7 @@ func (i *Index) ReadSymbol(path string, symbolID string, maxLines int) (Symbol, 
 		return symbol, body, nil
 	}
 
-	return Symbol{}, "", fmt.Errorf("symbol not found: %s", symbolID)
+	return Symbol{}, "", symbolNotFoundError(symbolID, symbols)
 }
 
 // ReadRange reads lines [start,end] (inclusive, 1-indexed) of path verbatim
@@ -1087,7 +1087,7 @@ func (i *Index) ReplaceSymbolSource(symbolID string, newCode string) (Symbol, []
 		return symbol, oldLines, nil
 	}
 
-	return Symbol{}, nil, fmt.Errorf("symbol not found: %s", symbolID)
+	return Symbol{}, nil, symbolNotFoundError(symbolID, symbols)
 }
 
 // ReplaceRangeSource splices newCode over lines [start,end] (inclusive,
