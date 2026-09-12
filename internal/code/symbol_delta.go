@@ -10,7 +10,7 @@ import (
 // SymbolDelta reports which symbols were added, removed or modified between
 // two versions of one file.
 //
-// scope.md §13's own MVP example has changes() naming the symbol that moved
+// docs/scope.md §13's own MVP example has changes() naming the symbol that moved
 // ("SessionManager.refreshSession modified"), not just the file. 3.2's
 // numstat summary answers "how much"; this answers "what", which is the
 // question an agent returning to a file actually has.

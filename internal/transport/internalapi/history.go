@@ -4,7 +4,7 @@ import (
 	"github.com/julianbei/jade/internal/protocol"
 )
 
-// History reports which commits touched a symbol — scope.md §18.
+// History reports which commits touched a symbol — docs/scope.md §18.
 //
 // The line range comes from jade's current parse of the file, and git's -L
 // then follows that range backwards through history itself. That ordering

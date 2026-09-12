@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// SearchNudge implements droneship's search-nudge idea: rather than trying
-// to make an agent choose jade's search tool over a shell grep/find call,
+// SearchNudge implements the search-nudge idea: rather than trying to make
+// an agent choose jade's search tool over a shell grep/find call,
 // piggyback a few relevant index hits onto the tool call it already made.
 //
 // jade is an MCP server, not the agent harness, so it cannot itself observe

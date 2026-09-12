@@ -27,7 +27,7 @@ const goplsRenameTimeout = 30 * time.Second
 // share a name and miss shadowed or dynamically dispatched ones. A
 // reference list that is merely approximate is still useful to a reader; an
 // edit that is merely approximate is corruption. Refusing is the correct
-// answer — scope.md Rule 2 says to use the compiler's answer, not to guess
+// answer — docs/scope.md Rule 2 says to use the compiler's answer, not to guess
 // when the compiler is unavailable.
 var ErrRenameUnavailable = errors.New("rename requires gopls, which is not available")
 

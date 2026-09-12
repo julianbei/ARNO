@@ -25,7 +25,7 @@ const (
 var identifierPattern = regexp.MustCompile(`\b[A-Za-z_][A-Za-z0-9_]*\b`)
 
 // Context assembles everything an agent needs to act on one symbol in a
-// single call — scope.md §14's North Star primitive.
+// single call — docs/scope.md §14's North Star primitive.
 //
 // Every piece already existed as its own tool after Phases 1-9. The value
 // here is not new capability, it is the round trips removed: an agent asking

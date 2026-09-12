@@ -111,7 +111,7 @@ type ReplaceTextRequest struct {
 	NewText          string
 }
 
-// CreateFileRequest creates a brand-new file — scope.md §29's MVP editing
+// CreateFileRequest creates a brand-new file — docs/scope.md §29's MVP editing
 // operation, alongside DeleteFileRequest, that had no implementation at
 // all until this task.
 type CreateFileRequest struct {
@@ -199,7 +199,7 @@ type DeleteFileRequest struct {
 // RunTestsRequest starts a scoped test run — "all" (whole repo), "file"
 // (the package containing one file), "test" (one test name across all
 // packages), or "changed" (packages containing any currently-changed
-// file). Deliberately conservative per scope.md §33's own guidance, not
+// file). Deliberately conservative per docs/scope.md §33's own guidance, not
 // call-graph-precise affected-test prediction.
 type RunTestsRequest struct {
 	Scope string
@@ -610,9 +610,9 @@ type SearchResponse struct {
 
 // SearchNudgeRequest asks jade whether a shell search-style command (a raw
 // grep/rg/ag/ack/find/fd invocation the harness already ran) warrants
-// appending index hits below its own output — porting droneship's
-// search-nudge idea of piggybacking a better answer onto the tool call an
-// agent already chose, rather than trying to make it choose differently.
+// appending index hits below its own output — piggybacking a better answer
+// onto the tool call an agent already chose, rather than trying to make it
+// choose differently.
 // jade cannot observe the tool call itself (it's an MCP server, not the
 // harness); a harness integration supplies Command and the surrounding
 // context after running it.
@@ -711,9 +711,8 @@ type SymbolGraph struct {
 	Source string
 	// Limitations spells out what this graph provably cannot see. It is
 	// carried in the response rather than left to documentation so the
-	// caveat travels with the data — reference_droneship.md §7's
-	// requirement that the regex graph never be "presented as authoritative
-	// IDE-grade semantics".
+	// caveat travels with the data: an approximate graph must never be
+	// presented as authoritative IDE-grade semantics.
 	Limitations []string
 }
 
@@ -747,7 +746,7 @@ type CommitInfo struct {
 	Subject string
 }
 
-// HistoryRequest asks which commits touched a symbol — scope.md §18's
+// HistoryRequest asks which commits touched a symbol — docs/scope.md §18's
 // history(symbol) instead of `git log -p` over a whole file.
 type HistoryRequest struct {
 	Path       string
@@ -780,7 +779,7 @@ type ContextRequest struct {
 	Purpose    string
 }
 
-// ContextResponse is scope.md §14's assembled working set for one symbol —
+// ContextResponse is docs/scope.md §14's assembled working set for one symbol —
 // implementation, related types, callers, tests, diagnostics and recent
 // change in a single call instead of four round trips.
 //
@@ -870,7 +869,7 @@ const (
 	SymbolRemoved  SymbolChangeKind = "removed"
 )
 
-// SymbolChange names one symbol that moved — scope.md §13's
+// SymbolChange names one symbol that moved — docs/scope.md §13's
 // "SessionManager.refreshSession modified", the question an agent returning
 // to a file actually has, as opposed to how many lines moved.
 type SymbolChange struct {
@@ -944,7 +943,7 @@ type DiffRequest struct {
 	Since string
 }
 
-// DiffResponse carries real hunk content — scope.md §22's diff(target?),
+// DiffResponse carries real hunk content — docs/scope.md §22's diff(target?),
 // the "what changed" companion to ChangesResponse's "how much changed".
 type DiffResponse struct {
 	Target string

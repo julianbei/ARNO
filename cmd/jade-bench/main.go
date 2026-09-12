@@ -3,7 +3,7 @@
 //
 // Usage: jade-bench [-root <path>]
 //
-// It answers scope.md §26's question for the tokens dimension only. Turns
+// It answers docs/scope.md §26's question for the tokens dimension only. Turns
 // and success rate need a real agent; see internal/bench's package comment.
 package main
 

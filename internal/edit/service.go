@@ -154,7 +154,7 @@ func (s *Service) DeleteSymbol(path string, symbolID string, expectedRevision st
 	}, nil
 }
 
-// CreateFile writes a brand-new file — scope.md §29's MVP editing operation
+// CreateFile writes a brand-new file — docs/scope.md §29's MVP editing operation
 // that, alongside DeleteFile, had no implementation at all until now. No
 // revision precondition applies (there is nothing prior to be stale
 // relative to); CreateFile itself refuses to overwrite an existing file.
@@ -207,7 +207,7 @@ func (s *Service) ReplaceFile(path string, content string) (protocol.EditRespons
 	}, nil
 }
 
-// DeleteFile removes a file — the other half of scope.md §29's MVP gap.
+// DeleteFile removes a file — the other half of docs/scope.md §29's MVP gap.
 func (s *Service) DeleteFile(path string) (protocol.EditResponse, error) {
 	removedLines, err := s.index.DeleteFile(path)
 	if err != nil {

@@ -8,8 +8,8 @@
     "description": "Build the release binary into bin/jade-mcp and print its stamped version"
   },
   "docs-check": {
-    "run": "make binary \u003e/dev/null \u0026\u0026 printf 'Content-Length: 58\\r\\n\\r\\n{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}' | ./bin/jade-mcp 2\u003e/dev/null | grep -o '\"jade\\.[a-z_]*\"' | sed 's/\"jade\\.//;s/\"//' | sort -u \u003e /tmp/jade-actual.txt; sed -n '/^## What Jade gives an agent/,/^## What Jade does not/p' README.md | grep -o '`[a-z_]*`' | tr -d '`' | sort -u \u003e /tmp/jade-doc.txt; missing=$(comm -23 /tmp/jade-actual.txt /tmp/jade-doc.txt); if [ -n \"$missing\" ]; then echo \"FAIL: tools not documented in README:\"; echo \"$missing\"; exit 1; fi; echo \"all tools documented\"",
-    "description": "Fail if any MCP tool the binary serves is missing from the README tool list"
+    "run": "make binary \u003e/dev/null \u0026\u0026 printf 'Content-Length: 58\\r\\n\\r\\n{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}' | ./bin/jade-mcp 2\u003e/dev/null | grep -o '\"jade\\.[a-z_]*\"' | sed 's/\"jade\\.//;s/\"//' | sort -u \u003e /tmp/jade-actual.txt; sed -n '/^## The tools/,/^## Repository commands/p' README.md | grep -o '`[a-z_]*`' | tr -d '`' | sort -u \u003e /tmp/jade-doc.txt; missing=$(comm -23 /tmp/jade-actual.txt /tmp/jade-doc.txt); if [ -n \"$missing\" ]; then echo \"FAIL: tools not documented in README:\"; echo \"$missing\"; exit 1; fi; echo \"all $(wc -l \u003c /tmp/jade-actual.txt | tr -d ' ') tools documented\"",
+    "description": "Verify every tool the binary serves is documented in the README's tool tables"
   },
   "fmt": {
     "run": "gofmt -w ./cmd ./internal",

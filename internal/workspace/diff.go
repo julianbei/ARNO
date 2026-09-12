@@ -18,7 +18,7 @@ import (
 const maxDiffBytes = 8000
 
 // Diff returns the actual patch text for the workspace or one target path —
-// scope.md §22's diff(target?), and the "expand change" step of §13's
+// docs/scope.md §22's diff(target?), and the "expand change" step of §13's
 // progressive disclosure: changes() says how much moved, diff() says what.
 //
 // An empty target diffs the whole working tree. Untracked files are included

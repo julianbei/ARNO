@@ -203,7 +203,7 @@ tool is clearly not reaching for itself.
 | 11.3 | 1 | same — foreign-repo verification |
 | 11.4 | 1 | cross-checking the README tool list against the live catalog |
 | 11.5 | 2 | extracting the live schema; proving the new guard fails |
-| 11.6 | 4 | driving the binary against droneship-next, both benchmark arms |
+| 11.6 | 4 | driving the binary against an unrelated private Go repository, both benchmark arms |
 | 11.7 | 2 | checking filesystem case-sensitivity; validating template YAML |
 | 11.8 | 1 | verifying tag-based version stamping with a throwaway tag |
 | 11.10 | 3 | isolating why the release gate exited non-zero |
@@ -236,8 +236,8 @@ the guardrail worked, it just was not the thing that caught it first.
 
 ## First outside test — jade lost, 2026-09-12
 
-11.6 ran jade against `droneship-next` — a real Go repo, not this one — on a
-real question ("is the CAS store's write atomic?").
+11.6 ran jade against an unrelated private Go repository — a real codebase,
+not this one — on a real question ("is the CAS store's write atomic?").
 
 | | calls | est. tokens |
 |---|---|---|

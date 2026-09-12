@@ -368,8 +368,8 @@ func (m *Manager) DirtyPaths() ([]string, error) {
 }
 
 // DiffSummary returns a numstat-style per-file added/removed line count
-// summary of the workspace's changes against HEAD, porting droneship's
-// diffSummary() design: cheap, never throws (a git failure degrades to an
+// summary of the workspace's changes against HEAD. It is deliberately
+// cheap and never throws (a git failure degrades to an
 // empty summary rather than propagating an error), and gives per-file counts
 // rather than full diff content. Tracked changes come from
 // "git diff --numstat HEAD"; untracked new files (which numstat omits

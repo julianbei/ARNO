@@ -80,7 +80,7 @@ func TestRunCommandKillsWholeProcessGroupOnTimeout(t *testing.T) {
 	// the output pipe open for 3s. Killing only the direct child (the shell)
 	// would leave that grandchild running and holding the pipe open, so
 	// completion would not actually happen until the full 3s elapses —
-	// exactly the bug droneship's own notes describe. A correct process-group
+	// exactly the bug this test exists to prevent. A correct process-group
 	// kill kills the grandchild too, so this should complete shortly after
 	// the 150ms timeout, not after 3s.
 	start := time.Now()

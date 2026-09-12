@@ -8,6 +8,9 @@ bin/
 # macOS
 .DS_Store
 
+# Local agent-harness state, not project configuration.
+.claude/
+
 # jade's own tool-usage log. .jade/commands.json IS meant to be committed —
 # it is the repo's declared command vocabulary — but the telemetry log is
 # local measurement data that would conflict on every pull.

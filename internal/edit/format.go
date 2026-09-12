@@ -17,7 +17,7 @@ const formatTimeout = 20 * time.Second
 // Formatting is the gap that nothing else catches: `go build`, `go vet` and
 // `go test` all pass on badly formatted code, so jade reported success at
 // every step while a repository's formatting steadily degraded through
-// accumulated edits. scope.md Rule 2 names the formatter as a deterministic
+// accumulated edits. docs/scope.md Rule 2 names the formatter as a deterministic
 // tool jade should already be using.
 //
 // A missing formatter is not an error. The edits themselves succeeded, and

@@ -740,9 +740,9 @@ func (i *Index) BuildSymbolGraph() (protocol.SymbolGraph, error) {
 }
 
 // approximateGraphLimitations states what a name-matched graph provably
-// cannot see. These are not hypothetical: each one is a case droneship's own
-// test suite documents for the same technique, and they are returned with
-// every graph so the caveat cannot be separated from the data.
+// cannot see. These are not hypothetical — each one is a documented failure
+// mode of name matching — and they are returned with every graph so the
+// caveat cannot be separated from the data.
 func approximateGraphLimitations() []string {
 	return []string{
 		"call edges are matched by name, not resolved by a compiler",

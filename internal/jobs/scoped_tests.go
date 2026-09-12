@@ -10,7 +10,7 @@ import (
 
 // TestScope selects which subset of tests RunScopedGoTests executes.
 // Deliberately conservative — package-level, not call-graph-precise —
-// per scope.md §33's own guidance: "do not attempt sophisticated
+// per docs/scope.md §33's own guidance: "do not attempt sophisticated
 // affected-test prediction initially."
 type TestScope struct {
 	// Kind is one of "all", "file", "test", or "changed".

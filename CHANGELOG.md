@@ -41,7 +41,7 @@ Jade's benchmark (`cmd/jade-bench`, seven scenarios, this repository) measures
 responses became plain text rather than JSON.
 
 **The counter-measurement matters as much.** One real question on an unrelated
-repository (droneship-next, "is the CAS store's write atomic?") came out at
+repository ("is the CAS store's write atomic?") came out at
 **1.36x** and one extra round trip, because an ambiguous symbol name forced a
 disambiguation call. Seven scenarios at home and one away disagree; both are
 honest, and the second is the one that predicts outside use.
@@ -97,7 +97,7 @@ The friction one is the one we want most: the moments you reached for `grep`,
 answer** — it means the jade path was not the obvious one at the moment of
 choosing, which is a design problem rather than a user error.
 
-[feedback.md](feedback.md) is the same log kept from the inside across
+[docs/feedback.md](docs/feedback.md) is the same log kept from the inside across
 development. Its blunt finding: the fallbacks that lasted longest closed within
 two tasks of being *written down*, not when the tool shipped. `check` existed,
 worked, and kept losing to `go test` for three tasks. Naming it fixed it.

@@ -23,7 +23,7 @@ the job.
 
 **"It was just habit" is a real answer and we want it.** It means the jade path
 was not the obvious one at the moment of choosing, which is our problem. This
-project's own development log ([feedback.md](../feedback.md)) records sixteen
+project's own development log ([feedback.md](feedback.md)) records sixteen
 tasks of exactly these, and the pattern it found was blunt: the fallbacks that
 lasted longest closed within two tasks of being *written down*, not when the
 tool shipped. `check` existed, worked, and kept losing to `go test` for three
@@ -94,7 +94,7 @@ write and the easiest for us to act on.
 ---
 
 *Note on filenames: this file is `docs/reporting.md` rather than `FEEDBACK.md`
-because the repository already contains `feedback.md` — the internal
+because the repository already contains `docs/feedback.md` — the internal
 bash-fallback log — and on a case-insensitive filesystem, which is the macOS
 default, the two are the same file. Creating the second would have silently
 destroyed the first.*

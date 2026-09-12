@@ -135,8 +135,8 @@ func isDecisive(line string) bool {
 const maxDecisiveLines = 8
 
 // decisiveLines extracts the smallest set of lines that actually explain a
-// failure, consolidating what were three inconsistent heuristics in the
-// droneship lineage into one canonical version:
+// failure, consolidating what were three inconsistent heuristics into one
+// canonical version:
 //   - scans from the end of output backward, since a failing test/build
 //     suite prints its errors last, not first;
 //   - excludes warning-only lines so they don't crowd out real failures;

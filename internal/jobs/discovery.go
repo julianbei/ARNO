@@ -45,9 +45,9 @@ var makeTargetPattern = regexp.MustCompile(`(?m)^([A-Za-z0-9_.-]+)\s*:`)
 var npmScriptLine = regexp.MustCompile(`(?m)^ {2}([A-Za-z0-9:_-]+)$`)
 
 // discoverCommand resolves the real command to run for kind in dir,
-// detecting the project's ecosystem rather than assuming Go. It mirrors
-// droneship's discovery philosophy: prefer a command whose existence is
-// actually verified over one that's merely assumed. Order is Makefile
+// detecting the project's ecosystem rather than assuming Go. The governing
+// principle is to prefer a command whose existence is actually verified over
+// one that's merely assumed. Order is Makefile
 // target (verified via `make -n`) → npm script (verified via bare
 // `npm run`) → cargo (manifest-verified only) → the Go default. Returns
 // ok=false only when kind itself is unrecognized everywhere.
@@ -85,9 +85,9 @@ func fileExists(path string) bool {
 
 // npmScriptFor runs bare `npm run` and parses the indented script names npm
 // itself prints, then picks the first candidate for kind that actually
-// exists. This is droneship's own mechanism, ported deliberately: it
-// verifies what npm considers runnable rather than reading package.json's
-// "scripts" object directly or assuming a conventional name works.
+// exists. Asking npm is deliberate: it verifies what npm considers runnable
+// rather than reading package.json's "scripts" object directly or assuming a
+// conventional name works.
 func npmScriptFor(dir string, kind string) (string, bool) {
 	candidates, ok := npmScriptCandidates[kind]
 	if !ok {
@@ -119,9 +119,9 @@ func npmScriptFor(dir string, kind string) (string, bool) {
 
 // cargoArgsFor proves cargo itself works (via `cargo metadata`) and then
 // returns the standard invocation for kind. It deliberately does NOT
-// verify individual subcommands: droneship's own cargo path doesn't
-// either, and inventing rigor the ported source never had would be
-// misleading about how much is actually being checked here.
+// verify individual subcommands. `cargo check`, `cargo build` and
+// `cargo test` are built in rather than project-declared, so proving the
+// toolchain works is the whole of what can be usefully checked.
 func cargoArgsFor(dir string, kind string) ([]string, bool) {
 	args, ok := cargoArgsByKind[kind]
 	if !ok {
@@ -179,7 +179,7 @@ func parseMakefileTargets(content string) map[string]bool {
 // verifyMakeTarget proves target is actually invocable via `make -n`
 // (a dry run that prints the target's commands without executing them)
 // rather than trusting a parsed name alone — the same "prove it, don't
-// assume it" principle droneship applies to npm scripts.
+// assume it" principle applied to npm scripts above.
 func verifyMakeTarget(dir string, target string) bool {
 	cmd := exec.Command("make", "-n", target)
 	cmd.Dir = dir

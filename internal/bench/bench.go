@@ -3,13 +3,13 @@
 //
 // # What this measures, and what it does not
 //
-// scope.md §26 asks whether an agent using jade "completes real tasks more
+// docs/scope.md §26 asks whether an agent using jade "completes real tasks more
 // efficiently and reliably than shell/file tooling", and §42-43 lists
 // tokens, turns and success rate as the metrics. This harness measures the
 // first of those three, deterministically and without an LLM in the loop:
 // for each scenario it runs both arms and counts the bytes each one puts in
-// front of the agent. That is droneship's "tokens to answer" metric
-// (reference_droneship.md §16) rather than a search-precision score.
+// front of the agent — a "tokens to answer" metric rather than a
+// search-precision score.
 //
 // It deliberately does NOT measure turns or success rate. Both require a
 // real agent making real decisions, and faking them with a scripted call
@@ -20,7 +20,7 @@
 //
 // The honest reading of a result table is therefore: "answering this
 // question costs N tokens of context through jade and M through shell."
-// That is a real, reproducible comparison, and it is the part of scope.md's
+// That is a real, reproducible comparison, and it is the part of docs/scope.md's
 // question that can be answered without a benchmark agent.
 package bench
 

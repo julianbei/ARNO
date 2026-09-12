@@ -29,12 +29,11 @@ var goplsReferenceLine = regexp.MustCompile(`^(.+):(\d+):(\d+)(?:-\d+)?$`)
 //
 // It prefers gopls (compiler-resolved, exact) and falls back to the
 // approximate name-matched call graph when gopls is unavailable or the
-// file isn't Go — reference_droneship.md §7's prescribed migration path:
-// supersede the approximate graph per language as real tooling comes
-// online rather than deleting it. The response always says which source
-// answered, since a name-matched edge and a compiler-verified one are not
-// the same claim (§7: "the regex graph should not be presented as
-// authoritative IDE-grade semantics").
+// file isn't Go. The migration path is to supersede the approximate graph
+// per language as real tooling comes online, rather than deleting it. The
+// response always says which source answered, since a name-matched edge and
+// a compiler-verified one are not the same claim, and an approximate graph
+// must never be presented as authoritative IDE-grade semantics.
 func (i *Index) References(path string, symbolID string) (protocol.ReferencesResponse, error) {
 	symbol, line, column, err := i.locateSymbolPosition(path, symbolID)
 	if err != nil {

@@ -4,7 +4,7 @@
 // enough tool surface keeps it inside jade, where edits are revision-tracked,
 // validated and guarded — and that every gap sends the agent to bash, where
 // none of that applies. That bet has been evaluated so far by the agent
-// hand-writing feedback.md from recollection, which is exactly the unreliable
+// hand-writing docs/feedback.md from recollection, which is exactly the unreliable
 // instrument the tooling was supposed to replace. This measures it instead.
 //
 // The question it is built to answer is narrower than "usage stats": which

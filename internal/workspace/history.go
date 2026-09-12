@@ -14,7 +14,7 @@ import (
 // would be the largest response jade can produce.
 const maxHistoryPatchBytes = 6000
 
-// defaultHistoryLimit keeps the common case cheap. scope.md §18's framing is
+// defaultHistoryLimit keeps the common case cheap. docs/scope.md §18's framing is
 // "why does this code exist", and the answer is almost always in the most
 // recent handful of commits.
 const defaultHistoryLimit = 10
@@ -32,7 +32,7 @@ const historyFieldSeparator = "\x1f"
 const historyFieldSeparatorFormat = "%x1f"
 
 // SymbolHistory returns the commits that touched one line range —
-// scope.md §18's `history(SessionManager.refreshSession)` instead of
+// docs/scope.md §18's `history(SessionManager.refreshSession)` instead of
 // `git log -p` over a whole file.
 //
 // This is `git log -L <start>,<end>:<file>`, a real git primitive that
