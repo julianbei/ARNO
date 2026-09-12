@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -75,13 +76,34 @@ type mcpServer struct {
 // information: it says the server was not built through the release path.
 var version = "dev"
 
+// resolveVersion reports what this binary is, preferring the ldflags stamp and
+// falling back to the module version the toolchain recorded.
+//
+// The fallback exists because `go install module@version` — the first command
+// in the README — cannot pass ldflags, so a correctly installed v0.0.1 used to
+// introduce itself as "dev". The version is not unknown in that case, merely
+// somewhere else: the module system already wrote it into the build info.
+//
+// A local `go build` still says "dev", because there its Main.Version really is
+// "(devel)" and claiming a release number would be the actual lie.
+func resolveVersion() string {
+	if version != "dev" {
+		return version
+	}
+	info, ok := debug.ReadBuildInfo()
+	if !ok || info.Main.Version == "" || info.Main.Version == "(devel)" {
+		return version
+	}
+	return info.Main.Version
+}
+
 func main() {
 	// Answered before anything else is constructed, so `--version` works even
 	// when the workspace root is wrong or missing — which is exactly when
 	// someone is trying to find out what they are running.
 	for _, arg := range os.Args[1:] {
 		if arg == "--version" || arg == "-version" || arg == "version" {
-			fmt.Fprintf(os.Stdout, "jade-mcp %s\n", version)
+			fmt.Fprintf(os.Stdout, "jade-mcp %s\n", resolveVersion())
 			return
 		}
 	}
@@ -95,7 +117,7 @@ func main() {
 
 	// Startup reporting goes to stderr, never stdout: stdout carries the
 	// JSON-RPC stream and a stray line there breaks the protocol framing.
-	fmt.Fprintf(os.Stderr, "jade-mcp %s · workspace %s (from %s)\n", version, resolved.Path, resolved.Source)
+	fmt.Fprintf(os.Stderr, "jade-mcp %s · workspace %s (from %s)\n", resolveVersion(), resolved.Path, resolved.Source)
 	if resolved.Warning != "" {
 		fmt.Fprintf(os.Stderr, "jade-mcp warning: %s\n", resolved.Warning)
 	}

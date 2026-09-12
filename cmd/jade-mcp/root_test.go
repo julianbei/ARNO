@@ -213,3 +213,29 @@ func sameDir(t *testing.T, got string, want string) bool {
 	}
 	return got == resolvedWant
 }
+
+// `go install module@version` cannot pass ldflags, so a correctly installed
+// release used to report itself as "dev". The module version is recorded in
+// the build info regardless, and that is the honest answer.
+func TestResolveVersionPrefersTheLdflagsStamp(t *testing.T) {
+	original := version
+	t.Cleanup(func() { version = original })
+
+	version = "v1.2.3"
+	if got := resolveVersion(); got != "v1.2.3" {
+		t.Fatalf("a stamped build must report its stamp, got %q", got)
+	}
+}
+
+// In the test binary Main.Version is "(devel)", which is exactly the case the
+// fallback must decline: claiming a release number for a local build would be
+// worse than admitting "dev".
+func TestResolveVersionStaysDevForALocalBuild(t *testing.T) {
+	original := version
+	t.Cleanup(func() { version = original })
+
+	version = "dev"
+	if got := resolveVersion(); got != "dev" {
+		t.Fatalf("a local build must not invent a version, got %q", got)
+	}
+}
