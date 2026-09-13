@@ -295,6 +295,8 @@ func failureDetail(lines []string, i int) string {
 		start = i + 1
 	case strings.HasPrefix(header, "FAILED "):
 		return pytestDetail(lines, header)
+	case strings.HasPrefix(header, "thread ") && strings.Contains(header, "panicked at"):
+		return rustPanicDetail(lines, i)
 	case strings.HasPrefix(header, "✘ [fail]: "):
 		title := avaTitle(header)
 		for j := i + 1; j < len(lines); j++ {
@@ -372,6 +374,32 @@ func pytestDetail(lines []string, header string) string {
 		details = append(details, detail)
 	}
 	joined := strings.Join(details, " ")
+	if len(joined) > maxContinuationBytes {
+		joined = joined[:maxContinuationBytes] + "…"
+	}
+	return joined
+}
+
+// rustPanicDetail returns the message a Rust test's panic line introduces:
+// `assertion `left == right` failed` with its left and right values, or
+// `index out of bounds: ...`. The generic continuation stopped at once,
+// because the assertion line itself reads as a failure line.
+func rustPanicDetail(lines []string, i int) string {
+	parts := []string{}
+	for j := i + 1; j < len(lines) && len(parts) < maxContinuationLines; j++ {
+		trimmed := strings.TrimSpace(lines[j])
+		if trimmed == "" && len(parts) > 0 {
+			break
+		}
+		if strings.HasPrefix(trimmed, "note:") || strings.HasPrefix(trimmed, "---- ") ||
+			trimmed == "failures:" || strings.HasPrefix(trimmed, "test result:") || testFailureHeader.MatchString(trimmed) {
+			break
+		}
+		if trimmed != "" {
+			parts = append(parts, trimmed)
+		}
+	}
+	joined := strings.Join(parts, " ")
 	if len(joined) > maxContinuationBytes {
 		joined = joined[:maxContinuationBytes] + "…"
 	}
