@@ -44,6 +44,9 @@ func (i *Index) InsertSource(path string, anchor string, position string, text s
 	source := string(data)
 
 	updated, err := insertInto(source, anchor, position, text)
+	if err == ErrTextNotFound {
+		return 0, fmt.Errorf("%w in %s: %s", err, path, AnchorHint(source, anchor))
+	}
 	if err != nil {
 		return 0, fmt.Errorf("%w in %s", err, path)
 	}

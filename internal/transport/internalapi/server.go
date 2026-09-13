@@ -251,7 +251,7 @@ func (s *Server) ReadRange(req protocol.ReadRangeRequest) (protocol.InspectRespo
 	}
 	read, err := index.ReadRangeInfo(path, req.StartLine, req.EndLine)
 	if err != nil {
-		return protocol.InspectResponse{}, err
+		return protocol.InspectResponse{}, withDependencyHint(req.Path, err)
 	}
 
 	return protocol.InspectResponse{

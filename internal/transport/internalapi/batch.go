@@ -120,7 +120,7 @@ func (s *Server) ReadRanges(req protocol.ReadRangesRequest) (protocol.ReadRanges
 			// in a response that already names the requested path.
 			result.Error = "file not found"
 		case err != nil:
-			result.Error = err.Error()
+			result.Error = withDependencyHint(request.Path, err).Error()
 		default:
 			result.StartLine = read.Start
 			result.EndLine = read.End

@@ -776,20 +776,16 @@ func tools() []mcpTool {
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"path":      map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
-					"lines":     map[string]interface{}{"type": "string", "description": "Line range: \"280-400\", \"280-\" to the end, or \"280\". Omit to read the whole file."},
-					"startLine": map[string]interface{}{"type": "integer", "description": "Alternative to lines: inclusive start."},
-					"endLine":   map[string]interface{}{"type": "integer", "description": "Alternative to lines: inclusive end."},
+					"path":  map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
+					"lines": map[string]interface{}{"type": "string", "description": "Line range: \"280-400\", \"280-\" to the end, or \"280\". Omit to read the whole file."},
 					"ranges": map[string]interface{}{
 						"type":        "array",
 						"description": "Several reads in one call, instead of path. A range that fails reports its error without failing the others.",
 						"items": map[string]interface{}{
 							"type": "object",
 							"properties": map[string]interface{}{
-								"path":      map[string]interface{}{"type": "string"},
-								"lines":     map[string]interface{}{"type": "string"},
-								"startLine": map[string]interface{}{"type": "integer"},
-								"endLine":   map[string]interface{}{"type": "integer"},
+								"path":  map[string]interface{}{"type": "string"},
+								"lines": map[string]interface{}{"type": "string", "description": "\"280-400\", \"280-\" or \"280\"."},
 							},
 							"required": []string{"path"},
 						},

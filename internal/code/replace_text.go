@@ -47,7 +47,7 @@ func (i *Index) ReplaceTextSource(path string, oldText string, newText string) (
 	count := strings.Count(source, oldText)
 	switch count {
 	case 0:
-		return 0, fmt.Errorf("%w in %s", ErrTextNotFound, path)
+		return 0, fmt.Errorf("%w in %s: %s", ErrTextNotFound, path, AnchorHint(source, oldText))
 	case 1:
 	default:
 		return 0, fmt.Errorf("%w: %d matches in %s — extend the anchor with surrounding context", ErrTextAmbiguous, count, path)

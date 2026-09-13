@@ -22,6 +22,29 @@ The pilot benchmark hit each case this settles: the system interpreter under
 a Makefile's pytest, a whole npm test script for one file, cargo testing only
 the root package, and a Go module with Node packages beside it.
 
+### Fewer failed calls
+
+Every failed Jade call in the pilot suite, classified: 14 in 24 runs.
+
+- **A missing anchor says where the file differs.** Eight failures were edit
+  anchors written from memory; one agent retried six rewrites because
+  "anchor text not found" did not say which line was wrong. `replace_text`,
+  `insert` and `apply` now add the first line where anchor and file part
+  (`line 1482 reads "return c.Name()" where the anchor has
+  "return c.displayName()"`), or that the text is there with different
+  indentation.
+- **`read_range` no longer advertises `startLine` and `endLine`.** Agents
+  still wrote `"startLine": 1204, 1240`, invalid JSON the host rejects, three
+  times in the suite. The schema offers only `lines`; the old fields are still
+  accepted.
+- **A grep-style alternation with a literal parenthesis is searched as meant.**
+  `test('lowercase method\|toUpperCase` failed as an invalid regex: the retry
+  that escapes parentheses ran before the `\|` translation, which removed the
+  escape again.
+- **A read refused outside the workspace names the dependency form.** A path in
+  the Cargo registry, Go module cache, `node_modules` or `site-packages` is
+  answered with `dep:<name>/<path>` and grep's `dependency`.
+
 ### Acting on the pilot benchmark
 
 The full pilot suite (36 runs, see `docs/benchmark.md`) found that Jade alone

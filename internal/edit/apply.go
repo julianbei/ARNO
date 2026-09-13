@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/julianbei/jade/internal/code"
 	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/pathguard"
 	"github.com/julianbei/jade/internal/protocol"
@@ -181,7 +182,7 @@ func validateAnchor(index int, op protocol.EditOp, source string) error {
 
 	switch strings.Count(source, anchor) {
 	case 0:
-		return fmt.Errorf("edit %d (%s %s): anchor text not found", index+1, op.Op, op.Path)
+		return fmt.Errorf("edit %d (%s %s): anchor text not found: %s", index+1, op.Op, op.Path, code.AnchorHint(source, anchor))
 	case 1:
 		return nil
 	default:

@@ -1,8 +1,14 @@
 package internalapi
 
 import (
+	"errors"
+	"fmt"
+	gopath "path"
+	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/julianbei/jade/internal/pathguard"
 
 	"github.com/julianbei/jade/internal/code"
 	"github.com/julianbei/jade/internal/deps"
@@ -79,4 +85,74 @@ func dependencyLabel(source deps.Source) string {
 		label += " " + source.Version
 	}
 	return label + " (" + source.Dir + ")"
+}
+
+// withDependencyHint adds, to a read refused for leaving the workspace, how
+// to read the same file as a dependency. In the pilot an agent tried
+// read_range on ~/.cargo/registry/src directly and was only told no.
+func withDependencyHint(requested string, err error) error {
+	if err == nil || !errors.Is(err, pathguard.ErrOutsideWorkspace) {
+		return err
+	}
+	name, file := dependencyFromCachePath(requested)
+	if name == "" {
+		return err
+	}
+	return fmt.Errorf("%w; this is %s's source — read it as %s%s/%s, or search it with grep dependency: %q", err, name, DependencyPrefix, name, file, name)
+}
+
+// dependencyFromCachePath recognises a path inside a package cache and names
+// the dependency and the file within it.
+func dependencyFromCachePath(requested string) (string, string) {
+	slashed := filepath.ToSlash(requested)
+	if at := strings.Index(slashed, "/registry/src/"); at >= 0 {
+		parts := strings.SplitN(slashed[at+len("/registry/src/"):], "/", 3)
+		if len(parts) >= 2 {
+			return trimCrateVersion(parts[1]), partAt(parts, 2)
+		}
+	}
+	if at := strings.Index(slashed, "/pkg/mod/"); at >= 0 {
+		rest := slashed[at+len("/pkg/mod/"):]
+		if version := strings.Index(rest, "@"); version >= 0 {
+			file := ""
+			if slash := strings.Index(rest[version:], "/"); slash >= 0 {
+				file = rest[version+slash+1:]
+			}
+			return gopath.Base(rest[:version]), file
+		}
+	}
+	if at := strings.LastIndex(slashed, "/node_modules/"); at >= 0 {
+		rest := slashed[at+len("/node_modules/"):]
+		if strings.HasPrefix(rest, "@") {
+			parts := strings.SplitN(rest, "/", 3)
+			if len(parts) >= 2 {
+				return parts[0] + "/" + parts[1], partAt(parts, 2)
+			}
+		}
+		parts := strings.SplitN(rest, "/", 2)
+		return parts[0], partAt(parts, 1)
+	}
+	if at := strings.Index(slashed, "/site-packages/"); at >= 0 {
+		parts := strings.SplitN(slashed[at+len("/site-packages/"):], "/", 2)
+		return parts[0], partAt(parts, 1)
+	}
+	return "", ""
+}
+
+func partAt(parts []string, index int) string {
+	if index < len(parts) {
+		return parts[index]
+	}
+	return ""
+}
+
+// trimCrateVersion drops the version from a registry directory name:
+// regex-syntax-0.8.11 is regex-syntax.
+func trimCrateVersion(dir string) string {
+	for at := len(dir) - 1; at > 0; at-- {
+		if dir[at] == '-' && at+1 < len(dir) && dir[at+1] >= '0' && dir[at+1] <= '9' {
+			return dir[:at]
+		}
+	}
+	return dir
 }

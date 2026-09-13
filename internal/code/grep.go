@@ -57,7 +57,9 @@ func (i *Index) grep(req protocol.GrepRequest, retry bool) (protocol.GrepRespons
 	// says that is how it was read rather than matching something else
 	// silently.
 	if err != nil && retry && req.Regex {
-		if escaped := escapeParens(query); escaped != query {
+		// Translated from grep style first: escaping the `(` in `a(\|b` and
+		// translating afterwards turned the escape back into a group.
+		if escaped := escapeParens(grepToRE2(query)); escaped != grepToRE2(query) {
 			asEscaped := req
 			asEscaped.Query = escaped
 			if response, retryErr := i.grep(asEscaped, false); retryErr == nil {
