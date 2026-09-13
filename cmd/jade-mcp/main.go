@@ -399,6 +399,8 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			SymbolName:   stringArg(args, "symbolName"),
 			Limit:        intArg(args, "limit"),
 			IncludePatch: boolArg(args, "includePatch"),
+			Budget:       intArg(args, "budget"),
+			Continue:     stringArg(args, "continue"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -824,6 +826,8 @@ func tools() []mcpTool {
 					"symbolName":   map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
 					"limit":        map[string]interface{}{"type": "integer", "description": "Maximum commits to return (default 10)."},
 					"includePatch": map[string]interface{}{"type": "boolean", "description": "Include diff hunks for each commit."},
+					"budget":       map[string]interface{}{"type": "integer", "description": "Size of the patch page in tokens (default 1500). Cut at whole lines; the rest is behind continue=<handle>."},
+					"continue":     map[string]interface{}{"type": "string", "description": "Handle from a cut patch: its next page."},
 				},
 				"required": []string{"path"},
 			},

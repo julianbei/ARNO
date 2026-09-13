@@ -923,6 +923,10 @@ type HistoryRequest struct {
 	// IncludePatch adds the diff hunks. Off by default: the commit list
 	// answers "why does this exist", and the patch is the follow-up.
 	IncludePatch bool
+	// Budget, in tokens, pages the patch at whole lines; Continue is a handle
+	// from a cut patch.
+	Budget   int
+	Continue string
 }
 
 // HistoryResponse lists the commits that touched one symbol's line range.
@@ -934,6 +938,8 @@ type HistoryResponse struct {
 	Patch        string
 	OmittedBytes int
 	Summary      string
+	// Continue is the handle for the rest of a patch its budget cut.
+	Continue string
 }
 
 // ContextRequest asks jade to assemble everything needed to act on a symbol.

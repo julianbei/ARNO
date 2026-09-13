@@ -399,8 +399,8 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   *Progress 2026-09-13:* continuation store in `internalapi`; `grep`, `find`,
   `references` and `read_range` take `budget` and `continue`, and refuse a
   handle after an edit; `diff` and `job_output` page whole lines instead of
-  cutting the middle; `read_symbol` and `workspace_tree` page too. `outline`,
-  `history`, `events`, `changes`, `search`, `retrieve`, `repository_map`,
+  cutting the middle; `read_symbol`, `workspace_tree` and `history` page too.
+  `outline`, `events`, `changes`, `search`, `retrieve`, `repository_map`,
   `context` and batched `ranges` still to do. One `budget`
   convention and one continuation handle across every tool that can return a
   list or a body — `24 of 87 references shown · continue=…` — replacing

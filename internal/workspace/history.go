@@ -41,8 +41,20 @@ const historyFieldSeparatorFormat = "%x1f"
 // is the progressive-disclosure default: the commit list answers "why does
 // this exist", and the patch is the follow-up question.
 func (m *Manager) SymbolHistory(path string, startLine int, endLine int, limit int, includePatch bool) (protocol.HistoryResponse, error) {
+	response, patch, err := m.SymbolHistoryPatch(path, startLine, endLine, limit, includePatch)
+	if err != nil || !includePatch {
+		return response, err
+	}
+	response.Patch, response.OmittedBytes = textutil.Clamp(patch, maxHistoryPatchBytes,
+		"request fewer commits with limit to see more of each")
+	return response, nil
+}
+
+// SymbolHistoryPatch is SymbolHistory with the patch returned whole beside the
+// response, for a caller that pages it instead of cutting its middle.
+func (m *Manager) SymbolHistoryPatch(path string, startLine int, endLine int, limit int, includePatch bool) (protocol.HistoryResponse, string, error) {
 	if startLine < 1 || endLine < startLine {
-		return protocol.HistoryResponse{}, fmt.Errorf("invalid line range %d,%d", startLine, endLine)
+		return protocol.HistoryResponse{}, "", fmt.Errorf("invalid line range %d,%d", startLine, endLine)
 	}
 	if limit <= 0 {
 		limit = defaultHistoryLimit
@@ -64,7 +76,7 @@ func (m *Manager) SymbolHistory(path string, startLine int, endLine int, limit i
 
 	stdout, err := m.gitRaw(args...)
 	if err != nil {
-		return protocol.HistoryResponse{}, fmt.Errorf("history unavailable for %s:%d-%d: %w", clean, startLine, endLine, err)
+		return protocol.HistoryResponse{}, "", fmt.Errorf("history unavailable for %s:%d-%d: %w", clean, startLine, endLine, err)
 	}
 
 	commits, patch := parseHistory(stdout, includePatch)
@@ -74,12 +86,8 @@ func (m *Manager) SymbolHistory(path string, startLine int, endLine int, limit i
 		EndLine:   endLine,
 		Commits:   commits,
 	}
-	if includePatch {
-		response.Patch, response.OmittedBytes = textutil.Clamp(patch, maxHistoryPatchBytes,
-			"request fewer commits with limit to see more of each")
-	}
 	response.Summary = historySummary(clean, startLine, endLine, commits)
-	return response, nil
+	return response, patch, nil
 }
 
 // parseHistory separates the commit header lines from the diff bodies. A

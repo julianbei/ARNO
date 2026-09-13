@@ -34,6 +34,8 @@ The first tools on the 0.0.5 budget convention
 - **`read_symbol`** takes `budget`: a long body comes in whole-line pages
   (`body lines 1-212 of 900 · continue=c5`) instead of stopping at 150 lines
   with `// ... truncated`. **`workspace_tree`** pages at whole entries.
+- **`history` with `includePatch`** pages its patch at whole lines (default
+  1,500 tokens, the 6,000 bytes it used to cut from the middle).
 
 ### Answers say how sure they are
 

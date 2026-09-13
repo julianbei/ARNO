@@ -358,3 +358,53 @@ func (s *Server) pageBody(response *protocol.InspectResponse, symbolID string, l
 		response.Range = fmt.Sprintf("body lines %d-%d of %d, the last", offset+1, end, len(lines))
 	}
 }
+
+// defaultHistoryBudget is history's patch page in tokens when none is asked:
+// the 6,000 bytes it used to cut out of the middle.
+const defaultHistoryBudget = 1500
+
+// History lists a symbol's commits, its patch paged at whole lines instead of
+// cut in the middle.
+func (s *Server) History(req protocol.HistoryRequest) (protocol.HistoryResponse, error) {
+	budget := req.Budget
+	if handle := strings.TrimSpace(req.Continue); handle != "" {
+		entry, err := s.resume(handle, "history")
+		if err != nil {
+			return protocol.HistoryResponse{}, err
+		}
+		if budget <= 0 {
+			budget = entry.budget
+		}
+		response := protocol.HistoryResponse{Path: entry.path}
+		s.pageHistoryPatch(&response, entry.summary, entry.text, entry.shown, budget)
+		return response, nil
+	}
+	response, patch, err := s.historyAll(req)
+	if err != nil || !req.IncludePatch {
+		return response, err
+	}
+	if budget <= 0 {
+		budget = defaultHistoryBudget
+	}
+	s.pageHistoryPatch(&response, response.Summary, strings.Split(patch, "\n"), 0, budget)
+	return response, nil
+}
+
+func (s *Server) pageHistoryPatch(response *protocol.HistoryResponse, summary string, lines []string, offset int, budget int) {
+	if budget > maxBudgetTokens {
+		budget = maxBudgetTokens
+	}
+	if offset > len(lines) {
+		offset = len(lines)
+	}
+	end := linePage(lines, offset, budget*4)
+	response.Patch = strings.Join(lines[offset:end], "\n")
+	response.Summary = summary
+	switch {
+	case end < len(lines):
+		response.Continue = s.continuations.put(continuation{tool: "history", revision: s.workspace.Revision(), budget: budget, path: response.Path, summary: summary, text: lines, shown: end})
+		response.Summary = fmt.Sprintf("%s · patch lines %d-%d of %d · continue=%s", summary, offset+1, end, len(lines), response.Continue)
+	case offset > 0:
+		response.Summary = fmt.Sprintf("%s · patch lines %d-%d of %d, the last", summary, offset+1, end, len(lines))
+	}
+}
