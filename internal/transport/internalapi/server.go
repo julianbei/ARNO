@@ -377,6 +377,16 @@ func (s *Server) Telemetry(req protocol.TelemetryRequest) (protocol.TelemetryRes
 		}
 		response.Tools = append(response.Tools, entry)
 	}
+	if records, err := recorder.Read(); err == nil {
+		confusion := telemetry.AnalyzeConfusion(records, req.Catalog)
+		for _, change := range confusion.Switches {
+			response.Switches = append(response.Switches, protocol.TelemetrySwitch{From: change.From, To: change.To, Count: change.Count})
+		}
+		for _, retry := range confusion.Retries {
+			response.Retries = append(response.Retries, protocol.TelemetryRetry{Tool: retry.Tool, After: string(retry.After), Count: retry.Count})
+		}
+		response.NeverCalled = confusion.NeverCalled
+	}
 	for _, failure := range summary.Fallbacks {
 		response.Fallbacks = append(response.Fallbacks, protocol.TelemetryFailure{
 			Outcome: string(failure.Outcome), Count: failure.Count,

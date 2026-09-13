@@ -293,7 +293,7 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 	if err == nil && result.outcome != "" {
 		outcome = result.outcome
 	}
-	s.telemetry.RecordOutcome(req.Name, time.Since(started), resultBytes(result), outcome)
+	s.telemetry.RecordCall(req.Name, telemetry.TargetOf(args), time.Since(started), resultBytes(result), outcome)
 	return result, err
 }
 
@@ -582,7 +582,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "jade.telemetry":
-		res, err := s.api.Telemetry(protocol.TelemetryRequest{Reset: boolArg(args, "reset")})
+		res, err := s.api.Telemetry(protocol.TelemetryRequest{Reset: boolArg(args, "reset"), Catalog: catalogNames()})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
@@ -679,6 +679,17 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 	default:
 		return mcpToolResult{}, fmt.Errorf("unknown tool: %s", name)
 	}
+}
+
+// catalogNames is the catalog as names, for the telemetry report's
+// never-called list.
+func catalogNames() []string {
+	catalog := tools()
+	names := make([]string, 0, len(catalog))
+	for _, tool := range catalog {
+		names = append(names, tool.Name)
+	}
+	return names
 }
 
 func tools() []mcpTool {

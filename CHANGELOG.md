@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### `telemetry` reports tool confusion
+
+Release plan Phase 3 merges and cuts tools by data, so the data has to say
+where agents pick wrong. `telemetry` now adds three lines:
+
+- `switched tools on the same target:` an inspect tool followed by a
+  different one on the same file or symbol — `jade.read_range→jade.outline 4`.
+  A read followed by an edit is ordinary work and not counted.
+- `retried after a failed answer:` a tool called again straight after it
+  answered `ambiguous` or `not_found`.
+- `never called:` every tool in the catalog with no calls.
+
+To find "the same target" each record now carries a 10-character hash of the
+call's `path`, `symbolId`, `symbolName` or `query`. The log still stores no
+paths, names, arguments or responses in the clear.
+
 ### Smaller, truer edit and search responses
 
 Found while building 0.0.3 with Jade itself:

@@ -295,7 +295,10 @@ later phase uses to decide what to merge, cut or add.
   criterion is that agents use Jade where Jade is better — not that the shell
   disappears.
 - [ ] **Fix the scorecard before the first run.** Written into the benchmark
-  docs and not changed after results are seen. *Non-negotiable* against the
+  docs and not changed after results are seen. *Decided 2026-09-13:*
+  agents run as Claude Code headless (`claude -p`), with and without Jade's
+  MCP server, on Sonnet 5, pilot capped at $50; tradeable threshold is up to
+  +10% tokens for each +5 points of task success. *Non-negotiable* against the
   shell arm: task success at least equal; invalid edits and unintended edits
   no more. *Tradeable:* tokens, tool calls and wall time, against success and
   diff quality, within stated thresholds — for example up to +10% tokens is
@@ -303,7 +306,9 @@ later phase uses to decide what to merge, cut or add.
   decision to make and record, not to infer from the results. A strict
   every-metric gate would reject a system that succeeds more often while
   spending slightly more.
-- [ ] **Measure tool confusion** (ROADMAP § Evidence). Extend telemetry, still
+- [x] **Measure tool confusion** (ROADMAP § Evidence). Built 2026-09-13:
+  `telemetry` reports same-target switches, retries and never-called tools;
+  the benchmark run's report is still to be recorded. Extend telemetry, still
   content-free, with the sequences that signal a wrong pick: a tool followed
   by a different tool on the same target, retries after `ambiguous` or
   `not_found`, tools never called. *Done when* `telemetry` reports those

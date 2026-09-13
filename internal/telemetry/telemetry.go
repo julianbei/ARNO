@@ -94,11 +94,14 @@ const (
 // Record is one tool call. Field names are short because this is written once
 // per call and read in bulk.
 type Record struct {
-	Time    time.Time `json:"t"`
-	Tool    string    `json:"tool"`
-	Millis  int64     `json:"ms"`
-	Bytes   int       `json:"bytes"`
-	Outcome Outcome   `json:"outcome"`
+	Time time.Time `json:"t"`
+	Tool string    `json:"tool"`
+	// Target is a short hash of what the call was about (see TargetOf), so
+	// sequences on one target can be found without storing paths or names.
+	Target  string  `json:"target,omitempty"`
+	Millis  int64   `json:"ms"`
+	Bytes   int     `json:"bytes"`
+	Outcome Outcome `json:"outcome"`
 }
 
 // Recorder appends tool-call records to the workspace log.
@@ -183,6 +186,12 @@ func (r *Recorder) Record(tool string, duration time.Duration, bytes int, err er
 // that know more than the error does — notably a response that reports its own
 // failure in band. See ClassifyResponse.
 func (r *Recorder) RecordOutcome(tool string, duration time.Duration, bytes int, outcome Outcome) {
+	r.RecordCall(tool, "", duration, bytes, outcome)
+}
+
+// RecordCall appends one call with its hashed target, which the confusion
+// report uses to find a different tool asked about the same thing.
+func (r *Recorder) RecordCall(tool string, target string, duration time.Duration, bytes int, outcome Outcome) {
 	if r == nil || r.disabled || strings.TrimSpace(tool) == "" {
 		return
 	}
@@ -193,6 +202,7 @@ func (r *Recorder) RecordOutcome(tool string, duration time.Duration, bytes int,
 	record := Record{
 		Time:    time.Now().UTC(),
 		Tool:    tool,
+		Target:  target,
 		Millis:  duration.Milliseconds(),
 		Bytes:   bytes,
 		Outcome: outcome,

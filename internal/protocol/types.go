@@ -276,6 +276,9 @@ type TelemetryRequest struct {
 	// Reset clears the log instead of summarizing it, so a measurement run can
 	// start from a known state.
 	Reset bool
+	// Catalog is every tool the server offers, so tools never called can be
+	// named. The transport fills it; callers do not.
+	Catalog []string
 }
 
 // TelemetryToolStats aggregates one tool's recorded calls.
@@ -301,14 +304,34 @@ type TelemetryFailure struct {
 // plausibly ended with the caller running a shell command instead, which is
 // the thing jade's whole design bet is about.
 type TelemetryResponse struct {
-	Tools       []TelemetryToolStats
-	Fallbacks   []TelemetryFailure
+	Tools     []TelemetryToolStats
+	Fallbacks []TelemetryFailure
+	// Switches, Retries and NeverCalled are the tool-confusion report: an
+	// inspect tool followed by a different one on the same target, a tool
+	// retried after ambiguous or not_found, and tools with no calls.
+	Switches    []TelemetrySwitch
+	Retries     []TelemetryRetry
+	NeverCalled []string
 	TotalCalls  int
 	TotalErrors int
 	TotalBytes  int64
 	Path        string
 	Cleared     bool
 	Summary     string
+}
+
+// TelemetrySwitch counts one inspect tool followed by another on one target.
+type TelemetrySwitch struct {
+	From  string
+	To    string
+	Count int
+}
+
+// TelemetryRetry counts a tool called again right after a failed answer.
+type TelemetryRetry struct {
+	Tool  string
+	After string
+	Count int
 }
 
 // GrepRequest is literal or regex text search across the workspace.

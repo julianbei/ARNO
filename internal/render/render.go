@@ -680,6 +680,20 @@ func telemetryResponse(r protocol.TelemetryResponse) string {
 		}
 		lines = append(lines, "fallback risk: "+strings.Join(parts, ", "))
 	}
+	if len(r.Switches) > 0 {
+		parts := make([]string, 0, len(r.Switches))
+		for _, change := range r.Switches {
+			parts = append(parts, fmt.Sprintf("%s→%s %d", change.From, change.To, change.Count))
+		}
+		lines = append(lines, "switched tools on the same target: "+strings.Join(parts, ", "))
+	}
+	if len(r.Retries) > 0 {
+		parts := make([]string, 0, len(r.Retries))
+		for _, retry := range r.Retries {
+			parts = append(parts, fmt.Sprintf("%s after %s %d", retry.Tool, retry.After, retry.Count))
+		}
+		lines = append(lines, "retried after a failed answer: "+strings.Join(parts, ", "))
+	}
 
 	for _, stats := range r.Tools {
 		line := fmt.Sprintf("%s  %d calls  %s  avg %dms", stats.Tool, stats.Calls, humanBytes(stats.Bytes), stats.AvgMS)
@@ -690,6 +704,9 @@ func telemetryResponse(r protocol.TelemetryResponse) string {
 			}
 		}
 		lines = append(lines, line)
+	}
+	if len(r.NeverCalled) > 0 {
+		lines = append(lines, "never called: "+strings.Join(r.NeverCalled, ", "))
 	}
 	return strings.Join(lines, "\n")
 }
