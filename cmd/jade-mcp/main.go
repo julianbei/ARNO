@@ -70,6 +70,8 @@ type mcpToolResult struct {
 type mcpServer struct {
 	api       *internalapi.Server
 	telemetry *telemetry.Recorder
+	// profile is the --tools choice: which tools tools/list advertises.
+	profile string
 }
 
 // version is stamped at build time via -ldflags (see the Makefile). It is
@@ -123,6 +125,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "jade-mcp warning: %s\n", resolved.Warning)
 	}
 	root := resolved.Path
+	profile, err := toolsFlag(os.Args[1:])
+	if err != nil {
+		fatalf("%v", err)
+	}
 
 	bus := events.NewBus()
 	wm := workspace.NewManager(root, bus)
@@ -152,7 +158,7 @@ func main() {
 		fatalf("failed to start internal api: %v", err)
 	}
 
-	s := &mcpServer{api: api, telemetry: telemetry.New(root)}
+	s := &mcpServer{api: api, telemetry: telemetry.New(root), profile: profile}
 	if err := s.loop(os.Stdin, os.Stdout); err != nil {
 		fatalf("mcp loop failed: %v", err)
 	}
@@ -227,7 +233,7 @@ func (s *mcpServer) handleRequest(req rpcRequest) rpcResponse {
 	case "ping":
 		return rpcResponse{JSONRPC: "2.0", ID: id, Result: map[string]interface{}{}}
 	case "tools/list":
-		return rpcResponse{JSONRPC: "2.0", ID: id, Result: map[string]interface{}{"tools": tools()}}
+		return rpcResponse{JSONRPC: "2.0", ID: id, Result: map[string]interface{}{"tools": listedTools(s.profile)}}
 	case "tools/call":
 		result, err := s.handleToolCall(req.Params)
 		if err != nil {

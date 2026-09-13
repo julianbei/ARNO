@@ -79,6 +79,7 @@ func runAgent(args []string) int {
 	repeats := flags.Int("repeats", 1, "times to run every task on every arm")
 	repeatStart := flags.Int("repeat-start", 1, "number of the first repeat, for running in rounds")
 	jadeMCP := flags.String("jade-mcp", "jade-mcp", "jade-mcp binary for the Jade arms")
+	jadeTools := flags.String("jade-tools", "", "tool profile for the Jade arms: all or core (default: jade-mcp's own)")
 	out := flags.String("out", "bench-results.jsonl", "append one JSON line per run here")
 	allowHost := flags.Bool("allow-host", false, "run agents with permissions bypassed on this machine, outside a sandbox")
 	telemetryDir := flags.String("telemetry-dir", "", "keep each Jade-arm run's telemetry here (default: <out>.telemetry)")
@@ -142,6 +143,7 @@ func runAgent(args []string) int {
 		Repeats:     *repeats,
 		RepeatStart: *repeatStart,
 		JadeMCP:     jadeBinary,
+		JadeTools:   *jadeTools,
 		Out:         output,
 
 		TelemetryDir:  besideOut(*telemetryDir, *out, ".telemetry"),

@@ -146,6 +146,9 @@ type Config struct {
 	RepeatStart int
 	// JadeMCP is the jade-mcp binary for the Jade arms.
 	JadeMCP string
+	// JadeTools is passed to jade-mcp as --tools (all or core); empty keeps
+	// jade-mcp's default.
+	JadeTools string
 	// Claude is the agent binary; "claude" when empty.
 	Claude string
 	// WorkDir holds the per-run clones; the system temp directory when empty.
@@ -287,7 +290,7 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 	mcpConfig := ""
 	if arm != ArmShell {
 		mcpConfig = filepath.Join(parent, "mcp.json")
-		if err := writeMCPConfig(mcpConfig, cfg.JadeMCP, workspace); err != nil {
+		if err := writeMCPConfig(mcpConfig, cfg.JadeMCP, cfg.JadeTools, workspace); err != nil {
 			result.AgentError = err.Error()
 			return result
 		}
@@ -524,16 +527,20 @@ func writeVerifyFiles(dir string, files map[string]string) error {
 	return nil
 }
 
-func writeMCPConfig(path string, jadeMCP string, workspace string) error {
+func writeMCPConfig(path string, jadeMCP string, jadeTools string, workspace string) error {
 	if jadeMCP == "" {
 		return fmt.Errorf("a Jade arm needs the jade-mcp binary")
+	}
+	args := []string{"--root", workspace}
+	if jadeTools != "" {
+		args = append(args, "--tools", jadeTools)
 	}
 	config := map[string]interface{}{
 		"mcpServers": map[string]interface{}{
 			"jade": map[string]interface{}{
 				"type":    "stdio",
 				"command": jadeMCP,
-				"args":    []string{"--root", workspace},
+				"args":    args,
 				// Claude Code hides MCP tools behind tool search by default.
 				// Without this, the jade+shell arm never loaded one Jade tool
 				// in three pilot runs: it measured the shell arm twice. The
