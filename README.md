@@ -278,8 +278,8 @@ exits non-zero fails.
 | `changes` | What moved — by file and by symbol, not just by path. |
 | `diff` | The patch, including untracked files. `since` takes any git revision. |
 | `history` | Which commits touched one symbol, via `git log -L`. |
-| `checkpoint` | Mark a revertible point. |
-| `revert` | Return to a checkpoint. |
+| `checkpoint` | Mark a revertible point: snapshots the files Jade edited and records git's `HEAD`. Not a commit. |
+| `revert` | Restore those files to a checkpoint. Never moves git, and refuses if a commit landed since the checkpoint. |
 | `events` | The workspace event stream. |
 | `telemetry` | How Jade's own tools have been used in this workspace. |
 
@@ -417,7 +417,11 @@ reporting and what is already known. What is planned is in
   choose turns a one-line edit into a whole-file diff. Ruby, Java, JSON and
   Markdown are left as edited.
 - **Revision tracking is Jade's own counter, not git's.** It detects concurrent
-  edits within a session. It is not a VCS.
+  edits within a session. It is not a VCS. A checkpoint snapshots the files Jade
+  has edited and records git's `HEAD`; `revert` restores those files and
+  nothing else, never moves git, and refuses once a commit has landed since the
+  checkpoint — undoing committed work is git's job. Checkpoints do not survive
+  a restart of the server.
 - **Not hardened for untrusted input.** It runs shell commands you declare and
   edits files you point it at. Treat it as a development tool, and do not point
   it at a repository you would not run `make` in.

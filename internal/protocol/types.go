@@ -926,6 +926,8 @@ type CheckpointResponse struct {
 	Note     string
 	Revision string
 	Paths    []string
+	// Head is the git commit the checkpoint was taken at, or "" without git.
+	Head string
 }
 
 // JobStatusResponse returns asynchronous validation job status.

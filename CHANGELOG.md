@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### `revert` will not overwrite committed work
+
+Jade's revisions ran alongside commits made from the shell, and nothing said
+what `revert` would do to files git already had committed. It restored the
+snapshot regardless — silently writing pre-commit content back over committed
+files — so agents avoided `checkpoint` and `revert` entirely.
+
+Each checkpoint now records git's `HEAD` and shows it. `revert` checks `HEAD`
+before writing anything and refuses when a commit has landed since the
+checkpoint, naming both commits. Within the work since the last commit it
+behaves as before; without git, nothing changes. The tool descriptions and
+README state the model: a checkpoint snapshots only files Jade edited, revert
+restores only those, git is never moved, and checkpoints last for the session.
+
 ### `check` says what it runs
 
 In a Go module with several Node packages and no Makefile, a caller could not

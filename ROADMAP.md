@@ -284,13 +284,21 @@ Agents bypassed `check` for four reasons, each fixable:
 
 ## 5. Explain how revisions relate to git
 
-- [ ] **Document and anchor revisions to git.** Jade's `r1…r53` ran alongside
+- [x] **Document and anchor revisions to git.** Jade's `r1…r53` ran alongside
   three commits made from the shell, and the agent avoided `revert` and
   `checkpoint` entirely because it could not tell what a revert does to
   already-committed files or whether it crosses a commit. State it in the
   tool descriptions, record the git `HEAD` in each checkpoint, and make
   `revert` refuse — with the reason — when a commit has landed since the
   checkpoint rather than silently rewriting committed work.
+  - Done 2026-09-13: each checkpoint records git's `HEAD` and shows it
+    (`cp-1 at r4 · commit 3441fac`). `revert` compares `HEAD` before writing
+    anything and refuses when it has moved — including a first commit made
+    after a checkpoint taken in a fresh repository — naming both commits and
+    pointing at git. Without git, revert behaves as before. The `checkpoint`
+    and `revert` descriptions and the README now say what is restored (only
+    files Jade touched), that git is never moved, and that checkpoints last
+    for the session.
 
 ## 6. Workspace scope
 

@@ -541,6 +541,15 @@ func events(r protocol.EventsResponse) string {
 
 func checkpoint(r protocol.CheckpointResponse) string {
 	line := fmt.Sprintf("%s at %s", r.ID, r.Revision)
+	// The commit is what makes a checkpoint's scope legible: revert works
+	// within the work since this commit and refuses across a later one.
+	if r.Head != "" {
+		head := r.Head
+		if len(head) > 7 {
+			head = head[:7]
+		}
+		line += " · commit " + head
+	}
 	if r.Note != "" {
 		line += " · " + r.Note
 	}

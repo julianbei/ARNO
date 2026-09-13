@@ -1112,7 +1112,7 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.checkpoint",
-			Description: "Create a named checkpoint of the current workspace state.",
+			Description: "Mark a revertible point: snapshots the files Jade has edited this session and records git's HEAD. Not a commit, and does not touch git. Checkpoints last for the session.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1122,7 +1122,7 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.revert",
-			Description: "Revert the workspace to a previously created checkpoint ID.",
+			Description: "Restore the files Jade edited to a checkpoint's snapshot and reset the revision counter. Only files Jade touched are restored, and git is never moved. Refuses if a commit has landed since the checkpoint, because restoring would overwrite committed work — use git to move past a commit.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

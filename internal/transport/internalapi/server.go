@@ -544,6 +544,7 @@ func (s *Server) Checkpoint(req protocol.CheckpointRequest) protocol.CheckpointR
 		Note:     checkpoint.Note,
 		Revision: checkpoint.Revision,
 		Paths:    checkpoint.Paths,
+		Head:     checkpoint.Head,
 	}
 }
 
@@ -552,9 +553,9 @@ func (s *Server) Revert(req protocol.RevertRequest) (protocol.CheckpointResponse
 		return protocol.CheckpointResponse{}, fmt.Errorf("checkpoint id is required")
 	}
 
-	checkpoint, ok := s.workspace.RevertCheckpoint(req.CheckpointID)
-	if !ok {
-		return protocol.CheckpointResponse{}, fmt.Errorf("checkpoint not found: %s", req.CheckpointID)
+	checkpoint, err := s.workspace.RevertCheckpoint(req.CheckpointID)
+	if err != nil {
+		return protocol.CheckpointResponse{}, err
 	}
 
 	return protocol.CheckpointResponse{
@@ -562,6 +563,7 @@ func (s *Server) Revert(req protocol.RevertRequest) (protocol.CheckpointResponse
 		Note:     checkpoint.Note,
 		Revision: checkpoint.Revision,
 		Paths:    checkpoint.Paths,
+		Head:     checkpoint.Head,
 	}, nil
 }
 

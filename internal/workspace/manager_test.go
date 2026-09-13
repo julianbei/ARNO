@@ -31,8 +31,8 @@ func TestCheckpointRevertRestoresActualFileBytes(t *testing.T) {
 	}
 	m.BumpRevision("greeter.go")
 
-	restored, ok := m.RevertCheckpoint(checkpoint.ID)
-	if !ok {
+	restored, err := m.RevertCheckpoint(checkpoint.ID)
+	if err != nil {
 		t.Fatalf("expected revert to succeed")
 	}
 	if restored.Revision != checkpoint.Revision {
@@ -68,7 +68,7 @@ func TestCheckpointRevertRestoresBytesForSymbolReplaceChangedKeys(t *testing.T) 
 	}
 	m.BumpRevision("greeter.go::Greet@3")
 
-	if _, ok := m.RevertCheckpoint(checkpoint.ID); !ok {
+	if _, err := m.RevertCheckpoint(checkpoint.ID); err != nil {
 		t.Fatalf("expected revert to succeed")
 	}
 

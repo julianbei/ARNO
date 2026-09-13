@@ -35,6 +35,9 @@ type checkpointSnapshot struct {
 	revision int
 	changed  map[string]struct{}
 	files    map[string][]byte
+	// head is git's HEAD when the checkpoint was taken, "" without git or
+	// before the first commit. Revert refuses when it has moved.
+	head string
 }
 
 // Checkpoint captures workspace state for later restore.
@@ -43,6 +46,8 @@ type Checkpoint struct {
 	Note     string
 	Revision string
 	Paths    []string
+	// Head is the git commit the checkpoint was taken at, or "".
+	Head string
 }
 
 // Freshness reports whether caller-visible workspace state drifted relative to
@@ -237,6 +242,7 @@ func (m *Manager) Checkpoint(note string) Checkpoint {
 		revision: m.revision,
 		changed:  copyChanged,
 		files:    files,
+		head:     m.headCommit(),
 	}
 	m.ckpts[id] = snapshot
 
@@ -245,6 +251,7 @@ func (m *Manager) Checkpoint(note string) Checkpoint {
 		Note:     snapshot.note,
 		Revision: revisionString(snapshot.revision),
 		Paths:    sortedKeys(snapshot.changed),
+		Head:     snapshot.head,
 	}
 
 	if m.bus != nil {
@@ -262,13 +269,18 @@ func (m *Manager) Checkpoint(note string) Checkpoint {
 	return checkpoint
 }
 
-func (m *Manager) RevertCheckpoint(id string) (Checkpoint, bool) {
+func (m *Manager) RevertCheckpoint(id string) (Checkpoint, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	snapshot, ok := m.ckpts[id]
 	if !ok {
-		return Checkpoint{}, false
+		return Checkpoint{}, checkpointNotFound(id)
+	}
+	// Checked before anything is written: a refused revert leaves files and
+	// the revision counter exactly as they were.
+	if err := movedPastCheckpoint(id, snapshot.head, m.headCommit()); err != nil {
+		return Checkpoint{}, err
 	}
 
 	m.revision = snapshot.revision
@@ -288,6 +300,7 @@ func (m *Manager) RevertCheckpoint(id string) (Checkpoint, bool) {
 		Note:     snapshot.note,
 		Revision: revisionString(snapshot.revision),
 		Paths:    sortedKeys(snapshot.changed),
+		Head:     snapshot.head,
 	}
 
 	if m.bus != nil {
@@ -301,7 +314,7 @@ func (m *Manager) RevertCheckpoint(id string) (Checkpoint, bool) {
 		})
 	}
 
-	return checkpoint, true
+	return checkpoint, nil
 }
 
 // ErrNoCommits and ErrNotARepository replace raw git stderr for the two ways
