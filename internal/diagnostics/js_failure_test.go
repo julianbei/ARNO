@@ -95,3 +95,21 @@ func TestJestFailureSummaryKeepsTheReason(t *testing.T) {
 		t.Errorf("expected jest's expected/received without the stack, got:\n%s", got)
 	}
 }
+func TestAvaFailureSummaryKeepsTheMessageAfterALongErrorObject(t *testing.T) {
+	lines := []string{
+		"✘ [fail]: custom method Rejected promise returned by test",
+		"─",
+		"custom method",
+		"Rejected promise returned by test. Reason:",
+		"HTTPError {",
+	}
+	for i := 0; i < 20; i++ {
+		lines = append(lines, "options: { retry: { afterStatusCodes: Array [ … ], backoffLimit: Infinity }, signal: AbortSignal {} },")
+	}
+	lines = append(lines, "}", "HTTPError: Request failed with status code 400 Bad Request: PURGE http://localhost/", "at <anonymous> (test/main.ts:9:9)", "─", "1 test failed")
+
+	got := strings.Join(testFailureLines(lines), "\n")
+	if !strings.Contains(got, "status code 400 Bad Request") {
+		t.Errorf("the error message was cut behind the object dump:\n%s", got)
+	}
+}

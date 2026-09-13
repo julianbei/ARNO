@@ -322,11 +322,30 @@ func failureDetail(lines []string, i int) string {
 		}
 		parts = append(parts, line)
 	}
-	joined := strings.Join(parts, " ")
+	joined := strings.Join(messagesFirst(parts), " ")
 	if len(joined) > maxContinuationBytes {
 		joined = joined[:maxContinuationBytes] + "…"
 	}
 	return joined
+}
+
+// errorMessageLine is a JavaScript error's own `Name: message` line.
+var errorMessageLine = regexp.MustCompile(`^[A-Z][\w.]*(Error|Exception): \S`)
+
+// messagesFirst moves error message lines ahead of the rest. ava prints the
+// inspected error object before its message; for an HTTPError the object's
+// options filled the byte bound, the `400 Bad Request` message was cut, and a
+// benchmark agent spent twenty turns adding logging to find it.
+func messagesFirst(parts []string) []string {
+	messages, rest := []string{}, []string{}
+	for _, part := range parts {
+		if errorMessageLine.MatchString(part) {
+			messages = append(messages, part)
+		} else {
+			rest = append(rest, part)
+		}
+	}
+	return append(messages, rest...)
 }
 
 // pytestDetail returns the `E` lines of the failure a pytest short-summary

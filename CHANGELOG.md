@@ -44,6 +44,15 @@ Every failed Jade call in the pilot suite, classified: 14 in 24 runs.
 - **A read refused outside the workspace names the dependency form.** A path in
   the Cargo registry, Go module cache, `node_modules` or `site-packages` is
   answered with `dep:<name>/<path>` and grep's `dependency`.
+- **A JavaScript test failure keeps its error message.** ava prints the
+  inspected error object before the `HTTPError: Request failed with status code
+  400` line; with a request's options in that object the summary's 400-byte
+  bound cut the message, and a rerun agent spent twenty turns adding logging to
+  find it. `Name: message` lines now come first in the summary.
+
+A rerun of Jade alone and the lean shell after these changes (12 tasks each):
+both solved 11 of 12; Jade used 18% fewer tokens, 14% fewer turns and 24% less
+time, and 0.42 failed calls per run against 0.67 in the suite.
 
 ### Acting on the pilot benchmark
 
