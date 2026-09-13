@@ -210,8 +210,9 @@ when you ask for it.
 
 **Over MCP each one is registered as `jade.<name>`** — `jade.outline`,
 `jade.replace_symbol`, and so on. The tables below use the bare name for
-readability. Most MCP clients show you the prefixed name already; if you are
-speaking the protocol directly, send the prefixed one.
+readability. Most MCP clients show you the prefixed name already, often with
+the dot rewritten (Claude Code displays `mcp__jade__jade_find`). Over the wire
+Jade accepts both `jade.find` and `jade_find`.
 
 ### Inspect
 

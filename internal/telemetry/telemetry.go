@@ -158,6 +158,23 @@ func (r *Recorder) RecordOutcome(tool string, duration time.Duration, bytes int,
 	r.appendLocked(append(line, '\n'))
 }
 
+// RecordRejected records a call Jade refused before running anything — an
+// unknown tool name — but only into a log that already exists.
+//
+// An unknown name is still a gap signal worth keeping: the agent expected a
+// capability Jade lacks. But creating state in a workspace for a call that did
+// nothing is exactly the stray file a harness then commits as part of someone
+// else's change, so a rejected call never creates the log itself.
+func (r *Recorder) RecordRejected(tool string, outcome Outcome) {
+	if r == nil || r.disabled || strings.TrimSpace(tool) == "" {
+		return
+	}
+	if _, err := os.Stat(filepath.Join(r.root, Dir)); err != nil {
+		return
+	}
+	r.RecordOutcome(tool, 0, 0, outcome)
+}
+
 func (r *Recorder) appendLocked(line []byte) {
 	if err := os.MkdirAll(filepath.Join(r.root, Dir), 0o755); err != nil {
 		return

@@ -268,6 +268,15 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 		args = map[string]interface{}{}
 	}
 
+	// Resolved before anything is measured or written: a rejected name must
+	// leave no trace, and both spellings must count as one tool.
+	name, err := canonicalToolName(req.Name)
+	if err != nil {
+		s.telemetry.RecordRejected(req.Name, telemetry.Classify(err))
+		return mcpToolResult{}, err
+	}
+	req.Name = name
+
 	if err := checkArguments(req.Name, args); err != nil {
 		return mcpToolResult{}, err
 	}

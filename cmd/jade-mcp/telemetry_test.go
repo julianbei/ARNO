@@ -95,8 +95,13 @@ func TestFailedToolCallsAreRecordedWithTheirClass(t *testing.T) {
 func TestUnknownToolIsRecordedToo(t *testing.T) {
 	// A call for a tool that does not exist is itself a signal — it means the
 	// agent expected a capability jade does not have, which is the most direct
-	// evidence of a gap this log can carry.
+	// evidence of a gap this log can carry. It is recorded into an existing
+	// log only; TestUnknownToolWritesNothingToTheWorkspace covers the case
+	// where no log exists yet.
 	server, root := newTestMCPServer(t)
+	if err := os.MkdirAll(filepath.Join(root, ".jade"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 
 	if _, err := server.handleToolCall(toolCall(t, "jade.does_not_exist", nil)); err == nil {
 		t.Fatalf("expected an unknown tool to fail")

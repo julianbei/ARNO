@@ -51,13 +51,19 @@ that the user did not ask for becomes part of the change.
   - Add `JADE_STATE_DIR` to put telemetry outside the workspace.
   - When state must live in the workspace, add `.jade/telemetry.jsonl` to
     `.git/info/exclude` (local, never committed) before first write.
-  - Write nothing for a call that fails validation.
+  - Write nothing for a call that fails validation. *(unknown tool names: done
+    with item 1; argument-validation failures still to check)*
   - `.jade/commands.json` stays in the repo — it is meant to be committed —
     but is only created when a command is declared.
-- [ ] **Accept both tool-name spellings.** The wire name is `jade.find`; hosts
+- [x] **Accept both tool-name spellings.** The wire name is `jade.find`; hosts
   display `jade_find` (Claude Code shows `mcp__jade__jade_find`), and a raw
   `tools/call` for `jade_find` currently fails as unknown. Accept the
   underscore form as an alias, and document the wire names.
+  - Done 2026-09-13: `jade_<name>` resolves to `jade.<name>` at the dispatch
+    chokepoint, telemetry records the canonical name, unknown names get near
+    matches. Also: a rejected name no longer creates `.jade/` — it is recorded
+    only into a log that already exists. Verified with a raw session against a
+    fresh git repo: `git status` clean after a rejected call.
 
 ## 2. Spend fewer tokens and turns per call
 
