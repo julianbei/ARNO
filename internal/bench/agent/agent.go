@@ -140,6 +140,10 @@ type Config struct {
 	// PerRunUSD caps each agent run.
 	PerRunUSD float64
 	Repeats   int
+	// RepeatStart numbers the first repeat, so a benchmark can run in rounds
+	// across repositories — every repository once, then again — and a budget
+	// that runs out still leaves complete rounds.
+	RepeatStart int
 	// JadeMCP is the jade-mcp binary for the Jade arms.
 	JadeMCP string
 	// Claude is the agent binary; "claude" when empty.
@@ -211,9 +215,14 @@ func Run(ctx context.Context, cfg Config) ([]RunResult, error) {
 		cfg.Claude = "claude"
 	}
 
+	start := cfg.RepeatStart
+	if start < 1 {
+		start = 1
+	}
+
 	var results []RunResult
 	spent := 0.0
-	for repeat := 1; repeat <= cfg.Repeats; repeat++ {
+	for repeat := start; repeat < start+cfg.Repeats; repeat++ {
 		for _, task := range cfg.Tasks.Tasks {
 			for _, arm := range cfg.Arms {
 				remaining := cfg.BudgetUSD - spent

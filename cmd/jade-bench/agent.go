@@ -23,6 +23,7 @@ const sandboxEnv = "JADE_BENCH_SANDBOX"
 func runAgentReport(args []string) int {
 	flags := flag.NewFlagSet("agent-report", flag.ContinueOnError)
 	in := flags.String("in", "bench-results.jsonl", "result lines written by jade-bench agent")
+	insightsOut := flags.String("insights", "", "also write one JSON line per analysed run, every tool call included, to this file")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -44,7 +45,13 @@ func runAgentReport(args []string) int {
 	fmt.Printf("%d runs across %d repositories\n\n", len(results), len(repositories))
 	fmt.Print(agent.Report(results))
 	fmt.Print(agent.ConfusionText(results))
-	fmt.Print(agent.ToolUseText(results))
+	fmt.Print(agent.InsightReport(results))
+	if *insightsOut != "" {
+		if err := agent.WriteInsights(*insightsOut, results); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+	}
 	return 0
 }
 
@@ -70,6 +77,7 @@ func runAgent(args []string) int {
 	budget := flags.Float64("budget", 50, "stop before a run once this many USD are spent")
 	perRun := flags.Float64("per-run", 2, "USD cap for each agent run")
 	repeats := flags.Int("repeats", 1, "times to run every task on every arm")
+	repeatStart := flags.Int("repeat-start", 1, "number of the first repeat, for running in rounds")
 	jadeMCP := flags.String("jade-mcp", "jade-mcp", "jade-mcp binary for the Jade arms")
 	out := flags.String("out", "bench-results.jsonl", "append one JSON line per run here")
 	allowHost := flags.Bool("allow-host", false, "run agents with permissions bypassed on this machine, outside a sandbox")
@@ -125,15 +133,16 @@ func runAgent(args []string) int {
 	defer stop()
 
 	results, runErr := agent.Run(ctx, agent.Config{
-		Repo:      *repo,
-		Tasks:     file,
-		Arms:      armList,
-		Model:     *model,
-		BudgetUSD: *budget,
-		PerRunUSD: *perRun,
-		Repeats:   *repeats,
-		JadeMCP:   jadeBinary,
-		Out:       output,
+		Repo:        *repo,
+		Tasks:       file,
+		Arms:        armList,
+		Model:       *model,
+		BudgetUSD:   *budget,
+		PerRunUSD:   *perRun,
+		Repeats:     *repeats,
+		RepeatStart: *repeatStart,
+		JadeMCP:     jadeBinary,
+		Out:         output,
 
 		TelemetryDir:  besideOut(*telemetryDir, *out, ".telemetry"),
 		TranscriptDir: besideOut(*transcriptDir, *out, ".transcripts"),
@@ -141,6 +150,7 @@ func runAgent(args []string) int {
 	fmt.Printf("%s · %d tasks · %s\n\n", file.Repository.Name, len(file.Tasks), *model)
 	fmt.Print(agent.Report(results))
 	fmt.Print(agent.ConfusionText(results))
+	fmt.Print(agent.InsightReport(results))
 
 	switch {
 	case runErr == nil:
