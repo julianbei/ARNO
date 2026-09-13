@@ -684,6 +684,10 @@ impact-aware validation comes after the write path it depends on, not before.
 multi-file `apply`, edit a file from outside Jade, attempted stale edit,
 failing check, fix, commit from the shell, attempted revert, revert to a
 checkpoint before the commit — behaves as documented, and runs in CI.
+*Met 2026-09-14* by `TestTheChangeTransactionHoldsAcrossAScriptedSession`,
+which runs with `go test ./...`. Revert refuses across a commit by design,
+so the attempted revert is the refusal and the successful one is to a
+checkpoint taken after the commit.
 
 ## Phase 6 — 0.1.0: release
 

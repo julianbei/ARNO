@@ -65,6 +65,16 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### The change transaction, end to end
+
+`TestTheChangeTransactionHoldsAcrossAScriptedSession` drives one session
+through the MCP transport: checkpoint, create and delete files, a multi-file
+`apply`, an edit from outside Jade and the stale edit it refuses, a failing
+check, the fix and a passing check, a commit from the shell, a revert across
+it refused and a revert after it that restores an edited file, removes a
+created one and recreates a deleted one, and `changes` listing the checks.
+It runs with the ordinary tests.
+
 ### Long calls report progress
 
 A host that sends `_meta.progressToken` with a tool call now gets

@@ -181,6 +181,7 @@ changing with it.
 | A revert that cannot restore every file changes nothing | `TestRevertThatCannotRestoreEverythingChangesNothing` |
 | Revert refuses once a commit has landed since the checkpoint | `TestRevertRefusesAcrossACommitAndLeavesFilesAlone` |
 | An unknown checkpoint is reported as not found | `TestRevertToAnUnknownCheckpointIsNotFound` |
+| All of the above hold together in one scripted session through the MCP transport | `TestTheChangeTransactionHoldsAcrossAScriptedSession` |
 
 Not guaranteed yet: that the revision also moves for changes made outside
 Jade or by another session — each session counts its own edits, and only the
