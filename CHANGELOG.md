@@ -65,6 +65,15 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### Errors from a change still in progress say so
+
+An import added before the code that uses it reported `"context" imported
+and not used`, and three calls to a helper added by a later edit each
+reported `undefined: nextAttemptNumber`. A single edit whose diagnostics
+include errors of that shape now adds `these errors may be from a change
+still in progress — for several related edits use apply, which checks once
+at the end`.
+
 ### The core and provider boundary, written down
 
 [scope.md](docs/scope.md) now records what core owns (the catalog, the write

@@ -653,7 +653,8 @@ impact-aware validation comes after the write path it depends on, not before.
   servers across sessions, still to do.
 - [ ] **Long-running work without polling** (ROADMAP §4). Progress
   notifications; no 300-second cap on backgrounded jobs.
-- [ ] **Stop reporting transient errors mid-edit** (ROADMAP §3).
+- [x] **Stop reporting transient errors mid-edit** (ROADMAP §3). *Done
+  2026-09-14:* errors of the in-progress shape point at `apply`.
 
 **Exit gate:** a scripted session — checkpoint, create a file, delete another,
 multi-file `apply`, edit a file from outside Jade, attempted stale edit,

@@ -274,7 +274,9 @@ language.
     (`tsconfig.json`, `jsconfig.json`, devcontainer and VS Code settings) are
     not reported as broken. Verified live: a stray comma in `package.json`
     returned `error package.json:2:19 invalid JSON: …`.
-- [ ] **Stop reporting transient errors from half-done multi-step edits.**
+- [x] **Stop reporting transient errors from half-done multi-step edits.**
+  Done 2026-09-14 (0.0.7): the errors are still shown, since some are real,
+  and a single edit whose errors have that shape points at `apply`.
   Imports added before the code that uses them reported
   `"context" imported and not used`; the next call fixed it. `apply` avoids
   this; the response could also point at it when an error names a symbol the

@@ -23,6 +23,7 @@ package render
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -519,6 +520,11 @@ func diff(r protocol.DiffResponse) string {
 	return summary + "\n\n" + r.Patch
 }
 
+// transientDiagnostic matches the errors a half-done multi-step change
+// produces: a name used before the edit that declares it, an import or
+// variable declared before the edit that uses it.
+var transientDiagnostic = regexp.MustCompile(`(?i)(^undefined: |imported and not used|declared and not used|cannot find name '|is not defined$|unused import)`)
+
 func edit(r protocol.EditResponse) string {
 	lines := make([]string, 0, 6)
 
@@ -539,8 +545,17 @@ func edit(r protocol.EditResponse) string {
 
 	// Diagnostics are why an agent reads an edit response at all, so they
 	// get their own lines rather than being folded into the header.
+	transient := false
 	for _, d := range r.Diagnostics {
 		lines = append(lines, diagnosticLine(d))
+		transient = transient || transientDiagnostic.MatchString(d.Message)
+	}
+	// An import added before the code that uses it, or a call before the
+	// helper it calls, errors until the next edit lands. Agents read those as
+	// real and repaired them, or split the change further. apply validates
+	// once at the end, so say so.
+	if transient {
+		lines = append(lines, "these errors may be from a change still in progress — for several related edits use apply, which checks once at the end")
 	}
 	lines = append(lines, uncheckedLines(r.Checks)...)
 	lines = append(lines, snippetLines(r.Snippets)...)

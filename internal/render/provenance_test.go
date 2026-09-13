@@ -129,3 +129,20 @@ func TestCapabilitiesShowTheReferencesPromiseAndProviders(t *testing.T) {
 		}
 	}
 }
+func TestEditPointsAtApplyForErrorsFromAChangeInProgress(t *testing.T) {
+	transient := edit(protocol.EditResponse{
+		OldRevision: "r4", NewRevision: "r5",
+		Diagnostics: []protocol.Diagnostic{{Level: protocol.DiagnosticError, Path: "a.go", Line: 9, Message: "undefined: nextAttemptNumber"}},
+	})
+	if !strings.Contains(transient, "use apply") {
+		t.Fatalf("an undefined name right after an edit should point at apply, got:\n%s", transient)
+	}
+
+	real := edit(protocol.EditResponse{
+		OldRevision: "r4", NewRevision: "r5",
+		Diagnostics: []protocol.Diagnostic{{Level: protocol.DiagnosticError, Path: "a.go", Line: 9, Message: "cannot use x (variable of type int) as string value"}},
+	})
+	if strings.Contains(real, "use apply") {
+		t.Fatalf("a type error is not a change in progress, got:\n%s", real)
+	}
+}
