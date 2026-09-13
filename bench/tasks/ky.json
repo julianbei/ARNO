@@ -1,0 +1,44 @@
+{
+  "repository": {
+    "name": "ky",
+    "language": "typescript",
+    "url": "https://github.com/sindresorhus/ky",
+    "commit": "",
+    "setup": "npm install"
+  },
+  "tasks": [
+    {
+      "id": "mixed-case-method-not-uppercased",
+      "commit": "2f0a3fb6235e680afb35ddebd8b94d303aa7b4b7",
+      "prompt": "The readme says ky uppercases standard HTTP method names so servers that are case-sensitive about methods don't reject the request. That only works when the method is passed in all lowercase. If I pass a mixed-case standard method, for example `ky('https://example.com', {method: 'Patch'})`, the request goes out with the method `Patch` exactly as written, and servers reject it.\n\nExpected: any standard method (get, post, put, patch, head, delete, options, trace, query) is sent uppercased no matter how it is cased, so `'Patch'`, `'pOsT'` and `'patch'` all go out as `PATCH`/`POST`. Custom, non-standard method names should still be sent unchanged.",
+      "verify": "npx ava test/methods.ts",
+      "timeoutSeconds": 900,
+      "verifyFrom": "895086407b7165eb4d46cce470a3ffa27a23bac7",
+      "verifyPaths": [
+        "test/methods.ts"
+      ]
+    },
+    {
+      "id": "parse-json-ignored-by-clone",
+      "commit": "c5dc4e6a923cbadd6385d01f35a468295b17b23c",
+      "prompt": "The `parseJson` option is ignored when I call `.json()` on a cloned response. `(await ky.get(url, {parseJson: customParser})).json()` uses my parser, but `response.clone().json()` uses the native `JSON.parse` instead. The same thing happens when cloning the response inside an `afterResponse` hook, and when cloning the response returned while `onDownloadProgress` is set.\n\nExpected: a clone of a ky response behaves like the original. `clone().json()` should call the custom `parseJson` with the same arguments (the text plus the same `request` and `response` context) in all of those cases. Clones of clones should work too.",
+      "verify": "npx ava test/main.ts",
+      "timeoutSeconds": 900,
+      "verifyFrom": "c6c5dbfedd648c94fefe35a06267b31c52dd9b82",
+      "verifyPaths": [
+        "test/main.ts"
+      ]
+    },
+    {
+      "id": "download-progress-drops-response-metadata",
+      "commit": "e06d351070314670526711e79d1a66ce0b932a50",
+      "prompt": "With `onDownloadProgress` set, the response ky returns is missing some of the original response's metadata. `response.url` is an empty string, `response.redirected` is `false` even when the request was redirected, and `response.type` doesn't match the real response. Without `onDownloadProgress` all three are correct.\n\nExpected: turning on `onDownloadProgress` should not change `url`, `redirected` or `type`. They should match what the underlying fetch response reports, including on a `response.clone()` of that response and on responses with no body (such as 204).",
+      "verify": "npx ava test/stream.ts",
+      "timeoutSeconds": 900,
+      "verifyFrom": "e893f1630888c630ac5050f8be96c254c9759b0e",
+      "verifyPaths": [
+        "test/stream.ts"
+      ]
+    }
+  ]
+}

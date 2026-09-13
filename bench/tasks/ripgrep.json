@@ -1,0 +1,44 @@
+{
+  "repository": {
+    "name": "ripgrep",
+    "language": "rust",
+    "url": "https://github.com/BurntSushi/ripgrep",
+    "commit": "",
+    "setup": "cargo fetch"
+  },
+  "tasks": [
+    {
+      "id": "replace-multiline-lookaround-panic",
+      "commit": "916415857f084e63efda03cf25a67fe7f6d24244",
+      "prompt": "rg panics when --replace is combined with --multiline for certain patterns and haystacks.\n\nReproduction:\n\n    printf ' b b b b b b b b\\nc\\n' > haystack\n    rg --multiline --replace=x '(^|[^a-z])((([a-z]+)?)\\s)?b(\\s([a-z]+)?)($|[^a-z])' haystack\n\nObserved: ripgrep crashes with a panic like \"slice index starts at X but ends at Y\" (with Y < X) and prints no results. Similar inputs such as \" b\\nb\\nb\\nb\\nc\" do the same. Small changes to the pattern or text (for example replacing the first group with `^`) make the crash go away.\n\nExpected: rg should never panic here. It should print the matching lines with each match replaced by `x`, the same way it handles other patterns.",
+      "verify": "cargo test --test integration -- --exact regression::r3180_look_around_panic",
+      "timeoutSeconds": 900,
+      "verifyFrom": "de2567a4c76fa671005538d6cd841abc44932b9a",
+      "verifyPaths": [
+        "tests/regression.rs"
+      ]
+    },
+    {
+      "id": "hidden-whitelist-dot-path",
+      "commit": "bb88a1ac45c70bef97e0d6ccd6e91595610de860",
+      "prompt": "Hidden files that a parent directory's .ignore file whitelists are not searched when `.` is passed as the search path.\n\nReproduction:\n\n    cd \"$(mktemp -d)\"\n    mkdir subdir\n    echo 'foo text' > subdir/.foo.txt\n    printf '!.foo.txt\\n' > .ignore\n    cd subdir\n    rg --files        # prints .foo.txt (correct)\n    rg --files .      # prints nothing (wrong)\n    rg --files ./     # prints nothing (wrong)\n    rg --files ./.    # prints ././.foo.txt (correct)\n\nThe same happens with `rg -l text .`. If you run from the parent directory, `rg --files .` correctly lists ./subdir/.foo.txt.\n\nExpected: a hidden file whitelisted by an ancestor's ignore file should be listed or searched whether no path, `.`, `./` or `./.` is given. For example, `rg --files .` inside subdir should print `./.foo.txt`.",
+      "verify": "cargo test --test integration -- --exact regression::r3173_hidden_whitelist_only_dot",
+      "timeoutSeconds": 900,
+      "verifyFrom": "0407e104f611d623547897ca99d172673b31779f",
+      "verifyPaths": [
+        "tests/regression.rs"
+      ]
+    },
+    {
+      "id": "null-data-line-regexp",
+      "commit": "2d518dd1f96147690c1eadf58023cec3eb0e108a",
+      "prompt": "`--line-regexp` no longer works together with `--null-data` (a regression since ripgrep 13).\n\nReproduction:\n\n    printf '%s\\0' foo bar hello world | rg --null-data --line-regexp foo\n\nObserved: nothing is printed and the exit status says no match. In ripgrep 13.0.0 this printed `foo`.\n\nExpected: with --null-data, NUL acts as the line terminator, so --line-regexp should match whole NUL-terminated records. The command above should print `foo` (NUL-terminated). Likewise, for a file `haystack` containing \"foo\\0bar\\0quux\\0\", `rg --null-data --line-regexp bar` should print `haystack:bar\\0`.",
+      "verify": "cargo test --test integration -- --exact regression::r2658_null_data_line_regexp",
+      "timeoutSeconds": 900,
+      "verifyFrom": "805fa32d184f9b163e7355dd335abc96440f0d2b",
+      "verifyPaths": [
+        "tests/regression.rs"
+      ]
+    }
+  ]
+}

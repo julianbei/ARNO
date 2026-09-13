@@ -92,6 +92,11 @@ type Task struct {
 	// agent stops and before Verify runs. The agent never sees them, and any
 	// file of the same name it wrote is overwritten.
 	VerifyFiles map[string]string `json:"verifyFiles"`
+	// VerifyFrom and VerifyPaths name hidden tests by reference: each path is
+	// read at VerifyFrom (usually the fix commit) from the source checkout at
+	// run time. Task files then carry no copy of the repository's code.
+	VerifyFrom  string   `json:"verifyFrom"`
+	VerifyPaths []string `json:"verifyPaths"`
 }
 
 // LoadTaskFile reads and checks a task file.
@@ -113,6 +118,9 @@ func LoadTaskFile(path string) (TaskFile, error) {
 	for i, task := range file.Tasks {
 		if task.ID == "" || task.Prompt == "" || task.Verify == "" {
 			return TaskFile{}, fmt.Errorf("%s: task %d needs id, prompt and verify", path, i+1)
+		}
+		if len(task.VerifyPaths) > 0 && task.VerifyFrom == "" {
+			return TaskFile{}, fmt.Errorf("%s: task %s lists verifyPaths without verifyFrom", path, task.ID)
 		}
 	}
 	return file, nil
@@ -306,7 +314,9 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 	// The diff is measured before the hidden tests are written, so it is
 	// exactly what the agent left.
 	result.LinesChanged, result.FilesChanged = diffStats(workspace)
-	if err := writeVerifyFiles(workspace, task.VerifyFiles); err != nil {
+	if hidden, err := hiddenFiles(cfg.Repo, task); err != nil {
+		result.VerifyOutput = err.Error()
+	} else if err := writeVerifyFiles(workspace, hidden); err != nil {
 		result.VerifyOutput = err.Error()
 	} else {
 		result.Success, result.VerifyOutput = verify(ctx, workspace, task.Verify)
@@ -419,6 +429,23 @@ func prepareWorkspace(ctx context.Context, repo string, commit string, setup str
 		}
 	}
 	return nil
+}
+
+// hiddenFiles collects a task's hidden tests: inline VerifyFiles, plus each of
+// VerifyPaths read at VerifyFrom from the source checkout.
+func hiddenFiles(repo string, task Task) (map[string]string, error) {
+	files := make(map[string]string, len(task.VerifyFiles)+len(task.VerifyPaths))
+	for path, content := range task.VerifyFiles {
+		files[path] = content
+	}
+	for _, path := range task.VerifyPaths {
+		out, err := exec.Command("git", "-C", repo, "show", task.VerifyFrom+":"+path).Output()
+		if err != nil {
+			return nil, fmt.Errorf("hidden test %s at %s: %v", path, task.VerifyFrom, err)
+		}
+		files[path] = string(out)
+	}
+	return files, nil
 }
 
 // writeVerifyFiles writes the hidden tests, refusing any path that would land

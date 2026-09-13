@@ -1,0 +1,44 @@
+{
+  "repository": {
+    "name": "cobra",
+    "language": "go",
+    "url": "https://github.com/spf13/cobra",
+    "commit": "",
+    "setup": "go mod download"
+  },
+  "tasks": [
+    {
+      "id": "completion-mutates-os-args",
+      "commit": "f2878bab8c96afd6e36968af96343b35dbb82a82",
+      "prompt": "Shell completion modifies os.Args.\n\nI work around another limitation by reading `os.Args` myself inside a `ValidArgsFunction`. In some cases cobra inserts `--` into `os.Args` while it computes completions, so my function sees corrupted arguments. This happens in particular when `TraverseChildren` is enabled on the root command. Calling `SetArgs` with a slice that has spare capacity causes the same problem: the caller's slice gets modified.\n\nMinimal example:\n\n```go\ncmd := &cobra.Command{\n    TraverseChildren: true,\n    ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {\n        cobra.CompErrorln(strings.Join(os.Args[1:], \", \"))\n        return nil, cobra.ShellCompDirectiveDefault\n    },\n}\ncmd.Execute()\n```\n\nExpected (`go run . __complete x`):\n```\n[Debug] [Error] __complete, x\n```\nActual:\n```\n[Debug] [Error] __complete, --\n```\n\nComputing completions must never modify the caller's argument slice (os.Args or the slice passed to SetArgs).",
+      "verify": "go test ./ -run '^TestCompletionDoesNotMutateOsArgs$' -count=1",
+      "timeoutSeconds": 900,
+      "verifyFrom": "746ef07158728502482cea9f880a6f4b21ef29a9",
+      "verifyPaths": [
+        "completions_test.go"
+      ]
+    },
+    {
+      "id": "plugin-version-flag-display-name",
+      "commit": "ff7c561cf741ac36ab319f528d93e738ae284835",
+      "prompt": "The --version flag ignores the command display name for plugins.\n\nWhen a command is used as a plugin (for example a `kubectl-plugin` binary with the `cobra.CommandDisplayNameAnnotation` annotation set to `kubectl plugin`) and `Command.Version` is set, the automatically added `--version` flag uses the raw command name instead of the display name. Everything else uses the display name.\n\nHelp output today:\n\n    Flags:\n      -h, --help      help for kubectl plugin\n      -v, --version   version for kubectl-plugin\n\nExpected, consistent with the --help flag:\n\n    Flags:\n      -h, --help      help for kubectl plugin\n      -v, --version   version for kubectl plugin\n\nThe default version output has the same problem. `kubectl-plugin --version` should print `kubectl plugin version 1.0.0`, not `kubectl-plugin version 1.0.0`. This applies to a root command with or without subcommands.",
+      "verify": "go test ./ -run '^(TestPlugin|TestPluginWithSubCommands|TestVersionFlagExecutedDiplayName)$' -count=1",
+      "timeoutSeconds": 900,
+      "verifyFrom": "5bef9d8d87ad1a1c73e74361bad9e38b3469a58e",
+      "verifyPaths": [
+        "command_test.go"
+      ]
+    },
+    {
+      "id": "no-help-version-completion-disable-flag-parsing",
+      "commit": "8b1eba47616566fc4d258a93da48d5d8741865f0",
+      "prompt": "Completion should not suggest --help/-h and --version/-v when DisableFlagParsing is true.\n\nA command that sets `DisableFlagParsing = true` takes over all flag parsing itself. Cobra may not even know about its flags. This is common for plugins of a cobra-based CLI, which must handle their own flags.\n\nShell completion (`__complete <cmd> -`) still suggests cobra's automatic `--help`/`-h` flag, and `--version`/`-v` when `Version` is set, for such commands. For plugins these flags then get completed twice: once from cobra and once from the plugin.\n\nExpected: when a command has `DisableFlagParsing == true`, cobra does not complete its automatically added help and version flags. Flags the program defined explicitly on that command should still be completed as before, even if they are also named `help`/`h` or `version`/`v`. Other completions, such as ValidArgsFunction results and other defined flags, are unchanged.",
+      "verify": "go test ./ -run '^(TestCompletionCobraFlags|TestCompleteWithDisableFlagParsing)$' -count=1",
+      "timeoutSeconds": 900,
+      "verifyFrom": "b711e8760b73c6aa1b4aa1bef3a26da5926f175d",
+      "verifyPaths": [
+        "completions_test.go"
+      ]
+    }
+  ]
+}

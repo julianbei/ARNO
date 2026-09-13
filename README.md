@@ -5,9 +5,15 @@
   <img src="logo.png" alt="Jade — Just Agentic Development Environment" width="520">
 </picture>
 
-**An MCP server that gives a coding agent structural access to a codebase** —
-read and edit by *symbol* rather than by line number, validate the result, and
-track what changed, without shelling out.
+**A change transaction for coding agents, served over MCP.** Read by symbol,
+edit against a known revision, get the compiler's diagnostics back with the
+edit, validate with the repository's own commands, see what changed, and
+revert to a checkpoint — each step one tool call, none of it through the shell.
+
+Symbol-aware reading is how Jade finds its way around; the transaction is what
+it is for. Where the shell is still the better tool, use it — the question
+Jade has to answer is whether an agent gets more done, at acceptable cost,
+with it than without ([docs/benchmark.md](docs/benchmark.md)).
 
 **Status:** 0.0.3 — early, usable, and looking for feedback.
 

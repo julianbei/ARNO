@@ -181,6 +181,41 @@ func TestWorkspaceHidesHistoryAndHiddenTestsDecide(t *testing.T) {
 	}
 }
 
+// Hidden tests named by reference are read from the fix commit in the source
+// checkout, which the agent's workspace never contains.
+func TestHiddenTestsByReferenceComeFromTheFixCommit(t *testing.T) {
+	repo, claude, _ := setup(t)
+	base, err := exec.Command("git", "-C", repo, "rev-parse", "HEAD").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "hidden_test.txt"), []byte("from the fix\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(t, repo, "git", "add", "-A")
+	run(t, repo, "git", "commit", "-q", "-m", "fix with test")
+	fix, err := exec.Command("git", "-C", repo, "rev-parse", "HEAD").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tasks := taskFile()
+	tasks.Tasks[0].Commit = strings.TrimSpace(string(base))
+	tasks.Tasks[0].VerifyFrom = strings.TrimSpace(string(fix))
+	tasks.Tasks[0].VerifyPaths = []string{"hidden_test.txt"}
+	tasks.Tasks[0].Verify = "grep -q 'from the fix' hidden_test.txt"
+
+	results, err := Run(context.Background(), Config{
+		Repo: repo, Tasks: tasks, Arms: []Arm{ArmShell}, BudgetUSD: 5, PerRunUSD: 1, Claude: claude,
+	})
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if !results[0].Success {
+		t.Fatalf("expected the hidden test read from the fix commit, got %+v", results[0])
+	}
+}
+
 func TestRunStopsBeforeExceedingTheBudget(t *testing.T) {
 	repo, claude, _ := setup(t)
 	t.Setenv("FAKE_COST", "0.40")

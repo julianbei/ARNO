@@ -77,12 +77,17 @@ A task file, no code:
       "prompt": "The help output omits defaults for duration flags. Fix it and add a test.",
       "commit": "<parent of the fix>",
       "verify": "go test -run TestDurationDefaultInHelp .",
-      "verifyFiles": { "command_test.go": "<the test file from the fix commit>" },
+      "verifyFrom": "<the fix commit>",
+      "verifyPaths": ["command_test.go"],
       "timeoutSeconds": 900
     }
   ]
 }
 ```
+
+`verifyPaths` are read at `verifyFrom` from the source checkout when the run
+starts, so task files never copy a repository's code; `verifyFiles` gives
+contents inline instead, for tests that exist in no commit.
 
 A verify command must fail before the task is done and pass after, or the
 task measures nothing. Check both by hand when adding one.
