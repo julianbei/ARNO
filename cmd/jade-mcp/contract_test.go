@@ -32,7 +32,9 @@ import (
 // replace_text and replace_range until this freeze, and is why the lists below
 // were checked against behaviour rather than copied from the schema.
 var frozenSurface = map[string][]string{
-	"jade.apply":           {"edits"},
+	"jade.apply": {"edits"},
+	// Added in 0.0.6; adding a tool is compatible.
+	"jade.capabilities":    {},
 	"jade.changes":         {},
 	"jade.check":           {},
 	"jade.checkpoint":      {},

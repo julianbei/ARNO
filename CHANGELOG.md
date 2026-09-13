@@ -65,6 +65,25 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### `capabilities`: what Jade can do here, in one call
+
+The first 0.0.6 item. An agent in a repository without language servers
+learned that from failed calls, one tool at a time. `capabilities` answers
+up front:
+
+```text
+go (412 files) · structural · tree-sitter · server gopls · formats with gofmt
+typescript (88 files) · structural · tree-sitter · no server (typescript-language-server not installed) · references approximate, rename refused
+kotlin (3 files) · text fallback · text scan · may be incomplete · no server known
+git: yes
+build: go build ./...
+tests: make test
+declared commands: release-gate
+```
+
+It uses the provenance words, so what the report promises and what each
+answer reports can be compared directly.
+
 ### Five overlapping tools deprecated
 
 `search`, `search_nudge`, `repository_map`, `read_symbol` and `replace_range`

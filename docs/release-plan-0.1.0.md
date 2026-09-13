@@ -474,6 +474,11 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   declared commands, discovered `check` targets. *Done when* an agent in a
   container with no language servers learns that from one response instead of
   from failed calls.
+  *Progress 2026-09-13:* `capabilities` tool: per-language structure in
+  provenance words, language server running or missing, formatter; git;
+  validation commands; declared commands; project config. Server
+  instructions do not carry the brief form yet, and a server that is
+  installed but degraded is not told apart (next item).
 - [ ] **Providers behind a registry, still in one binary.** The abstraction is
   the capability registry, not a type hierarchy: a provider has an ID and
   declares the capabilities it serves (outline, symbols, references, rename,

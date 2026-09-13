@@ -53,6 +53,8 @@ func Text(value interface{}) (string, bool) {
 		return changes(v), true
 	case protocol.WorkspaceTreeResponse:
 		return workspaceTree(v), true
+	case protocol.CapabilitiesResponse:
+		return capabilities(v), true
 	case protocol.DiffResponse:
 		return diff(v), true
 	case protocol.EditResponse:
@@ -439,6 +441,52 @@ func workspaceTree(r protocol.WorkspaceTreeResponse) string {
 	}
 	if len(lines) == 0 {
 		return "(empty tree)"
+	}
+	return strings.Join(lines, "\n")
+}
+
+// capabilities renders one line per language, then git, the commands check
+// would run and declared commands: what an agent would otherwise learn from
+// failed calls.
+func capabilities(r protocol.CapabilitiesResponse) string {
+	lines := []string{}
+	for _, language := range r.Languages {
+		parts := []string{fmt.Sprintf("%s (%d files)", language.Language, language.Files), language.Structure.String()}
+		switch {
+		case language.Server != "":
+			parts = append(parts, "server "+language.Server)
+		case language.MissingServer != "":
+			parts = append(parts, "no server ("+language.MissingServer+" not installed) · references approximate, rename refused")
+		default:
+			parts = append(parts, "no server known")
+		}
+		if language.Formatter != "" {
+			parts = append(parts, "formats with "+language.Formatter)
+		}
+		lines = append(lines, strings.Join(parts, " · "))
+	}
+	if len(r.Languages) == 0 {
+		lines = append(lines, "no recognised source files")
+	}
+	if r.Truncated {
+		lines = append(lines, "(language counts stop at the listing bound)")
+	}
+	if r.Git {
+		lines = append(lines, "git: yes")
+	} else {
+		lines = append(lines, "git: no — changes, diff, history and checkpoint are unavailable")
+	}
+	for _, validation := range r.Validation {
+		lines = append(lines, fmt.Sprintf("%s: %s", validation.Kind, validation.Command))
+	}
+	if len(r.Validation) == 0 {
+		lines = append(lines, "build, typecheck, tests: none discovered — declare them in .jade/project.json")
+	}
+	if len(r.Commands) > 0 {
+		lines = append(lines, "declared commands: "+strings.Join(r.Commands, ", "))
+	}
+	if r.ProjectConfig != "" {
+		lines = append(lines, r.ProjectConfig)
 	}
 	return strings.Join(lines, "\n")
 }

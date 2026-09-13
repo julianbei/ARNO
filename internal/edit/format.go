@@ -125,6 +125,12 @@ func formatterFor(root string, path string) (formatter, bool) {
 	return formatter{}, false
 }
 
+// FormatterName names the formatter an edit to path would run, if any.
+func FormatterName(root string, path string) (string, bool) {
+	chosen, ok := formatterFor(root, path)
+	return chosen.name, ok
+}
+
 var prettierConfigFiles = []string{
 	".prettierrc", ".prettierrc.json", ".prettierrc.yaml", ".prettierrc.yml",
 	".prettierrc.json5", ".prettierrc.js", ".prettierrc.cjs", ".prettierrc.mjs",

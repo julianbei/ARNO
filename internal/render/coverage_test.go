@@ -17,6 +17,7 @@ import (
 // actual declarations, so adding a new *Response type without a renderer
 // fails the build rather than silently shipping as raw JSON.
 var renderedResponses = map[string]interface{}{
+	"CapabilitiesResponse":   protocol.CapabilitiesResponse{},
 	"InspectResponse":        protocol.InspectResponse{},
 	"SearchResponse":         protocol.SearchResponse{},
 	"SearchNudgeResponse":    protocol.SearchNudgeResponse{},

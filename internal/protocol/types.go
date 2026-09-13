@@ -699,6 +699,37 @@ type WorkspaceTreeResponse struct {
 	Continue string
 }
 
+// CapabilitiesResponse is what Jade can do in this workspace, from one call.
+type CapabilitiesResponse struct {
+	Languages     []LanguageCapability
+	Git           bool
+	Commands      []string
+	Validation    []ValidationCapability
+	ProjectConfig string
+	// Truncated says the language counts stopped at the listing bound.
+	Truncated bool
+}
+
+// LanguageCapability is one language present in the workspace.
+type LanguageCapability struct {
+	Language string
+	Files    int
+	// Structure is how outlines and find read the language, in provenance
+	// words: structural · tree-sitter, or text fallback · text scan.
+	Structure Provenance
+	// Server is the language server that would start; MissingServer the one
+	// Jade looks for when none is installed. Both empty: none is known.
+	Server        string
+	MissingServer string
+	Formatter     string
+}
+
+// ValidationCapability is a command check would run for kind.
+type ValidationCapability struct {
+	Kind    string
+	Command string
+}
+
 // RetrievalRequest asks JADE to choose the most relevant symbols/files under a token budget.
 type RetrievalRequest struct {
 	Query     string

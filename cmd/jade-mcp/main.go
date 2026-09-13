@@ -688,6 +688,12 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			Test:           testName,
 		})
 		return jsonResult(res)
+	case "jade.capabilities":
+		res, err := s.api.Capabilities()
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return jsonResult(res)
 	case "jade.changes":
 		res := s.api.Changes()
 		return jsonResult(res)
@@ -773,6 +779,14 @@ func tools() []mcpTool {
 
 func catalogTools() []mcpTool {
 	return []mcpTool{
+		{
+			Name:        "jade.capabilities",
+			Description: "What Jade can do in this workspace, in one call: per language, whether a grammar or a text scan reads it, which language server runs or is missing, and which formatter applies; whether git is there; the build, typecheck and test commands check would run; declared commands. Call it first in an unfamiliar repository instead of learning from failed calls.",
+			InputSchema: map[string]interface{}{
+				"type":       "object",
+				"properties": map[string]interface{}{},
+			},
+		},
 		{
 			Name:        "jade.workspace_tree",
 			Description: "Return a plain, bounded directory/file structure listing for orientation (not relevance-ranked).",

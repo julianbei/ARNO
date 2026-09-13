@@ -184,6 +184,16 @@ var knownLanguages = map[string]string{
 	".zig":   "zig",
 }
 
+// LanguageOf names path's language and whether Jade parses it with a
+// grammar; "" for a file type Jade does not recognise.
+func LanguageOf(path string) (string, bool) {
+	ext := strings.ToLower(filepath.Ext(path))
+	if language := grammarLanguages[ext]; language != "" {
+		return language, true
+	}
+	return knownLanguages[ext], false
+}
+
 // ParserFor describes how path's symbols were obtained. mode is the value
 // symbolsForPath returned, so this reports what actually happened rather than
 // what the extension suggests should have — a Go file whose tree-sitter parse
