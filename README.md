@@ -370,16 +370,20 @@ says which answer you got.
 2. **Deterministic tools before model reasoning.** Jade orchestrates
    tree-sitter, git, gopls and the project's own build tooling. It does not
    reimplement them, and does not guess where they could answer.
-3. **Every edit returns consequences.** Not "success" — the revision
-   transition, the symbols that moved, diagnostics, and jobs started.
+3. **Every edit has a precondition and returns consequences.** An edit can
+   name the revision it expects and is refused if Jade's revision has moved;
+   it returns the revision transition, what changed and the diagnostics — not
+   "success". Changes made outside Jade do not yet move the revision (release
+   plan Phase 5).
 4. **Conclusions before logs.** The verdict leads. Raw output expands on
    request.
 5. **Semantic operations before textual ones.** But textual escape hatches stay
    available, because the semantic path does not always exist.
 6. **State is explicit.** Revisions, checkpoints and change sets are objects,
    not implications.
-7. **Long-running work is asynchronous.** Builds and test suites return job IDs
-   and stream events.
+7. **Validation waits by default, backgrounds on request.** `check`,
+   `run_tests` and `run_command` return the verdict; a long run can return a
+   job to poll instead.
 8. **An approximation must announce itself.** When Jade falls back to a text
    scan or a name-matched graph, the caveat travels *with the data*, in the
    response — not in documentation the agent will never read.
@@ -388,6 +392,13 @@ says which answer you got.
 10. **Measure agent outcomes, not infrastructure sophistication.** Tokens and
     turns per completed task — and token reduction is worthless if the success
     rate drops with it.
+11. **Repository-native execution.** Builds, tests and lint run through the
+    repository's own commands — discovered, or declared in
+    `.jade/commands.json` — inside Jade, so validation is part of the record
+    instead of a shell side trip.
+12. **Cheaper than the escape hatch.** If the shell is easier, faster and
+    cheaper for a workflow, Jade has failed that workflow. The benchmark, not
+    opinion, says which ([docs/benchmark.md](docs/benchmark.md)).
 
 The longer design document is [docs/scope.md](docs/scope.md).
 

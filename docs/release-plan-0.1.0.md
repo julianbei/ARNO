@@ -295,7 +295,9 @@ later phase uses to decide what to merge, cut or add.
   and code-atlas if their setup allows. A comparison to learn from, not a gate —
   but if Serena wins on the inspect tasks, Phase 3 cuts Jade's inspect surface
   harder rather than competing on it.
-- [ ] **Reposition the README lead.** From "structural access to a codebase" to
+- [x] **Reposition the README lead.** Done 2026-09-13: the lead describes the
+  change transaction; principles 3, 7, 11 and 12 now state preconditions,
+  repository-native execution and cheaper-than-the-shell. From "structural access to a codebase" to
   the change transaction, with the loop spelled out and the inspect tools as
   the means. Only claims Jade already backs; Phase 6 re-checks it. Fold the
   principles Jade's design principles do not yet state into the README:
@@ -329,14 +331,15 @@ later phase uses to decide what to merge, cut or add.
   `read_symbol` returning a whole body and `find Store` returning two types.
   *Done when* that scenario re-measures at or below 1.0x, or the reason it
   cannot is written down.
-- [ ] **Scope or stop the per-edit whole-repository typecheck** (ROADMAP §2
-  follow-up). Cost nobody reads distorts every benchmark number.
+- [x] **Scope or stop the per-edit whole-repository typecheck** (ROADMAP §2
+  follow-up). Done 2026-09-13: stopped; single edits start no job. Cost nobody reads distorts every benchmark number.
 - [ ] **Test the retrieval vocabulary map away from home.** `retrieve` expands
   a query with a fixed word list (auth → session, login, token…) at
   [index.go:936](../internal/code/index.go#L936). Run the outside benchmark
   with and without it; keep it only if it helps there, and in Phase 4 it
   becomes a ranking provider rather than a map in the index.
-- [ ] **`replace_text` line counts** and **`run_command` listing size**
+- [x] **`replace_text` line counts** and **`run_command` listing size**
+  (done 2026-09-13)
   (ROADMAP §8). Small, and both inflate what the benchmark measures.
 
 **Exit gate:** a results table from outside repositories exists in `docs/`,
