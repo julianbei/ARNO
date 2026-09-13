@@ -505,7 +505,7 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   capability's providers from the registry and the references provenance
   each language would get. Formatting and validation discovery stay outside
   the registry until a second provider for them exists.
-- [ ] **Three kinds of missing, told apart.** Not supported (no provider for
+- [x] **Three kinds of missing, told apart.** Not supported (no provider for
   this language), provider present but dependency missing (`rust-analyzer`
   not installed), provider running but degraded (`jdtls still indexing`). The
   capability report and each answer say which; conformance asserts all three.
