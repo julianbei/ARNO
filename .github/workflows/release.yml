@@ -66,6 +66,11 @@ jobs:
     needs: binaries
     runs-on: ubuntu-latest
     steps:
+      # The release notes live in the repository. Without a checkout the notes
+      # step cannot see them and fails every tag — which is how v0.0.3's
+      # publish job failed and had to be released by hand.
+      - uses: actions/checkout@v4
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
