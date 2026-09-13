@@ -27,6 +27,18 @@ gone from text output:
   unless polled, and the edited file's own errors are already in the
   response. Job IDs remain in `JADE_JSON=1` output.
 
+### A first call that works
+
+Hosts load tool schemas lazily, so an agent's first call to any Jade tool used
+to start with a schema-search turn. The server instructions now name the seven
+tools to load first, say when to batch with `apply`, and give both name
+spellings — in under 500 bytes, since every session pays for them.
+`replace_text` and `insert` now point at `apply` for multi-site edits; an agent
+that made twelve single edits in one session did not know it existed.
+
+`initialize` reported `serverInfo.version` as a hardcoded `0.1.0`. It now
+reports the binary's actual version.
+
 ### Tool names
 
 `jade_find` is accepted as well as `jade.find`. Hosts rewrite the dot away

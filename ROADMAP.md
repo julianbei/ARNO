@@ -92,12 +92,20 @@ that the user did not ask for becomes part of the change.
     ever seen when it fails, and a failure is already reported inline. Fold
     a finished result into the response, omit the line otherwise, and name
     `job_status` when a job is still running.
-- [ ] **Name the core tools in the server instructions.** Hosts load MCP tool
+- [x] **Name the core tools in the server instructions.**
+  - Done 2026-09-13 (with the `apply` item below): instructions name seven
+    tools to load first, say when to batch, and state both name spellings,
+    in 495 bytes. A test fails if a named tool leaves the catalog or the text
+    passes 600 bytes. Also fixed: `serverInfo.version` was hardcoded `0.1.0`;
+    it now reports the binary's real version. Verified live with a raw
+    `initialize` against a stamped build. Hosts load MCP tool
   schemas lazily, so an agent's first call to any Jade tool first costs a
   schema-search turn. A worker with a four-turn budget lost one of them this
   way. The instructions should name the handful to load first: `find`,
   `read_range`, `replace_text`, `insert`, `apply`, `outline`, `check`.
-- [ ] **Make `apply` discoverable.** Atomic multi-file batches of
+- [x] **Make `apply` discoverable.**
+  - Done 2026-09-13: `replace_text` and `insert` descriptions point at `apply`
+    for multi-site work; the server instructions name it; a test keeps both. Atomic multi-file batches of
   `replace_text` and `insert` already exist in `apply`, with one validation
   pass at the end. An agent that made twelve separate doc edits in one session
   did not know. Mention it in the `replace_text` and `insert` descriptions and

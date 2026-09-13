@@ -215,10 +215,10 @@ func (s *mcpServer) handleRequest(req rpcRequest) rpcResponse {
 				},
 				"serverInfo": map[string]interface{}{
 					"name":        "jade",
-					"version":     "0.1.0",
+					"version":     resolveVersion(),
 					"description": "Agent IDE runtime for inspect, modify, validate, and state workflows.",
 				},
-				"instructions": "Use JADE to inspect code, make targeted edits, validate work, and manage revisions/checkpoints in the active workspace.",
+				"instructions": serverInstructions,
 			},
 		}
 	case "ping":
@@ -861,7 +861,7 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.insert",
-			Description: "Add text to a file without replacing anything — a new function, a new section, an extra case. Use this for additive work instead of rewriting a surrounding symbol. With no anchor it appends to the end of the file; with one it places the text before or after that anchor, refusing if the anchor is absent or matches more than once.",
+			Description: "Add text to a file without replacing anything — a new function, a new section, an extra case. Use this for additive work instead of rewriting a surrounding symbol. With no anchor it appends to the end of the file; with one it places the text before or after that anchor, refusing if the anchor is absent or matches more than once. Several additions or edits at once belong in apply.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -876,7 +876,7 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.replace_text",
-			Description: "Replace an exact, unique string in a file. Preferred over replace_range for follow-up edits: an anchor string does not move when the lines around it do. Refuses when the anchor is absent or matches more than once — extend it with surrounding context to disambiguate.",
+			Description: "Replace an exact, unique string in a file. Preferred over replace_range for follow-up edits: an anchor string does not move when the lines around it do. Refuses when the anchor is absent or matches more than once — extend it with surrounding context to disambiguate. For several sites, use apply: atomic, one validation, no diagnostics from half-done intermediate states.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
