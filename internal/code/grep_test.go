@@ -182,12 +182,21 @@ func TestGrepRegexMode(t *testing.T) {
 func TestGrepRejectsABadRegexInsteadOfMatchingLiterally(t *testing.T) {
 	// Silently matching something other than what was asked for is the failure
 	// mode that makes a search tool untrustworthy.
-	_, err := grepFixture(t).Grep(protocol.GrepRequest{Query: "func (", Regex: true})
+	_, err := grepFixture(t).Grep(protocol.GrepRequest{Query: "func [", Regex: true})
 	if err == nil {
 		t.Fatalf("expected an invalid regex to be rejected")
 	}
 	if !strings.Contains(err.Error(), "regex") {
 		t.Fatalf("expected the error to name the problem, got %v", err)
+	}
+
+	// An unbalanced parenthesis is read as text, and the answer says so.
+	response, err := grepFixture(t).Grep(protocol.GrepRequest{Query: "func (", Regex: true})
+	if err != nil {
+		t.Fatalf("an unbalanced parenthesis should be searched as text: %v", err)
+	}
+	if !strings.Contains(response.Summary, "unbalanced parenthesis") {
+		t.Fatalf("expected the reading to be stated, got %q", response.Summary)
 	}
 }
 

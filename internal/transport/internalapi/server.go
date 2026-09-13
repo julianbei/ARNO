@@ -481,6 +481,16 @@ func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsRespons
 	}
 
 	outcome := finishedOutcome(output)
+	// A narrowed run that ran nothing exits 0 in cargo and go test, and read
+	// as a pass for a test name that matched no test.
+	if outcome == protocol.OutcomePassed && req.Scope != "" && req.Scope != "all" && jobs.NoTestsRan(output.Raw) {
+		return protocol.RunTestsResponse{
+			JobID:   jobID,
+			Outcome: protocol.OutcomeFailed,
+			Status:  output.Status,
+			Summary: fmt.Sprintf("no test matched %q in scope %s — nothing ran", req.Test+req.File, req.Scope),
+		}
+	}
 	runPassed := outcome == protocol.OutcomePassed
 	return protocol.RunTestsResponse{
 		JobID:   jobID,

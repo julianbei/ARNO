@@ -51,6 +51,21 @@ func (i *Index) grep(req protocol.GrepRequest, retry bool) (protocol.GrepRespons
 	}
 
 	matcher, err := buildMatcher(query, req.Regex, req.IgnoreCase)
+	// `rgtest!(r\d+` does not parse for its unbalanced parenthesis, which the
+	// caller meant as text; an "invalid regex" answer cost a benchmark run a
+	// turn. With parentheses escaped it is the search intended, and the answer
+	// says that is how it was read rather than matching something else
+	// silently.
+	if err != nil && retry && req.Regex {
+		if escaped := escapeParens(query); escaped != query {
+			asEscaped := req
+			asEscaped.Query = escaped
+			if response, retryErr := i.grep(asEscaped, false); retryErr == nil {
+				response.Summary = "invalid regex (unbalanced parenthesis), parentheses searched as text: " + response.Summary
+				return response, nil
+			}
+		}
+	}
 	if err != nil {
 		return protocol.GrepResponse{}, err
 	}
@@ -250,10 +265,7 @@ func grepToRE2(pattern string) string {
 func buildMatcher(query string, isRegex bool, ignoreCase bool) (func(string) bool, error) {
 	if isRegex {
 		pattern := grepToRE2(query)
-		if ignoreCase {
-			pattern = "(?i)" + pattern
-		}
-		compiled, err := regexp.Compile(pattern)
+		compiled, err := compileGrepRegex(pattern, ignoreCase)
 		if err != nil {
 			return nil, fmt.Errorf("invalid regex %q: %w", query, err)
 		}
@@ -294,6 +306,27 @@ func pathAllowed(rel string, glob string, exclude string) bool {
 		return true
 	}
 	return false
+}
+
+func compileGrepRegex(pattern string, ignoreCase bool) (*regexp.Regexp, error) {
+	if ignoreCase {
+		pattern = "(?i)" + pattern
+	}
+	return regexp.Compile(pattern)
+}
+
+// escapeParens escapes every unescaped parenthesis.
+func escapeParens(pattern string) string {
+	var b strings.Builder
+	escaped := false
+	for _, r := range pattern {
+		if !escaped && (r == '(' || r == ')') {
+			b.WriteRune('\\')
+		}
+		escaped = r == '\\' && !escaped
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 // unescapeGrep drops the backslash from each escaped character, turning a

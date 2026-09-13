@@ -145,24 +145,75 @@ func packageDependencies(dir string) map[string]bool {
 	return dependencies
 }
 
-// cargoTestArgs targets tests/<name>.rs as its own test binary, unless
-// Cargo.toml declares [[test]] targets, where a file under tests/ is usually a
-// module of one of them and --test <file> would name no target.
+// cargoTestArgs narrows cargo test to what the files belong to: tests/<name>.rs
+// as its own test binary (unless Cargo.toml declares [[test]] targets, where
+// such a file is usually a module of one of them), any other file as -p of the
+// package whose manifest is nearest above it. A name alone in a workspace runs
+// across --workspace.
+//
+// Plain `cargo test` tests only the root package. In ripgrep a file in
+// crates/regex ran the root package's tests, and a unit test's name found
+// nothing and reported pass.
 func cargoTestArgs(dir string, files []string, testName string) []string {
 	args := []string{"test"}
-	manifest, _ := os.ReadFile(filepath.Join(dir, "Cargo.toml"))
-	if !strings.Contains(string(manifest), "[[test]]") {
-		for _, file := range files {
-			slashed := filepath.ToSlash(file)
-			if strings.HasPrefix(slashed, "tests/") && strings.Count(slashed, "/") == 1 && strings.HasSuffix(slashed, ".rs") {
-				args = append(args, "--test", strings.TrimSuffix(strings.TrimPrefix(slashed, "tests/"), ".rs"))
-			}
+	rootManifest, _ := os.ReadFile(filepath.Join(dir, "Cargo.toml"))
+	declaresTests := strings.Contains(string(rootManifest), "[[test]]")
+	packages := map[string]bool{}
+	for _, file := range files {
+		slashed := filepath.ToSlash(file)
+		if !declaresTests && strings.HasPrefix(slashed, "tests/") && strings.Count(slashed, "/") == 1 && strings.HasSuffix(slashed, ".rs") {
+			args = append(args, "--test", strings.TrimSuffix(strings.TrimPrefix(slashed, "tests/"), ".rs"))
+			continue
 		}
+		if name := cargoPackageOf(dir, file); name != "" && !packages[name] {
+			packages[name] = true
+			args = append(args, "-p", name)
+		}
+	}
+	if len(files) == 0 && strings.Contains(string(rootManifest), "[workspace]") {
+		args = append(args, "--workspace")
 	}
 	if testName != "" {
 		args = append(args, testName)
 	}
 	return args
+}
+
+// cargoPackageOf names the package whose Cargo.toml is nearest above file,
+// within root.
+func cargoPackageOf(root string, file string) string {
+	path := file
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(root, file)
+	}
+	for dir := filepath.Dir(path); strings.HasPrefix(dir, root); dir = filepath.Dir(dir) {
+		if data, err := os.ReadFile(filepath.Join(dir, "Cargo.toml")); err == nil {
+			if name := cargoPackageName(string(data)); name != "" {
+				return name
+			}
+		}
+		if dir == root || dir == filepath.Dir(dir) {
+			break
+		}
+	}
+	return ""
+}
+
+// cargoPackageName reads name from a manifest's [package] table.
+func cargoPackageName(manifest string) string {
+	inPackage := false
+	for _, line := range strings.Split(manifest, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "[") {
+			inPackage = trimmed == "[package]"
+			continue
+		}
+		key, value, found := strings.Cut(trimmed, "=")
+		if inPackage && found && strings.TrimSpace(key) == "name" {
+			return strings.Trim(strings.TrimSpace(value), "\"'")
+		}
+	}
+	return ""
 }
 
 func isPythonProject(dir string) bool {

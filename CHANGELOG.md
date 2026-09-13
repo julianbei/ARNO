@@ -75,6 +75,19 @@ specific to cobra or Go.
   `TypeError: Illegal invocation`, pytest's `E` lines,
   ``assertion `left == right` failed left: "a" right: "b"``), without the
   code frame and stack, capped at 400 bytes.
+- **Scoped Rust test runs test the right package.** Plain `cargo test` tests
+  only the root package: in ripgrep, `run_tests` for a file in `crates/regex`
+  ran the root package's tests, and a unit test's name found nothing. A file
+  now runs `cargo test -p <package>` for the nearest `Cargo.toml` above it, and
+  a test name alone in a workspace runs across `--workspace`.
+- **A narrowed test run that ran nothing is no longer a pass.** cargo and
+  `go test` exit 0 when a name matches no test (`running 0 tests`,
+  `[no tests to run]`), and `run_tests` reported `pass` for a test that was
+  never run. It now answers `no test matched "<name>" — nothing ran`.
+- **`grep` with an unbalanced parenthesis searches for it.** `rgtest!(r\d+` was
+  an invalid regex and cost a turn; when a pattern does not compile, it is
+  retried with its parentheses escaped, and the answer says it was read that
+  way. Patterns invalid for other reasons are still rejected.
 - **Python checks use the repository's virtual environment.** `.venv/bin/python`
   or `venv/bin/python` is preferred over the system `python3`, which usually
   has neither the project nor pytest installed.

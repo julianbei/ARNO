@@ -57,7 +57,7 @@ func TestScopedTestCommandPerEcosystem(t *testing.T) {
 		{"node fallback", plainNode, TestScope{Kind: "file", File: "test/a.js"}, "node", []string{"--test", "test/a.js"}},
 		{"pytest in venv", venv, TestScope{Kind: "test", File: "tests/test_utils.py", Test: "parse"}, ".venv/bin/python", []string{"-m", "pytest", "tests/test_utils.py", "-k", "parse"}},
 		{"cargo test file", cargo, TestScope{Kind: "file", File: "tests/cli.rs"}, "cargo", []string{"test", "--test", "cli"}},
-		{"cargo declared targets", cargoTargets, TestScope{Kind: "test", File: "tests/regression.rs", Test: "r3180"}, "cargo", []string{"test", "r3180"}},
+		{"cargo declared targets", cargoTargets, TestScope{Kind: "test", File: "tests/regression.rs", Test: "r3180"}, "cargo", []string{"test", "-p", "x", "r3180"}},
 	}
 	for _, tc := range cases {
 		name, args, err := scopedTestCommand(tc.dir, tc.scope, nil)
