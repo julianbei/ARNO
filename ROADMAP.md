@@ -298,8 +298,10 @@ Agents bypassed `check` for four reasons, each fixable:
     instead of starting a job that can only fail. Commands run at the
     workspace root, so the directory is not repeated; per-package targets are
     the multi-project item below.
-- [ ] **Multi-project repositories.** Discover each package (Go module, every
+- [x] **Multi-project repositories.** Discover each package (Go module, every
   `package.json`, …) and let `check` take a target, instead of picking one.
+  Done 2026-09-14 (0.0.6): `check target`, and an unavailable root check
+  lists the projects.
 - [ ] **Long-running work without polling.** `check` caps its wait at 300
   seconds, and a Docker build takes longer. Jade's job IDs then cost a polling
   turn each. Send MCP progress notifications while a job runs so hosts that

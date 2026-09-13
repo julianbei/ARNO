@@ -263,6 +263,10 @@ type CheckRequest struct {
 	TimeoutSeconds int
 	// DryRun names the command that would run, without running it.
 	DryRun bool
+	// Target is a project directory inside the workspace to discover and run
+	// the command in, for a repository with several projects. Empty means the
+	// workspace root.
+	Target string
 }
 
 // CheckResponse carries the outcome. Outcome is running when the check was

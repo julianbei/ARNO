@@ -608,6 +608,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			Wait:           boolArgDefault(args, "wait", true),
 			TimeoutSeconds: intArg(args, "timeoutSeconds"),
 			DryRun:         boolArg(args, "dryRun"),
+			Target:         stringArg(args, "target"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -1119,7 +1120,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.check",
-			Description: "Run a validation command on demand and wait for the verdict: kind build (default), typecheck or tests. Uses the repository's own Makefile target, npm script or cargo command when present. Waits by default and returns pass/fail directly. Every result names the command that ran; dryRun names it without running anything.",
+			Description: "Run a validation command on demand and wait for the verdict: kind build (default), typecheck or tests. Uses the repository's own Makefile target, npm script or cargo command when present. Waits by default and returns pass/fail directly. Every result names the command that ran; dryRun names it without running anything. In a repository with several projects, pass target to check one; with no command at the root, the answer lists the projects.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1127,6 +1128,7 @@ func catalogTools() []mcpTool {
 					"wait":           map[string]interface{}{"type": "boolean", "description": "Wait for the result (default true). False returns a job ID to poll."},
 					"timeoutSeconds": map[string]interface{}{"type": "integer", "description": "Bound on the wait (default 90, max 300)."},
 					"dryRun":         map[string]interface{}{"type": "boolean", "description": "Name the command that would run, without running it."},
+					"target":         map[string]interface{}{"type": "string", "description": "Project directory inside the workspace to check, e.g. services/api. Omit for the workspace root."},
 				},
 			},
 		},

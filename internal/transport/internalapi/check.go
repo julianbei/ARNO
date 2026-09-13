@@ -2,6 +2,8 @@ package internalapi
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,23 +36,48 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 		return protocol.CheckResponse{}, err
 	}
 
-	command, found := jobs.DescribeValidationCommand(s.workspace.Root(), kind)
+	dir := s.workspace.Root()
+	target := strings.TrimSpace(req.Target)
+	if target != "" {
+		resolved, err := s.checkTarget(target)
+		if err != nil {
+			return protocol.CheckResponse{}, err
+		}
+		dir = resolved
+	}
+
+	command, found := jobs.DescribeValidationCommand(dir, kind)
 	if !found {
 		// Said up front rather than discovered from a failed run: the
 		// ecosystem was not identified, so there is nothing to execute.
+		summary := fmt.Sprintf("no %s command found: no Makefile target, package.json script, Cargo.toml, Maven/Gradle/sbt/Python/Ruby manifest or go.mod at the workspace root — declare one with declare_command and use run_command", kind)
+		if target != "" {
+			summary = fmt.Sprintf("no %s command found in %s: no Makefile target, package.json script or manifest there", kind, target)
+		} else if projects := jobs.DiscoverProjects(dir); len(projects) > 0 {
+			// A monorepo has no command at its root, and each project has
+			// one. Name them rather than send the caller to the shell.
+			names := make([]string, 0, len(projects))
+			for _, project := range projects {
+				names = append(names, project.Path+"/ ("+project.Manifest+")")
+			}
+			summary = fmt.Sprintf("no %s command at the workspace root; projects below it: %s — pass target to check one", kind, strings.Join(names, ", "))
+		}
 		return protocol.CheckResponse{
 			Kind:    kind,
 			Outcome: protocol.OutcomeUnavailable,
 			Status:  "no command",
-			Summary: fmt.Sprintf("no %s command found: no Makefile target, package.json script, Cargo.toml, Maven/Gradle/sbt/Python/Ruby manifest or go.mod at the workspace root — declare one with declare_command and use run_command", kind),
+			Summary: summary,
 		}, nil
+	}
+	if target != "" {
+		command = "in " + target + ": " + command
 	}
 	if req.DryRun {
 		return protocol.CheckResponse{Kind: kind, Status: "dry run", Command: command}, nil
 	}
 
 	jobID := s.jobs.Start(kind)
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), kind)
+	s.jobs.RunValidationCommand(jobID, dir, kind)
 
 	if !req.Wait {
 		return protocol.CheckResponse{JobID: jobID, Kind: kind, Outcome: protocol.OutcomeRunning, Status: "running", Command: command}, nil
@@ -79,6 +106,20 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 		Summary: verdictSummary(passed, output.Summary, output.Raw),
 		Command: command,
 	}, nil
+}
+
+// checkTarget resolves check's target to a directory inside the workspace,
+// refusing one that leaves it or does not exist.
+func (s *Server) checkTarget(target string) (string, error) {
+	clean := filepath.Clean(filepath.FromSlash(target))
+	if filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("target %q is outside the workspace %s; name a directory inside it", target, s.workspace.Root())
+	}
+	dir := filepath.Join(s.workspace.Root(), clean)
+	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+		return "", fmt.Errorf("target %q is not a directory in the workspace", target)
+	}
+	return dir, nil
 }
 
 // normalizeCheckKind rejects unknown kinds rather than silently substituting

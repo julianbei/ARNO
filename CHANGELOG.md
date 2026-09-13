@@ -65,6 +65,19 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### `check` in a repository with several projects
+
+A monorepo has no build command at its root, so `check` answered "no build
+command found" and the agent went to the shell. Now:
+
+- **`target`** names a project directory (`services/api`); discovery and the
+  run happen there, and the result says `in services/api: go build ./...`.
+- **With no command at the root**, the answer lists the projects it found —
+  `projects below it: apps/web/ (package.json), services/api/ (go.mod) — pass
+  target to check one` — up to two levels down, skipping `node_modules`,
+  `vendor`, build output, fixtures and hidden directories.
+- A target outside the workspace is refused.
+
 ### A crashing language server is restarted once, then reported
 
 A server that died was started again on every call, so one that crashes on a

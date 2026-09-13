@@ -519,7 +519,9 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
 - [ ] **Conformance covers the degraded paths.** Each language run once with
   its server and once without, asserting the response says which it got.
   Today conformance proves the happy path.
-- [ ] **Multi-project `check`** (ROADMAP §4) — part of knowing what the
+- [x] **Multi-project `check`** (ROADMAP §4). *Done 2026-09-14:* `target`,
+  and projects listed when the root has no command. `run_tests` scopes still
+  resolve from the file's own project — part of knowing what the
   environment offers.
 
 **Exit gate:** capability report shipped and conformance-tested both with and
