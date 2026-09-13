@@ -530,8 +530,12 @@ func searchNudge(r protocol.SearchNudgeResponse) string {
 
 func repositoryMap(r protocol.RepositoryMapResponse) string {
 	lines := make([]string, 0, len(r.Included)+2)
-	lines = append(lines, fmt.Sprintf("%d/%d tokens · %d included, %d omitted",
-		r.UsedTokens, r.MaxTokens, len(r.Included), len(r.Omitted)))
+	head := fmt.Sprintf("%d/%d tokens · %d included, %d omitted",
+		r.UsedTokens, r.MaxTokens, len(r.Included), len(r.Omitted))
+	if provenance := r.Provenance.String(); provenance != "" {
+		head += " · " + provenance
+	}
+	lines = append(lines, head)
 	for _, item := range r.Included {
 		lines = append(lines, fmt.Sprintf("%s (%d symbols, ~%d tokens)",
 			item.Path, item.SymbolCount, item.EstimatedCost))
@@ -617,6 +621,11 @@ func contextResponse(r protocol.ContextResponse) string {
 	}
 	if head == "" {
 		head = "(no context)"
+	}
+	// Callers from name matching and callers from a compiler are different
+	// claims; the head says which these are.
+	if provenance := r.Provenance.String(); provenance != "" {
+		head += " · callers " + provenance
 	}
 	lines := []string{head}
 

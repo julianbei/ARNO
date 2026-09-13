@@ -420,9 +420,9 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   answer falls in and what limits it, and core renders the line. No provider
   chooses its own confidence wording.
   *Progress 2026-09-13:* `Provenance` type and closed sets in core;
-  `references`, `grep`, outlines, `find`, `search` and `retrieve` carry it.
-  `context`, `repository_map` and the edit responses' `checked:` wording
-  still to align.
+  `references`, `grep`, outlines, `find`, `search`, `retrieve`,
+  `repository_map` and `context` carry it. Edit responses keep
+  `checked: <source>` with the same source names.
 - [ ] **Say where the shell is still the right tool.** The review is right that
   Jade will not match shell composability, and should not try. Document the
   boundary — `run_command` and declared commands are the sanctioned escape

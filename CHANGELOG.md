@@ -59,7 +59,11 @@ line.
   when one was read by a text scan — a declaration there may have been
   missed. `cut` when the limit stopped it.
 - **`search`** and **`retrieve`** say `approximate · text index`: ranked name
-  and term matches, never resolved.
+  and term matches, never resolved. So does **`repository_map`**, `cut` when
+  files were omitted.
+- **`context`** says how its callers and tests were found:
+  `callers exact · gopls · complete` or `callers approximate · text index ·
+  may be incomplete`.
 
 ### `grep`'s glob reaches below the directory it names
 

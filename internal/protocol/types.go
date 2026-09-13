@@ -668,6 +668,7 @@ type RepositoryMapResponse struct {
 	Included   []RepositoryMapItem
 	Omitted    []RepositoryMapItem
 	Summary    string
+	Provenance Provenance
 }
 
 // WorkspaceTreeEntry is one file or directory in a plain structural listing.
@@ -976,6 +977,9 @@ type ContextResponse struct {
 	// differs from HEAD, empty when it is unchanged.
 	RecentChange string
 	Summary      string
+	// Provenance is how the callers and tests were found: a language server's
+	// exact references or the approximate name-matched graph.
+	Provenance Provenance
 }
 
 // ReferencesRequest asks where a symbol is referenced.

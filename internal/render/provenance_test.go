@@ -70,3 +70,24 @@ func TestSearchAndRetrievalCarryProvenance(t *testing.T) {
 		t.Fatalf("got %q", head)
 	}
 }
+func TestRepositoryMapHeadCarriesProvenance(t *testing.T) {
+	out := repositoryMap(protocol.RepositoryMapResponse{
+		UsedTokens: 90, MaxTokens: 100,
+		Included:   []protocol.RepositoryMapItem{{Path: "a.go"}},
+		Omitted:    []protocol.RepositoryMapItem{{Path: "b.go"}},
+		Provenance: protocol.Provenance{Certainty: protocol.CertaintyApproximate, Source: "text index", Completeness: protocol.CompletenessCut},
+	})
+	if head := strings.SplitN(out, "\n", 2)[0]; head != "90/100 tokens · 1 included, 1 omitted · approximate · text index · cut" {
+		t.Fatalf("got %q", head)
+	}
+}
+func TestContextHeadSaysHowCallersWereFound(t *testing.T) {
+	out := contextResponse(protocol.ContextResponse{
+		Summary:    "Put method",
+		Callers:    []string{"a.go"},
+		Provenance: protocol.Provenance{Certainty: protocol.CertaintyApproximate, Source: "text index", Completeness: protocol.CompletenessMayBeIncomplete},
+	})
+	if head := strings.SplitN(out, "\n", 2)[0]; head != "Put method · callers approximate · text index · may be incomplete" {
+		t.Fatalf("got %q", head)
+	}
+}

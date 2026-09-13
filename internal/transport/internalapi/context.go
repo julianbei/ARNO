@@ -58,7 +58,8 @@ func (s *Server) Context(req protocol.ContextRequest) (protocol.ContextResponse,
 	}
 
 	if purposeWants(purpose, "callers") {
-		callers, tests := s.splitReferences(req.Path, symbolID)
+		callers, tests, provenance := s.splitReferences(req.Path, symbolID)
+		response.Provenance = provenance
 		response.Callers, response.CallerCount = capStrings(callers, maxContextCallers)
 		if purposeWants(purpose, "tests") {
 			response.Tests, response.TestCount = capStrings(tests, maxContextTests)
@@ -116,10 +117,10 @@ func purposeWants(purpose string, section string) bool {
 // _test.go file is a test exercising the symbol, and an agent about to
 // change the symbol wants those two lists separately — the callers tell it
 // what might break, the tests tell it what will tell it so.
-func (s *Server) splitReferences(path string, symbolID string) ([]string, []string) {
+func (s *Server) splitReferences(path string, symbolID string) ([]string, []string, protocol.Provenance) {
 	response, err := s.index.References(path, symbolID)
 	if err != nil {
-		return nil, nil
+		return nil, nil, protocol.Provenance{}
 	}
 
 	callerSet := make(map[string]bool)
@@ -135,7 +136,7 @@ func (s *Server) splitReferences(path string, symbolID string) ([]string, []stri
 		}
 		callerSet[location] = true
 	}
-	return sortedKeys(callerSet), sortedKeys(testSet)
+	return sortedKeys(callerSet), sortedKeys(testSet), response.Provenance
 }
 
 func isTestFile(path string) bool {

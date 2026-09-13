@@ -401,6 +401,7 @@ func (i *Index) RepositoryMap(query string, maxTokens int) (protocol.RepositoryM
 		Included:   included,
 		Omitted:    omitted,
 		Summary:    summary,
+		Provenance: rankedProvenance(len(omitted) > 0),
 	}, nil
 }
 
