@@ -48,6 +48,7 @@ go install github.com/julianbei/jade/cmd/jade-mcp@latest
 - [Repository commands](#repository-commands)
 - [Language support](#language-support)
 - [Design principles](#design-principles)
+- [When the shell is still the right tool](#when-the-shell-is-still-the-right-tool)
 - [What Jade does not do yet](#what-jade-does-not-do-yet)
 - [Stability and versioning](#stability-and-versioning)
 - [Telemetry](#telemetry)
@@ -519,6 +520,37 @@ says which answer you got.
     opinion, says which ([docs/benchmark.md](docs/benchmark.md)).
 
 The longer design document is [docs/scope.md](docs/scope.md).
+
+---
+
+## When the shell is still the right tool
+
+Jade does not try to match the shell's composability. Using the shell is a
+decision, not a leak, when the work is one of these:
+
+- **Git operations**: commit, branch, rebase, push, blame. Jade reads git
+  state (`changes`, `diff`, `history`) and never moves it.
+- **One-off probes**: `curl` a local server, inspect a process, check a port,
+  read an environment variable.
+- **Debugging a script or a build system itself**, where the question is
+  what a shell command does rather than what the code says.
+- **Installing dependencies and toolchains**: `npm install`, `go install`,
+  `pip install`.
+- **Network access** of any kind.
+
+What stays on Jade's side of the line, even though a shell could do it:
+
+- **Builds, typechecks, tests, lint and codegen.** Run them with `check`,
+  `run_tests` or a declared command (`declare_command`, then `run_command`).
+  Validation run from the shell is validation the change transaction cannot
+  see: no verdict in the edit record, no scoped test runner, no failure
+  summary.
+- **Reading and searching code**, and **editing it**. That is where Jade's
+  revisions, diagnostics and provenance apply.
+
+A command you keep running from the shell for validation belongs in
+`.jade/commands.json`, or in `.jade/project.json` as an area's build or test
+command.
 
 ---
 

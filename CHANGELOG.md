@@ -65,6 +65,14 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### Where the shell is still the right tool
+
+The README says which work belongs in the shell — git operations, one-off
+probes, debugging a script, installing dependencies, network access — and
+which stays in Jade even though a shell could do it: builds, tests, lint and
+codegen through `check`, `run_tests` and declared commands, so validation is
+part of the change record.
+
 ### `grep`'s glob reaches below the directory it names
 
 Reported from a Go and TypeScript repository: `glob: "internal/*"` answered

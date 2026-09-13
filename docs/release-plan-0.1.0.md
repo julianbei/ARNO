@@ -394,7 +394,7 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   does not need Jade's versions of them in context — the way Serena disables
   its own overlapping tools inside agent harnesses. The bar for every tool in a
   profile: it keeps Jade preferable to the host's own tool for that job.
-- [ ] **Response budgets with continuation** (ROADMAP § Surface). *Design
+- [x] **Response budgets with continuation** (ROADMAP § Surface). *Design
   written 2026-09-13* in [tool-contract.md](tool-contract.md#budgets-and-provenance--005-design).
   *Progress 2026-09-13:* continuation store in `internalapi`; `grep`, `find`,
   `references` and `read_range` take `budget` and `continue`, and refuse a
@@ -406,7 +406,7 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   convention and one continuation handle across every tool that can return a
   list or a body — `24 of 87 references shown · continue=…` — replacing
   per-tool limit arguments, which are deprecated.
-- [ ] **Provenance on every answer** (ROADMAP § Trustworthy; *design written
+- [x] **Provenance on every answer** (ROADMAP § Trustworthy; *design written
   2026-09-13* in [tool-contract.md](tool-contract.md#budgets-and-provenance--005-design)), moved forward
   from Phase 4: it and budgets are the same kind of change — a convention on
   every response — and belong in one release. Three parts on one compact line:
@@ -423,7 +423,8 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   `references`, `grep`, outlines, `find`, `search`, `retrieve`,
   `repository_map` and `context` carry it. Edit responses keep
   `checked: <source>` with the same source names.
-- [ ] **Say where the shell is still the right tool.** The review is right that
+- [x] **Say where the shell is still the right tool.** *Done 2026-09-13:*
+  README "When the shell is still the right tool". The review is right that
   Jade will not match shell composability, and should not try. Document the
   boundary — `run_command` and declared commands are the sanctioned escape
   hatch; one-off probes and debugging a script are shell work (see
