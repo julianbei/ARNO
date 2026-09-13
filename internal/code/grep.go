@@ -39,6 +39,12 @@ import (
 // fallback had and the one that reads cheapest: path:line, the matching line,
 // and only as much trailing context as was asked for.
 func (i *Index) Grep(req protocol.GrepRequest) (protocol.GrepResponse, error) {
+	return i.grep(req, true)
+}
+
+// grep searches once, and when retry is set, once more under the other
+// reading of a query that found nothing.
+func (i *Index) grep(req protocol.GrepRequest, retry bool) (protocol.GrepResponse, error) {
 	query := strings.TrimSpace(req.Query)
 	if query == "" {
 		return protocol.GrepResponse{}, fmt.Errorf("search text is required")
@@ -112,12 +118,24 @@ func (i *Index) Grep(req protocol.GrepRequest) (protocol.GrepResponse, error) {
 	// finds nothing is run again as a regex. The hint alone cost a benchmark
 	// run a whole turn per miss: the agent read it, then repeated the call with
 	// regex: true.
-	if total == 0 && !req.Regex && looksLikePattern(query) {
-		retry := req
-		retry.Regex = true
-		if regexResponse, err := i.Grep(retry); err == nil && regexResponse.Total > 0 {
+	if retry && total == 0 && !req.Regex && looksLikePattern(query) {
+		asRegex := req
+		asRegex.Regex = true
+		if regexResponse, err := i.grep(asRegex, false); err == nil && regexResponse.Total > 0 {
 			regexResponse.Summary = "no literal matches, searched as regex: " + regexResponse.Summary
 			return regexResponse, nil
+		}
+	}
+	// The reverse: `func (c \*Command) ParseFlags` with regex: true reads its
+	// parentheses as a group and matches nothing, though the escaped star shows
+	// the caller meant the text. Retried literally with the escapes removed.
+	if retry && total == 0 && req.Regex {
+		asLiteral := req
+		asLiteral.Regex = false
+		asLiteral.Query = unescapeGrep(query)
+		if literalResponse, err := i.grep(asLiteral, false); err == nil && literalResponse.Total > 0 {
+			literalResponse.Summary = "no regex matches, searched as literal text: " + literalResponse.Summary
+			return literalResponse, nil
 		}
 	}
 
@@ -276,6 +294,22 @@ func pathAllowed(rel string, glob string, exclude string) bool {
 		return true
 	}
 	return false
+}
+
+// unescapeGrep drops the backslash from each escaped character, turning a
+// pattern written to match text back into that text.
+func unescapeGrep(pattern string) string {
+	var b strings.Builder
+	escaped := false
+	for _, r := range pattern {
+		if r == '\\' && !escaped {
+			escaped = true
+			continue
+		}
+		escaped = false
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 // looksLikePattern reports a literal query written as a regular expression.

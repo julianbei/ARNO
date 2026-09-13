@@ -193,6 +193,7 @@ type ApplyResponse struct {
 	CheckPassed  bool
 	CheckSummary string
 	Summary      string
+	Snippets     []Snippet `json:",omitempty"`
 }
 
 // DeleteSymbolRequest removes one declaration. The range comes from jade's
@@ -1027,6 +1028,17 @@ type EditResponse struct {
 	// list can be read as "nothing wrong" rather than "nothing looked".
 	Checks CheckReport
 	Jobs   []string
+	// Snippets show the edited region as the file now reads, so the caller
+	// need not read it back.
+	Snippets []Snippet `json:",omitempty"`
+}
+
+// Snippet is a region of a file after an edit, with a little context.
+type Snippet struct {
+	Path      string
+	StartLine int
+	EndLine   int
+	Source    string
 }
 
 // CheckReport says which checkers ran over edited files and which files went

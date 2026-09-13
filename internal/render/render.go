@@ -436,6 +436,7 @@ func edit(r protocol.EditResponse) string {
 		lines = append(lines, diagnosticLine(d))
 	}
 	lines = append(lines, uncheckedLines(r.Checks)...)
+	lines = append(lines, snippetLines(r.Snippets)...)
 	// Job IDs are not rendered. Every edit starts a background typecheck, and
 	// its ID appeared on every response while its result was never seen
 	// unless it failed — and the edited file's own errors are already the
@@ -655,7 +656,18 @@ func apply(r protocol.ApplyResponse) string {
 	for _, path := range r.Changed {
 		lines = append(lines, "  "+path)
 	}
+	lines = append(lines, snippetLines(r.Snippets)...)
 	return strings.Join(lines, "\n")
+}
+
+// snippetLines renders edited regions the way read_range renders ranges:
+// path:start-end, then the lines verbatim.
+func snippetLines(snippets []protocol.Snippet) []string {
+	lines := make([]string, 0, len(snippets)*2)
+	for _, snippet := range snippets {
+		lines = append(lines, "", fmt.Sprintf("%s:%d-%d", snippet.Path, snippet.StartLine, snippet.EndLine), snippet.Source)
+	}
+	return lines
 }
 
 // telemetryResponse leads with the fallback counts rather than the usage

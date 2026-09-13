@@ -237,7 +237,7 @@ Jade accepts both `jade.find` and `jade_find`.
 |---|---|
 | `outline` | File structure — declarations grouped by kind, without reading bodies. |
 | `read_symbol` | One declaration, by name or symbol ID. |
-| `read_range` | Verbatim lines, or a whole file. `ranges` reads several files or ranges in one call; an end line past the file reads to the end. |
+| `read_range` | Verbatim lines, or a whole file. `lines: "280-400"` picks a range; `ranges` reads several files or ranges in one call; an end line past the file reads to the end. |
 | `find` | Locate a declaration **and** get its body in one call. `queries` finds several names at once. |
 | `grep` | Literal or regex text search with path globs. The replacement for `grep -rn`. |
 | `search` | Rank declarations by name similarity. Fuzzy and name-only — use `grep` for anything else. |
@@ -257,7 +257,7 @@ rather than guessing.
 | Tool | What it does |
 |---|---|
 | `replace_symbol` | Replace a whole declaration. Takes the full `path::Name@line` ID, or just `path::Name` when that name is unique in the file. |
-| `replace_text` | Replace exact, unique text. Anchored on content, not line numbers. |
+| `replace_text` | Replace exact, unique text. Anchored on content, not line numbers. Like every text edit, returns the edited region as it now reads. |
 | `replace_range` | Replace a line range. |
 | `replace_file` | Replace an entire file's contents. |
 | `create_file` | Create a new file. |

@@ -91,6 +91,7 @@ func (s *Service) ReplaceRange(path string, expectedRevision string, start int, 
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
 		Checks:       s.diag.Checks(path),
+		Snippets:     snippets(s.workspace.Root(), path, newCode),
 	}, nil
 }
 
@@ -121,6 +122,7 @@ func (s *Service) ReplaceText(path string, expectedRevision string, oldText stri
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
 		Checks:       s.diag.Checks(path),
+		Snippets:     snippets(s.workspace.Root(), path, newText),
 	}, nil
 }
 
@@ -155,6 +157,7 @@ func (s *Service) Insert(path string, expectedRevision string, anchor string, po
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
 		Checks:       s.diag.Checks(path),
+		Snippets:     snippets(s.workspace.Root(), path, text),
 	}, nil
 }
 

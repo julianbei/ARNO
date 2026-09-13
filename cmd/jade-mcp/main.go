@@ -364,6 +364,12 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		path := stringArg(args, "path")
 		startLine := intArg(args, "startLine")
 		endLine := intArg(args, "endLine")
+		if lines := stringArg(args, "lines"); !blank(lines) {
+			var err error
+			if startLine, endLine, err = parseLines(lines); err != nil {
+				return mcpToolResult{}, err
+			}
+		}
 		res, err := s.api.ReadRange(protocol.ReadRangeRequest{
 			Path:      path,
 			StartLine: startLine,
@@ -754,13 +760,14 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.read_range",
-			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address. An end line past the end of the file reads to the end. Several ranges — in one file or many — go in ranges, one call: {\"ranges\": [{\"path\": \"a.go\", \"startLine\": 280, \"endLine\": 400}, {\"path\": \"a.go\", \"startLine\": 700, \"endLine\": 760}]}.",
+			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address. An end line past the end of the file reads to the end. Several ranges, in one file or many, go in one call: {\"ranges\": [{\"path\": \"a.go\", \"lines\": \"280-400\"}, {\"path\": \"b.go\", \"lines\": \"700-760\"}]}.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"path":      map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
-					"startLine": map[string]interface{}{"type": "integer", "description": "Inclusive start line. Omit to start at line 1."},
-					"endLine":   map[string]interface{}{"type": "integer", "description": "Inclusive end line. Omit to read to the end of the file."},
+					"lines":     map[string]interface{}{"type": "string", "description": "Line range: \"280-400\", \"280-\" to the end, or \"280\". Omit to read the whole file."},
+					"startLine": map[string]interface{}{"type": "integer", "description": "Alternative to lines: inclusive start."},
+					"endLine":   map[string]interface{}{"type": "integer", "description": "Alternative to lines: inclusive end."},
 					"ranges": map[string]interface{}{
 						"type":        "array",
 						"description": "Several reads in one call, instead of path. A range that fails reports its error without failing the others.",
@@ -768,6 +775,7 @@ func tools() []mcpTool {
 							"type": "object",
 							"properties": map[string]interface{}{
 								"path":      map[string]interface{}{"type": "string"},
+								"lines":     map[string]interface{}{"type": "string"},
 								"startLine": map[string]interface{}{"type": "integer"},
 								"endLine":   map[string]interface{}{"type": "integer"},
 							},

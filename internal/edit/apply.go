@@ -49,6 +49,7 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 
 	response := protocol.ApplyResponse{}
 	touched := make(map[string]bool)
+	written := make([]protocol.EditOp, 0, len(req.Edits))
 
 	for index, op := range req.Edits {
 		added, removed, err := s.applyOne(op)
@@ -61,6 +62,9 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 		response.AddedLines += added
 		response.RemovedLines += removed
 		touched[op.Path] = true
+		if op.NewText != "" && op.Op != "replace_symbol" {
+			written = append(written, op)
+		}
 	}
 
 	response.Changed = sortedPaths(touched)
@@ -72,6 +76,13 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 	oldRev, newRev := s.workspace.BumpRevision(response.Changed...)
 	response.OldRevision = oldRev
 	response.NewRevision = newRev
+
+	for _, op := range written {
+		if len(response.Snippets) >= maxSnippets {
+			break
+		}
+		response.Snippets = append(response.Snippets, snippets(root, op.Path, op.NewText)...)
+	}
 
 	for _, path := range response.Changed {
 		response.Diagnostics = append(response.Diagnostics, s.diag.Immediate(path)...)
