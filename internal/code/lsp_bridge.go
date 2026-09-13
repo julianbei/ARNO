@@ -23,6 +23,32 @@ import (
 //
 // The returned string names the server, because a caller reading "42
 // references" deserves to know whether a compiler said so or a text match did.
+// noServerReason says why no language server answered for path, in the kinds
+// of missing the capability report uses: none known for the file type, not
+// installed, failed with its reason, or still indexing.
+func (i *Index) noServerReason(path string) string {
+	language := lsp.LanguageForPath(path)
+	if language == "" {
+		return "no language server is known for this file type"
+	}
+	if i.servers == nil {
+		return "language servers are not in use"
+	}
+	status := i.servers.Status(language)
+	switch status.State {
+	case "not supported":
+		return "no language server is known for " + language
+	case "not installed":
+		return status.Detail + " is not installed"
+	case "failed":
+		return "the " + language + " server failed: " + status.Detail
+	case "indexing":
+		return "the " + language + " server is still indexing (" + status.Detail + ")"
+	default:
+		return "the " + language + " server returned no references"
+	}
+}
+
 func (i *Index) languageServerReferences(symbol Symbol, line int, column int) ([]protocol.ReferenceLocation, string, bool) {
 	ctx := context.Background()
 	absolute, pathErr := i.resolvePath(symbol.Path)

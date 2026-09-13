@@ -62,3 +62,15 @@ func TestGlobWithADirectoryReachesBelowIt(t *testing.T) {
 		}
 	}
 }
+func TestNoServerReasonNamesTheKindOfMissing(t *testing.T) {
+	index := NewIndex(t.TempDir(), nil)
+	if got := index.noServerReason("app.kt"); got != "no language server is known for this file type" {
+		t.Fatalf("a file type with no server: got %q", got)
+	}
+	if got := index.noServerReason("main.go"); got != "language servers are not in use" {
+		t.Fatalf("an index without a server manager: got %q", got)
+	}
+	if got := index.noServerReason("main.go"); strings.Contains(got, "gopls unavailable") {
+		t.Fatalf("the old generic wording is back: %q", got)
+	}
+}

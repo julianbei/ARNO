@@ -501,8 +501,8 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   capability report and each answer say which; conformance asserts all three.
   *Progress 2026-09-13:* `lsp.Manager.Status` reads the state without
   starting a server; `capabilities` reports not supported, not installed,
-  failed, not started, running and indexing. Individual answers do not say
-  which yet, and conformance does not assert it.
+  failed, not started, running and indexing; an approximate `references`
+  names which. Conformance does not assert it yet.
 - [ ] **Same words as provenance.** The capability report uses Phase 3's
   provenance vocabulary, so what the report promises and what each answer
   reports can be compared directly.

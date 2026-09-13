@@ -90,6 +90,11 @@ installed but failed (`server pyright-langserver failed: exit status 1`), and
 the working states `not started`, `running` and `indexing (Importing
 projects)`.
 
+`references` says the same when it falls back to name matching —
+`rust-analyzer is not installed`, `the python server failed: exit status 1`,
+`no language server is known for this file type` — where it said
+`gopls unavailable` for every language.
+
 ### Five overlapping tools deprecated
 
 `search`, `search_nudge`, `repository_map`, `read_symbol` and `replace_range`

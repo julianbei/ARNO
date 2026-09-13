@@ -75,8 +75,8 @@ func (i *Index) References(path string, symbolID string) (protocol.ReferencesRes
 		Provenance: protocol.Provenance{Certainty: protocol.CertaintyApproximate, Source: "text index", Completeness: protocol.CompletenessMayBeIncomplete},
 		References: refs,
 		Summary: fmt.Sprintf(
-			"%d approximate references to %s (name-matched call graph; gopls unavailable — duplicate names, dynamic dispatch and cross-file shadowing are not resolved)",
-			len(refs), symbol.Name),
+			"%d approximate references to %s (name-matched call graph; %s — duplicate names, dynamic dispatch and cross-file shadowing are not resolved)",
+			len(refs), symbol.Name, i.noServerReason(symbol.Path)),
 	}, nil
 }
 
