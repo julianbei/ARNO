@@ -7,12 +7,20 @@ import (
 
 	"github.com/julianbei/jade/internal/code"
 	"github.com/julianbei/jade/internal/commands"
+	"github.com/julianbei/jade/internal/diagnostics"
 	"github.com/julianbei/jade/internal/edit"
 	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/lsp"
 	"github.com/julianbei/jade/internal/project"
 	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/jade/internal/toolchain"
 )
+
+// goplsInstalled reports the gopls command the Go references provider runs.
+func goplsInstalled() bool {
+	_, ok := toolchain.Gopls()
+	return ok
+}
 
 // Capabilities reports what Jade can do in this workspace in one answer: per
 // language, how its structure is read, which language server would run or is
@@ -70,6 +78,17 @@ func (s *Server) Capabilities() (protocol.CapabilitiesResponse, error) {
 		case "not installed":
 			capability.MissingServer = status.Detail
 		}
+		// The provider that would answer references now, as the registry
+		// orders them: a working language server, the gopls command for Go,
+		// else the name-matched text index.
+		switch {
+		case capability.Server != "" && status.State != "failed":
+			capability.References = protocol.Provenance{Certainty: protocol.CertaintyExact, Source: capability.Server}
+		case language == "go" && goplsInstalled():
+			capability.References = protocol.Provenance{Certainty: protocol.CertaintyExact, Source: "gopls"}
+		default:
+			capability.References = protocol.Provenance{Certainty: protocol.CertaintyApproximate, Source: "text index", Completeness: protocol.CompletenessMayBeIncomplete}
+		}
 		if name, ok := edit.FormatterName(root, found.sample); ok {
 			capability.Formatter = name
 		}
@@ -81,6 +100,12 @@ func (s *Server) Capabilities() (protocol.CapabilitiesResponse, error) {
 		}
 		return response.Languages[a].Language < response.Languages[b].Language
 	})
+
+	response.Providers = []protocol.ProviderCapability{
+		{Capability: "references", Providers: code.ReferenceProviderIDs()},
+		{Capability: "rename", Providers: code.RenameProviderIDs()},
+		{Capability: "edit diagnostics", Providers: diagnostics.DiagnosticProviderIDs()},
+	}
 
 	if _, err := os.Stat(filepath.Join(root, ".git")); err == nil {
 		response.Git = true

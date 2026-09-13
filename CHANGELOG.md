@@ -115,7 +115,10 @@ declared commands: release-gate
 ```
 
 It uses the provenance words, so what the report promises and what each
-answer reports can be compared directly.
+answer reports can be compared directly. Each language says what a
+`references` answer would carry right now — `references exact · gopls` or
+`references approximate · text index · may be incomplete` — and the report
+ends with each capability's providers in the order Jade asks them.
 
 It tells the kinds of missing apart, and reads them without starting a
 server: no server known for the language, server not installed, server

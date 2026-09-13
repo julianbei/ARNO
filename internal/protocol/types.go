@@ -712,6 +712,15 @@ type CapabilitiesResponse struct {
 	ProjectConfig string
 	// Truncated says the language counts stopped at the listing bound.
 	Truncated bool
+	// Providers lists each capability's registered providers, in the order
+	// Jade asks them.
+	Providers []ProviderCapability
+}
+
+// ProviderCapability is one capability's providers, in the order asked.
+type ProviderCapability struct {
+	Capability string
+	Providers  []string
 }
 
 // LanguageCapability is one language present in the workspace.
@@ -732,6 +741,10 @@ type LanguageCapability struct {
 	// ServerDetail is the failure or the work in progress.
 	ServerState  string
 	ServerDetail string
+	// References is the provenance a references answer for this language
+	// would carry now, from the provider that would answer it. An answer never
+	// claims more than this.
+	References Provenance
 }
 
 // ValidationCapability is a command check would run for kind.

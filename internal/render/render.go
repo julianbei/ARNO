@@ -464,9 +464,12 @@ func capabilities(r protocol.CapabilitiesResponse) string {
 			}
 			parts = append(parts, "server "+language.Server+" ("+state+")")
 		case language.MissingServer != "":
-			parts = append(parts, "no server ("+language.MissingServer+" not installed) · references approximate, rename refused")
+			parts = append(parts, "no server ("+language.MissingServer+" not installed) · rename refused")
 		default:
 			parts = append(parts, "no server known")
+		}
+		if language.References.Certainty != "" {
+			parts = append(parts, "references "+language.References.String())
 		}
 		if language.Formatter != "" {
 			parts = append(parts, "formats with "+language.Formatter)
@@ -495,6 +498,9 @@ func capabilities(r protocol.CapabilitiesResponse) string {
 	}
 	if r.ProjectConfig != "" {
 		lines = append(lines, r.ProjectConfig)
+	}
+	for _, capability := range r.Providers {
+		lines = append(lines, capability.Capability+" providers, in order: "+strings.Join(capability.Providers, ", "))
 	}
 	return strings.Join(lines, "\n")
 }

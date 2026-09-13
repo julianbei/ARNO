@@ -479,7 +479,7 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   validation commands; declared commands; project config. The opening
   instructions carry a brief form: up to five languages with how each is
   read and its server. A degraded server is told apart (next item).
-- [ ] **Providers behind a registry, still in one binary.** The abstraction is
+- [x] **Providers behind a registry, still in one binary.** The abstraction is
   the capability registry, not a type hierarchy: a provider has an ID and
   declares the capabilities it serves (outline, symbols, references, rename,
   diagnostics, format, validation discovery, ranking), and implements only
@@ -501,8 +501,10 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   Edit diagnostics too (`internal/diagnostics/check.go`: Go parser and
   gopls, data-file syntax, language server), and rename (language server,
   gopls command; the first that handles a request ends it, and there is no
-  approximate provider). Generating the capability report from the registry
-  still to do.
+  approximate provider). *Done 2026-09-14:* `capabilities` lists each
+  capability's providers from the registry and the references provenance
+  each language would get. Formatting and validation discovery stay outside
+  the registry until a second provider for them exists.
 - [ ] **Three kinds of missing, told apart.** Not supported (no provider for
   this language), provider present but dependency missing (`rust-analyzer`
   not installed), provider running but degraded (`jdtls still indexing`). The

@@ -110,3 +110,22 @@ func TestCapabilitiesTellTheKindsOfMissingApart(t *testing.T) {
 		}
 	}
 }
+func TestCapabilitiesShowTheReferencesPromiseAndProviders(t *testing.T) {
+	out := capabilities(protocol.CapabilitiesResponse{
+		Languages: []protocol.LanguageCapability{{
+			Language: "rust", Files: 4,
+			Structure:     protocol.Provenance{Certainty: protocol.CertaintyStructural, Source: "tree-sitter"},
+			MissingServer: "rust-analyzer", ServerState: "not installed",
+			References: protocol.Provenance{Certainty: protocol.CertaintyApproximate, Source: "text index", Completeness: protocol.CompletenessMayBeIncomplete},
+		}},
+		Providers: []protocol.ProviderCapability{{Capability: "references", Providers: []string{"language server", "gopls", "text index"}}},
+	})
+	for _, want := range []string{
+		"no server (rust-analyzer not installed) · rename refused · references approximate · text index · may be incomplete",
+		"references providers, in order: language server, gopls, text index",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in:\n%s", want, out)
+		}
+	}
+}
