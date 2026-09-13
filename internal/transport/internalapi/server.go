@@ -340,7 +340,7 @@ func (s *Server) Telemetry(req protocol.TelemetryRequest) (protocol.TelemetryRes
 			return protocol.TelemetryResponse{}, err
 		}
 		return protocol.TelemetryResponse{
-			Path:    telemetry.RelPath,
+			Path:    recorder.DisplayPath(),
 			Cleared: true,
 			Summary: "telemetry log cleared",
 		}, nil

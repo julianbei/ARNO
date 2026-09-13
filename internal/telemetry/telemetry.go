@@ -27,6 +27,8 @@
 package telemetry
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -110,18 +112,66 @@ type Recorder struct {
 	mu       sync.Mutex
 	root     string
 	disabled bool
+
+	// path is the log's absolute location. inWorkspace says whether that is
+	// inside root, which decides both how it is displayed and whether git
+	// needs to be told to ignore it.
+	path        string
+	inWorkspace bool
 }
+
+// StateDirEnv names the environment variable that moves Jade's telemetry out
+// of the workspace.
+const StateDirEnv = "JADE_STATE_DIR"
 
 // New builds a Recorder for the workspace at root.
 //
 // Setting JADE_TELEMETRY=0 disables recording entirely. An off switch is not
 // optional for something that writes a file into the user's repository on
 // every call.
+//
+// Setting JADE_STATE_DIR puts the log under that directory instead of the
+// workspace, in a subdirectory per workspace so several can share one state
+// directory without mixing their measurements. This is the setting for a
+// harness that roots Jade at a worktree it later commits wholesale.
 func New(root string) *Recorder {
-	return &Recorder{
+	recorder := &Recorder{
 		root:     root,
 		disabled: strings.TrimSpace(os.Getenv("JADE_TELEMETRY")) == "0",
 	}
+	if stateDir := strings.TrimSpace(os.Getenv(StateDirEnv)); stateDir != "" {
+		recorder.path = filepath.Join(stateDir, workspaceKey(root), File)
+	} else {
+		recorder.path = filepath.Join(root, RelPath)
+		recorder.inWorkspace = true
+	}
+	return recorder
+}
+
+// DisplayPath is where the log lives, as a caller should be told it: relative
+// when it is inside the workspace, absolute when it is not.
+func (r *Recorder) DisplayPath() string {
+	if r.inWorkspace {
+		return RelPath
+	}
+	return r.path
+}
+
+// workspaceKey names a workspace's subdirectory under JADE_STATE_DIR. The base
+// name keeps it readable; the hash keeps two checkouts both called "app" apart.
+func workspaceKey(root string) string {
+	absolute, err := filepath.Abs(root)
+	if err != nil {
+		absolute = root
+	}
+	sum := sha256.Sum256([]byte(filepath.Clean(absolute)))
+	base := strings.Map(func(r rune) rune {
+		if r == '/' || r == '\\' || r == ':' || r == ' ' {
+			return '-'
+		}
+		return r
+	}, filepath.Base(absolute))
+	return base + "-" + hex.EncodeToString(sum[:])[:12]
 }
 
 // Record appends one call. err may be nil.
@@ -169,17 +219,24 @@ func (r *Recorder) RecordRejected(tool string, outcome Outcome) {
 	if r == nil || r.disabled || strings.TrimSpace(tool) == "" {
 		return
 	}
-	if _, err := os.Stat(filepath.Join(r.root, Dir)); err != nil {
+	if _, err := os.Stat(filepath.Dir(r.path)); err != nil {
 		return
 	}
 	r.RecordOutcome(tool, 0, 0, outcome)
 }
 
 func (r *Recorder) appendLocked(line []byte) {
-	if err := os.MkdirAll(filepath.Join(r.root, Dir), 0o755); err != nil {
+	path := r.path
+	if r.inWorkspace {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			// Before the first write, not after: once the file exists a
+			// harness may already have seen it as untracked.
+			excludeFromGit(r.root)
+		}
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return
 	}
-	path := filepath.Join(r.root, RelPath)
 
 	if info, err := os.Stat(path); err == nil && info.Size() > maxLogBytes {
 		_ = os.Truncate(path, 0)
@@ -197,7 +254,7 @@ func (r *Recorder) appendLocked(line []byte) {
 // skipped rather than failing the read: a partially written record from a
 // killed process should not make the whole history unreadable.
 func (r *Recorder) Read() ([]Record, error) {
-	data, err := os.ReadFile(filepath.Join(r.root, RelPath))
+	data, err := os.ReadFile(r.path)
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
@@ -262,7 +319,7 @@ func (r *Recorder) Summarize() (Summary, error) {
 	byTool := map[string]*ToolStats{}
 	failuresByTool := map[string]map[Outcome]int{}
 	overall := map[Outcome]int{}
-	summary := Summary{Path: RelPath}
+	summary := Summary{Path: r.DisplayPath()}
 
 	for _, record := range records {
 		stats, ok := byTool[record.Tool]
@@ -324,7 +381,7 @@ func sortedFailures(counts map[Outcome]int) []FailureCount {
 // Reset clears the log. Exposed so a measurement run can start from a known
 // state rather than requiring the caller to know where the file lives.
 func (r *Recorder) Reset() error {
-	err := os.Remove(filepath.Join(r.root, RelPath))
+	err := os.Remove(r.path)
 	if os.IsNotExist(err) {
 		return nil
 	}

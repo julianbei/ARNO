@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### A good tenant in someone else's repository
+
+Jade's telemetry log appeared as an untracked file in every repository that
+did not ignore `.jade/`, so a harness that commits a worker's worktree
+wholesale committed Jade's bookkeeping as part of the agent's change. Now:
+
+- In a git repository the log is added to `.git/info/exclude` before it is
+  first written — clone-local, never committed — unless git already ignores
+  it. `.gitignore` is never edited.
+- `JADE_STATE_DIR` moves the log out of the workspace, one subdirectory per
+  workspace.
+- A call with an unknown tool name never creates the log.
+
+### Tool names
+
+`jade_find` is accepted as well as `jade.find`. Hosts rewrite the dot away
+(Claude Code shows `mcp__jade__jade_find`), and an agent that learned the name
+from its host was told the tool does not exist.
+
 ### Semantic answers wait for the server's index
 
 Jade sent `references` and `rename` as soon as a server finished `initialize`.

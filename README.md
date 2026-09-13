@@ -439,6 +439,22 @@ It is written to `.jade/telemetry.jsonl` in your workspace and **never
 transmitted anywhere**. It records no arguments, no response bodies and no
 error text. `JADE_TELEMETRY=0` turns it off; `telemetry(reset: true)` clears it.
 
+Jade tries not to leave files in a repository it was only asked to work in:
+
+- In a git repository, before creating the log, Jade adds it to
+  `.git/info/exclude` — the clone-local ignore file, never committed — unless
+  git already ignores it. `.gitignore` is never touched. The log does not show
+  up as untracked, so a harness that commits every untracked file does not
+  commit it.
+- `JADE_STATE_DIR=/some/dir` moves the log out of the workspace entirely, into
+  a subdirectory per workspace. Use it when Jade is rooted at a checkout that
+  something else commits or reviews wholesale.
+- A call Jade rejects outright (an unknown tool name) never creates the log.
+
+`.jade/commands.json` is different: it is the repository's declared command
+vocabulary, meant to be committed, and is only created when you declare a
+command.
+
 It exists because response *cost* is invisible to whoever is reading the
 response. Its first live reading found a tool returning 4.6KB in 704ms on a
 routine call — something sixteen tasks of hand-written notes had never noticed.

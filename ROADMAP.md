@@ -43,7 +43,15 @@ Jade is increasingly run against checkouts it does not own: a worker's git
 worktree, a container mount, a CI clone. In those, every file Jade writes
 that the user did not ask for becomes part of the change.
 
-- [ ] **Keep `.jade/` state out of the workspace.**
+- [x] **Keep `.jade/` state out of the workspace.**
+  - Done 2026-09-13: `JADE_STATE_DIR` moves the log to a per-workspace
+    subdirectory (base name + path hash). In a git repo the log is added to
+    `.git/info/exclude` before its first write, prefixed correctly for a
+    workspace below the repo root, skipped when git already ignores it;
+    `.gitignore` is never touched. Verified live with raw sessions against
+    fresh repos in both modes: `git status` shows only the user's file.
+    Arguments rejected by the dispatch check write nothing; handler-level
+    errors are still recorded, into a log git now ignores.
   `telemetry.jsonl` is written to `<root>/.jade/` on the first tool call —
   including a call Jade rejects as unknown. A harness that commits every
   untracked file then commits Jade's bookkeeping as part of the agent's work,
