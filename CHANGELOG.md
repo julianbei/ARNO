@@ -65,6 +65,20 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### `apply` can validate only what the change reached
+
+`check: "impact"` traces the declarations the edits touched, finds their
+references through the provider registry — exact with a language server,
+approximate from the text index otherwise — and runs the tests covering the
+edited files and every file that references them: each Go package among
+them, and the test files elsewhere. The summary says what it reached:
+
+```text
+3 edits across 2 files, +12 -4 · impact: 2 declarations · 6 callers in 3 files · 2 likely tests · pass impact
+```
+
+A declaration an edit deleted is not traced yet.
+
 ### Errors from a change still in progress say so
 
 An import added before the code that uses it reported `"context" imported

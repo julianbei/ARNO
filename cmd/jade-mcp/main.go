@@ -1093,7 +1093,7 @@ func catalogTools() []mcpTool {
 					},
 					"expectedRevision": map[string]interface{}{"type": "string", "description": "Revision expected before editing."},
 					"format":           map[string]interface{}{"type": "boolean", "description": "Format touched files afterwards (default true)."},
-					"check":            map[string]interface{}{"type": "string", "description": "Run one validation after all edits: build, typecheck or tests."},
+					"check":            map[string]interface{}{"type": "string", "description": "Run one validation after all edits: build, typecheck, tests, or impact — only the tests covering the edited files and the callers of the declarations the edits touched."},
 				},
 				"required": []string{"edits"},
 			},

@@ -638,6 +638,11 @@ impact-aware validation comes after the write path it depends on, not before.
 
   Symbol changed → references → affected packages → declared commands → the
   smallest validation that covers them.
+  *Progress 2026-09-14:* `apply check: "impact"` — touched declarations,
+  their references through the registry, scoped tests for edited and
+  referencing files, and an impact line in the summary. Not yet: single
+  edits, deleted declarations, declared commands in the chain, and folding
+  the verdict into the edit response's `checked:` line.
 - [ ] **Concurrent-agent test.** Two sessions against one workspace: stale
   edits rejected, neither loses the other's work, `changes` attributes each.
   The review singles this out as where revisions earn their keep; it is not

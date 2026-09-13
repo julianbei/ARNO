@@ -207,6 +207,17 @@ type ApplyResponse struct {
 	CheckSummary string
 	Summary      string
 	Snippets     []Snippet `json:",omitempty"`
+	// Impact is what an impact check traced, nil for any other check.
+	Impact *Impact `json:",omitempty"`
+}
+
+// Impact is what an edit reached: the declarations it touched, their callers
+// and the test files that reference them.
+type Impact struct {
+	Declarations int
+	Callers      int
+	CallerFiles  int
+	Tests        []string
 }
 
 // DeleteSymbolRequest removes one declaration. The range comes from jade's

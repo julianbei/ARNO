@@ -91,7 +91,16 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 	response.Checks = s.diag.Checks(response.Changed...)
 
 	if kind := strings.TrimSpace(req.Check); kind != "" {
-		response.CheckOutcome, response.CheckSummary = s.runCheck(kind)
+		if kind == "impact" {
+			// The smallest validation that covers the change: the tests for
+			// the edited files and for every file referencing a declaration
+			// the edits touched.
+			impact, files := s.impact(req.Edits, response.Changed)
+			response.Impact = &impact
+			response.CheckOutcome, response.CheckSummary = s.runImpactTests(files)
+		} else {
+			response.CheckOutcome, response.CheckSummary = s.runCheck(kind)
+		}
 		response.CheckPassed = response.CheckOutcome == protocol.OutcomePassed
 		response.CheckStatus = string(response.CheckOutcome)
 	}
@@ -339,6 +348,9 @@ func applySummary(r protocol.ApplyResponse, check string) string {
 	}
 	if len(r.Diagnostics) > 0 {
 		parts = append(parts, fmt.Sprintf("%d diagnostics", len(r.Diagnostics)))
+	}
+	if r.Impact != nil {
+		parts = append(parts, impactLine(*r.Impact))
 	}
 	if strings.TrimSpace(check) != "" {
 		verdict := string(r.CheckOutcome)

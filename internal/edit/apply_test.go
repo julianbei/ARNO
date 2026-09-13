@@ -235,3 +235,30 @@ func TestApplyFormatsTouchedFiles(t *testing.T) {
 		t.Fatalf("expected the formatted file reported, got %v", response.Formatted)
 	}
 }
+func TestImpactTracesCallersAndTestsOfTouchedDeclarations(t *testing.T) {
+	dir := t.TempDir()
+	svc := newTestService(t, dir)
+	writeIn(t, dir, "go.mod", "module example.com/impact\n\ngo 1.22\n")
+	writeIn(t, dir, "a.go", "package main\n\nfunc Target() int {\n\treturn 1\n}\n\nfunc Untouched() int {\n\treturn 0\n}\n")
+	writeIn(t, dir, "b.go", "package main\n\nfunc Caller() int {\n\treturn Target()\n}\n")
+	writeIn(t, dir, "a_test.go", "package main\n\nimport \"testing\"\n\nfunc TestTarget(t *testing.T) {\n\tif Target() != 2 {\n\t\tt.Fatal(\"wrong\")\n\t}\n}\n")
+
+	edits := []protocol.EditOp{{Op: "replace_text", Path: "a.go", OldText: "return 1", NewText: "return 2"}}
+	if _, err := svc.Apply(protocol.ApplyRequest{Edits: edits}); err != nil {
+		t.Fatal(err)
+	}
+
+	impact, files := svc.impact(edits, []string{"a.go"})
+	if impact.Declarations != 1 {
+		t.Fatalf("only Target was touched, got %d declarations", impact.Declarations)
+	}
+	if impact.CallerFiles != 1 || strings.Join(impact.Tests, ",") != "a_test.go" {
+		t.Fatalf("expected b.go as the caller file and a_test.go as the test, got %+v", impact)
+	}
+	joined := strings.Join(files, ",")
+	for _, want := range []string{"a.go", "b.go", "a_test.go"} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("files to validate should include %s, got %v", want, files)
+		}
+	}
+}
