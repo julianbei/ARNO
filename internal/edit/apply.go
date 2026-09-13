@@ -48,6 +48,13 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 		return protocol.ApplyResponse{}, err
 	}
 
+	// An impact check traces what deletions break before they happen.
+	var deletedReferences []protocol.ReferenceLocation
+	deletedCount := 0
+	if strings.TrimSpace(req.Check) == "impact" {
+		deletedReferences, deletedCount = s.traceDeleted(req.Edits)
+	}
+
 	response := protocol.ApplyResponse{}
 	touched := make(map[string]bool)
 	written := make([]protocol.EditOp, 0, len(req.Edits))
@@ -95,7 +102,7 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 			// The smallest validation that covers the change: the tests for
 			// the edited files and for every file referencing a declaration
 			// the edits touched.
-			impact, files := s.impact(req.Edits, response.Changed)
+			impact, files := s.impact(req.Edits, response.Changed, deletedReferences, deletedCount)
 			response.Impact = &impact
 			response.CheckOutcome, response.CheckSummary = s.runImpactTests(files)
 		} else {

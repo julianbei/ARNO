@@ -21,8 +21,9 @@ const maxImpactDeclarations = 20
 // validate: the edited files and every file referencing a touched
 // declaration.
 //
-// It runs after the edits, so a declaration an edit deleted is not traced.
-func (s *Service) impact(edits []protocol.EditOp, changed []string) (protocol.Impact, []string) {
+// It runs after the edits. Declarations a delete_symbol edit removed are
+// traced before the edits by traceDeleted, whose references are passed in.
+func (s *Service) impact(edits []protocol.EditOp, changed []string, deleted []protocol.ReferenceLocation, deletedCount int) (protocol.Impact, []string) {
 	root := s.workspace.Root()
 	touched := map[string]string{} // symbol ID -> path
 
@@ -65,28 +66,62 @@ func (s *Service) impact(edits []protocol.EditOp, changed []string) (protocol.Im
 	callers := map[string]bool{}
 	callerFiles := map[string]bool{}
 	tests := map[string]bool{}
+	record := func(reference protocol.ReferenceLocation) {
+		files[reference.Path] = true
+		if isTestFile(reference.Path) {
+			tests[reference.Path] = true
+			return
+		}
+		callerFiles[reference.Path] = true
+		callers[fmt.Sprintf("%s:%d:%s", reference.Path, reference.Line, reference.Symbol)] = true
+	}
 	for _, id := range ids {
 		references, err := s.index.References(touched[id], id)
 		if err != nil {
 			continue
 		}
 		for _, reference := range references.References {
-			files[reference.Path] = true
-			if isTestFile(reference.Path) {
-				tests[reference.Path] = true
-				continue
-			}
-			callerFiles[reference.Path] = true
-			callers[fmt.Sprintf("%s:%d:%s", reference.Path, reference.Line, reference.Symbol)] = true
+			record(reference)
 		}
+	}
+	// A deleted declaration's callers are what the deletion breaks.
+	for _, reference := range deleted {
+		record(reference)
 	}
 
 	return protocol.Impact{
-		Declarations: len(touched),
+		Declarations: len(touched) + deletedCount,
 		Callers:      len(callers),
 		CallerFiles:  len(callerFiles),
 		Tests:        sortedPaths(tests),
 	}, sortedPaths(files)
+}
+
+// traceDeleted finds the references to the declarations delete_symbol edits
+// will remove, before anything is written: afterwards the index has nothing
+// left to ask about, and those references are exactly what a deletion breaks.
+func (s *Service) traceDeleted(edits []protocol.EditOp) ([]protocol.ReferenceLocation, int) {
+	var references []protocol.ReferenceLocation
+	count := 0
+	for _, op := range edits {
+		if op.Op != "delete_symbol" {
+			continue
+		}
+		_, symbols, _, err := s.index.OutlineStructured(op.Path)
+		if err != nil {
+			continue
+		}
+		for _, symbol := range symbols {
+			if (op.SymbolID == "" || symbol.ID != op.SymbolID) && (op.SymbolName == "" || symbol.Name != op.SymbolName) {
+				continue
+			}
+			count++
+			if response, err := s.index.References(op.Path, symbol.ID); err == nil {
+				references = append(references, response.References...)
+			}
+		}
+	}
+	return references, count
 }
 
 // runImpactTests runs the scoped tests for the files an impact check found:

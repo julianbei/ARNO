@@ -248,7 +248,7 @@ func TestImpactTracesCallersAndTestsOfTouchedDeclarations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	impact, files := svc.impact(edits, []string{"a.go"})
+	impact, files := svc.impact(edits, []string{"a.go"}, nil, 0)
 	if impact.Declarations != 1 {
 		t.Fatalf("only Target was touched, got %d declarations", impact.Declarations)
 	}
@@ -260,5 +260,30 @@ func TestImpactTracesCallersAndTestsOfTouchedDeclarations(t *testing.T) {
 		if !strings.Contains(joined, want) {
 			t.Fatalf("files to validate should include %s, got %v", want, files)
 		}
+	}
+}
+func TestImpactTracesWhatADeletionBreaks(t *testing.T) {
+	dir := t.TempDir()
+	svc := newTestService(t, dir)
+	writeIn(t, dir, "go.mod", "module example.com/deleted\n\ngo 1.22\n")
+	writeIn(t, dir, "a.go", "package main\n\nfunc Target() int {\n\treturn 1\n}\n")
+	writeIn(t, dir, "b.go", "package main\n\nfunc Caller() int {\n\treturn Target()\n}\n")
+	writeIn(t, dir, "a_test.go", "package main\n\nimport \"testing\"\n\nfunc TestTarget(t *testing.T) {\n\t_ = Target()\n}\n")
+
+	edits := []protocol.EditOp{{Op: "delete_symbol", Path: "a.go", SymbolName: "Target"}}
+	deleted, count := svc.traceDeleted(edits)
+	if count != 1 || len(deleted) == 0 {
+		t.Fatalf("the deleted declaration's references should be traced before the edit, got %d references for %d declarations", len(deleted), count)
+	}
+	if _, err := svc.Apply(protocol.ApplyRequest{Edits: edits}); err != nil {
+		t.Fatal(err)
+	}
+
+	impact, files := svc.impact(edits, []string{"a.go"}, deleted, count)
+	if impact.Declarations != 1 || impact.CallerFiles != 1 || strings.Join(impact.Tests, ",") != "a_test.go" {
+		t.Fatalf("a deletion should report its callers and tests, got %+v", impact)
+	}
+	if joined := strings.Join(files, ","); !strings.Contains(joined, "b.go") || !strings.Contains(joined, "a_test.go") {
+		t.Fatalf("the files a deletion breaks should be validated, got %v", files)
 	}
 }
