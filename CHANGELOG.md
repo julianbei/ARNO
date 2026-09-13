@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Fewer calls to read what you need
+
+- **`find` takes `queries`** — several names in one call, answered in the
+  order asked. Callers writing types against another language's structs sent
+  two or three parallel calls for what is one question.
+- **`read_range` takes `ranges`** — several files or ranges in one call. A
+  range that fails reports its own error; the others still come back.
+- **An end line past the end of the file reads to the end** instead of being
+  rejected, and the header says so: `lines 190-312 of 312`. The rejection cost
+  a whole extra turn every time. A start past the end is still an error.
+
+`query` on `find` and `path` on `read_range` are now optional, since each has
+an alternative; the server requires one of the pair. Making a required
+argument optional is compatible under the tool contract.
+
 ### JSON and YAML are checked after an edit
 
 A broken `package.json` or CI workflow used to surface only when something read

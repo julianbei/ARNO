@@ -43,17 +43,20 @@ var frozenSurface = map[string][]string{
 	"jade.delete_symbol":   {"path"},
 	"jade.diff":            {},
 	"jade.events":          {},
-	"jade.find":            {"query"},
-	"jade.grep":            {"query"},
-	"jade.history":         {"path"},
+	// query or queries; the server enforces one of them. Made optional in
+	// 0.0.3, which is compatible.
+	"jade.find":    {},
+	"jade.grep":    {"query"},
+	"jade.history": {"path"},
 	// Added after the 0.0.1 freeze. Adding a tool is backward compatible:
 	// existing callers are unaffected, and new ones need a reconnect before it
 	// appears at all, since the MCP catalog is fixed at connection time.
-	"jade.insert":         {"path", "text"},
-	"jade.job_output":     {"id"},
-	"jade.job_status":     {"id"},
-	"jade.outline":        {"path"},
-	"jade.read_range":     {"path"},
+	"jade.insert":     {"path", "text"},
+	"jade.job_output": {"id"},
+	"jade.job_status": {"id"},
+	"jade.outline":    {"path"},
+	// path or ranges; the server enforces one of them. Made optional in 0.0.3.
+	"jade.read_range":     {},
 	"jade.read_symbol":    {"path"},
 	"jade.references":     {"path"},
 	"jade.rename":         {"newName", "path"},

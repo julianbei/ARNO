@@ -222,8 +222,8 @@ Jade accepts both `jade.find` and `jade_find`.
 |---|---|
 | `outline` | File structure — declarations grouped by kind, without reading bodies. |
 | `read_symbol` | One declaration, by name or symbol ID. |
-| `read_range` | Verbatim lines, or a whole file. |
-| `find` | Locate a declaration **and** get its body in one call. |
+| `read_range` | Verbatim lines, or a whole file. `ranges` reads several files or ranges in one call; an end line past the file reads to the end. |
+| `find` | Locate a declaration **and** get its body in one call. `queries` finds several names at once. |
 | `grep` | Literal or regex text search with path globs. The replacement for `grep -rn`. |
 | `search` | Rank declarations by name similarity. Fuzzy and name-only — use `grep` for anything else. |
 | `references` | Find usages. Exact from the language server when one is installed; a name-matched approximation otherwise, and it says which answered. |

@@ -105,7 +105,8 @@ Competitor details below are the reviewer's claims, not verified here.
 - [ ] **Explainable git signals** (co-change, churn) in `repository_map` and
   `retrieve` ranking — only if every ranked result can say why it ranked.
 - [ ] **Integrations** worth testing the core hypothesis in: OpenCode, goose,
-  Cline, Codex CLI, Gemini CLI.
+  Cline, Codex CLI, Gemini CLI. Scheduled in
+  [docs/release-plan-0.1.0.md](docs/release-plan-0.1.0.md), Phases 3 and 6.
 
 ### Non-goals
 
@@ -197,14 +198,21 @@ that the user did not ask for becomes part of the change.
   in the server instructions.
   - Done 2026-09-13: `replace_text` and `insert` descriptions point at `apply`
     for multi-site work; the server instructions name it; a test keeps both.
-- [ ] **Multi-query `find`** — `find(names: ["Project", "AttentionItem"])` in
+- [x] **Multi-query `find`** — `find(names: ["Project", "AttentionItem"])` in
   one call instead of three. Seen again in a later session: two or three
   types were needed at once almost every time, sent as parallel calls.
-- [ ] **Multi-range `read_range`** — several files and ranges in one read.
-- [ ] **Clamp `read_range` to the end of the file.** An end line past EOF is
+- [x] **Multi-range `read_range`** — several files and ranges in one read.
+- [x] **Clamp `read_range` to the end of the file.** An end line past EOF is
   rejected — `range 190-360 is invalid for refs.go (312 lines)` — and cost a
   whole extra turn four times in one session. "From here to the end" is the
   usual intent: return lines 190-312 and say `lines 190-312 of 312`.
+  - Done 2026-09-13 (with the two items above): `find` takes `queries` for
+    several names, answered in the order asked; `read_range` takes `ranges`
+    for several files or ranges, where a failed range reports its own error
+    without failing the rest; an end past the file is clamped and named in
+    the header (`r1 · lines 2-3 of 3`). `query` and `path` became optional,
+    which the contract allows; the server enforces one of each pair. Bounded
+    at 10 names and 20 ranges per call. Verified live against a raw session.
 
 ## 3. Diagnostics everywhere, and say which checker ran
 
@@ -314,5 +322,14 @@ Found while building 0.0.3 with Jade itself rather than the host's own tools.
   declared command is a ~700-byte shell pipeline; the listing's job is to show
   what exists. Show name and description, and the script only for the command
   actually run.
+- [ ] **`grep` searches binary files.** A search for an error string matched
+  inside `bin/jade-mcp` and returned kilobytes of runtime strings. Skip files
+  that are not text, as `grep -I` and ripgrep do.
+- [ ] **Go types are labelled `class`.** `find Project` on a Go struct rendered
+  `store.go:3-3 class Project`. Go has no classes; say `type` or `struct`.
+- [ ] **"freshness unknown" on every read in a repository with no commits.**
+  `repository has no commits yet` is a normal state, not a broken one, and
+  appears on every read — the same noise the drift count was. Show it once,
+  or only where it changes an answer.
 
 Done items move to [CHANGELOG.md](CHANGELOG.md).

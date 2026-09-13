@@ -245,14 +245,15 @@ func (s *Server) ReadSymbol(req protocol.ReadSymbolRequest) (protocol.InspectRes
 
 func (s *Server) ReadRange(req protocol.ReadRangeRequest) (protocol.InspectResponse, error) {
 	freshness := s.workspace.Freshness(req.IndexedCommit)
-	source, err := s.index.ReadRange(req.Path, req.StartLine, req.EndLine)
+	read, err := s.index.ReadRangeInfo(req.Path, req.StartLine, req.EndLine)
 	if err != nil {
 		return protocol.InspectResponse{}, err
 	}
 
 	return protocol.InspectResponse{
 		Revision: s.workspace.Revision(),
-		Source:   source,
+		Source:   read.Source,
+		Range:    clampNote(read.Start, read.End, read.Total, read.ClampedEnd),
 		Freshness: protocol.Freshness{
 			IndexedCommit: freshness.IndexedCommit,
 			HeadCommit:    freshness.HeadCommit,

@@ -341,6 +341,20 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "jade.read_range":
+		if _, present := args["ranges"]; present {
+			ranges, err := rangesArg(args)
+			if err != nil {
+				return mcpToolResult{}, err
+			}
+			res, err := s.api.ReadRanges(protocol.ReadRangesRequest{Ranges: ranges})
+			if err != nil {
+				return mcpToolResult{}, err
+			}
+			return jsonResult(res)
+		}
+		if blank(stringArg(args, "path")) {
+			return mcpToolResult{}, fmt.Errorf("read_range needs path, or ranges for several reads")
+		}
 		path := stringArg(args, "path")
 		startLine := intArg(args, "startLine")
 		endLine := intArg(args, "endLine")
@@ -410,6 +424,16 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "jade.find":
+		if queries := stringsArg(args, "queries"); len(queries) > 0 {
+			res, err := s.api.FindBatch(queries, stringArg(args, "kind"), intArg(args, "limit"), intArg(args, "maxLines"))
+			if err != nil {
+				return mcpToolResult{}, err
+			}
+			return jsonResult(res)
+		}
+		if blank(stringArg(args, "query")) {
+			return mcpToolResult{}, fmt.Errorf("find needs query (one name) or queries (several names)")
+		}
 		res, err := s.api.Find(protocol.FindRequest{
 			Query:    stringArg(args, "query"),
 			Kind:     stringArg(args, "kind"),
@@ -695,15 +719,28 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.read_range",
-			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address.",
+			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address. An end line past the end of the file reads to the end. Pass ranges to read several files or ranges in one call.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"path":      map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
 					"startLine": map[string]interface{}{"type": "integer", "description": "Inclusive start line. Omit to start at line 1."},
 					"endLine":   map[string]interface{}{"type": "integer", "description": "Inclusive end line. Omit to read to the end of the file."},
+					"ranges": map[string]interface{}{
+						"type":        "array",
+						"description": "Several reads in one call, instead of path. A range that fails reports its error without failing the others.",
+						"items": map[string]interface{}{
+							"type": "object",
+							"properties": map[string]interface{}{
+								"path":      map[string]interface{}{"type": "string"},
+								"startLine": map[string]interface{}{"type": "integer"},
+								"endLine":   map[string]interface{}{"type": "integer"},
+							},
+							"required": []string{"path"},
+						},
+					},
 				},
-				"required": []string{"path"},
+				"required": []string{},
 			},
 		},
 		{
@@ -777,16 +814,17 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.find",
-			Description: "Locate declarations by name AND return their source in one call — the fused search-and-read that replaces `grep -n 'func X' -A 30`. Exact name matches win over substring ones. Use this instead of outline+read_symbol when you have not located the symbol yet.",
+			Description: "Locate declarations by name AND return their source in one call — the fused search-and-read that replaces `grep -n 'func X' -A 30`. Exact name matches win over substring ones. Use this instead of outline+read_symbol when you have not located the symbol yet. Pass queries to find several names in one call.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"query":    map[string]interface{}{"type": "string", "description": "Symbol name, exact or partial."},
+					"queries":  map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Several symbol names in one call, instead of query. Each is answered as query would be."},
 					"kind":     map[string]interface{}{"type": "string", "description": "Narrow by kind. func/function, type/struct/class/interface, method, const, var — spellings within a family are equivalent. Empty matches any."},
 					"limit":    map[string]interface{}{"type": "integer", "description": "Maximum declarations to return (default 5)."},
 					"maxLines": map[string]interface{}{"type": "integer", "description": "Maximum lines of each body (default 40)."},
 				},
-				"required": []string{"query"},
+				"required": []string{},
 			},
 		},
 		{

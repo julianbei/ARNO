@@ -683,8 +683,10 @@ func TestReadRangeRejectsOutOfBoundsRange(t *testing.T) {
 	}
 
 	idx := NewIndex(root, nil)
-	if _, err := idx.ReadRange("notes.txt", 1, 5); err == nil {
-		t.Fatalf("expected an error for an out-of-bounds end line")
+	// An end past the end of the file is clamped, not rejected: "from here to
+	// the end" is what that request means.
+	if got, err := idx.ReadRange("notes.txt", 1, 5); err != nil || got != "only one line" {
+		t.Fatalf("expected the end clamped to the last line, got %q, %v", got, err)
 	}
 	if _, err := idx.ReadRange("notes.txt", 4, 0); err == nil {
 		t.Fatalf("expected an error for a start line past the end of the file")

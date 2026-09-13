@@ -508,6 +508,9 @@ type InspectResponse struct {
 	// Parser reports how the outline was produced. Zero-valued when the
 	// response carries no outline (a plain range read, say).
 	Parser ParserInfo
+	// Range describes a read whose end line was past the end of the file and
+	// was clamped, e.g. "lines 190-312 of 312". Empty otherwise.
+	Range string
 }
 
 // RepositoryMapRequest asks JADE to rank the most relevant files and symbols

@@ -1055,44 +1055,71 @@ const maxReadRangeBytes = 20000
 // a line range to read them meant every one of them was a `cat`, which is how
 // this showed up in the dogfooding log.
 //
-// An explicitly requested end past the last line is still an error rather than
-// a silent clamp: the caller stated a belief about the file's length and being
-// told it is wrong is more useful than quietly getting less than was asked
-// for. Omitting the end states no such belief, so there is nothing to correct.
+// An end past the last line is clamped to the last line, and ReadRangeInfo
+// reports that it was. This used to be an error, on the theory that a caller
+// naming an end states a belief about the file's length worth correcting. In
+// use it was the opposite: "from here to the end" was nearly always the intent,
+// and the rejection cost a whole extra turn every time.
 func (i *Index) ReadRange(path string, start int, end int) (string, error) {
+	read, err := i.ReadRangeInfo(path, start, end)
+	return read.Source, err
+}
+
+// RangeRead is a line range as actually read: the bounds used, the file's
+// length, and whether the end was clamped.
+type RangeRead struct {
+	Source     string
+	Start      int
+	End        int
+	Total      int
+	ClampedEnd bool
+}
+
+// ReadRangeInfo reads a line range and reports the bounds it used.
+//
+// An end line past the end of the file is clamped to the last line, not
+// rejected: "from here to the end" is what that request nearly always means,
+// and rejecting it cost the caller a whole extra turn each time. The clamp is
+// reported so the caller knows it got less than it named. A start past the end
+// is still an error — there is nothing there to read.
+func (i *Index) ReadRangeInfo(path string, start int, end int) (RangeRead, error) {
 	absolute := i.resolvePath(path)
 	data, err := os.ReadFile(absolute)
 	if err != nil {
-		return "", err
+		return RangeRead{}, err
 	}
 
 	lines := splitLines(string(data))
 	if len(lines) == 0 {
-		return "", nil
+		return RangeRead{}, nil
 	}
 
 	// A negative bound is a caller mistake and is reported, but zero is not:
 	// an omitted integer arrives over JSON-RPC as zero, so zero has to mean
 	// "unset" for omission to be expressible at all.
 	if start < 0 || end < 0 {
-		return "", fmt.Errorf("line numbers cannot be negative (got %d-%d for %s)", start, end, path)
+		return RangeRead{}, fmt.Errorf("line numbers cannot be negative (got %d-%d for %s)", start, end, path)
 	}
 
-	endRequested := end > 0
 	if start == 0 {
 		start = 1
 	}
-	if !endRequested {
+	clampedEnd := false
+	switch {
+	case end == 0:
 		end = len(lines)
+	case end > len(lines):
+		end = len(lines)
+		clampedEnd = true
 	}
 
-	if start > len(lines) || (endRequested && end > len(lines)) || start > end {
-		return "", fmt.Errorf("range %d-%d is invalid for %s (%d lines)", start, end, path, len(lines))
+	if start > len(lines) || start > end {
+		return RangeRead{}, fmt.Errorf("range %d-%d is invalid for %s (%d lines)", start, end, path, len(lines))
 	}
 
 	text := strings.Join(lines[start-1:end], "\n")
 	clamped, _ := textutil.Clamp(text, maxReadRangeBytes, "request a narrower line range")
-	return clamped, nil
+	return RangeRead{Source: clamped, Start: start, End: end, Total: len(lines), ClampedEnd: clampedEnd}, nil
 }
 
 // ReplaceSymbolSource resolves symbolID to its defining file, splices newCode

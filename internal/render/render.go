@@ -41,6 +41,10 @@ func Text(value interface{}) (string, bool) {
 		return search(v), true
 	case protocol.FindResponse:
 		return find(v), true
+	case protocol.FindBatchResponse:
+		return findBatch(v), true
+	case protocol.ReadRangesResponse:
+		return readRanges(v), true
 	case protocol.ReferencesResponse:
 		return references(v), true
 	case protocol.ChangesResponse:
@@ -163,6 +167,11 @@ func inspect(r protocol.InspectResponse) string {
 	}
 	if r.Revision != "" {
 		header = append(header, r.Revision)
+	}
+	// Only present when an end line past the file was clamped: the caller got
+	// less than it named and should know.
+	if r.Range != "" {
+		header = append(header, r.Range)
 	}
 	// Freshness appears on a read only when it is broken. A drift count was
 	// printed on every read — `r34 · drifted: 6 files` — and no read can act

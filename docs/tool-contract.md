@@ -107,14 +107,14 @@ reading.
 | `jade.delete_symbol` | `path` |
 | `jade.diff` | — |
 | `jade.events` | — |
-| `jade.find` | `query` |
+| `jade.find` | — (`query` or `queries`, enforced by the server) |
 | `jade.grep` | `query` |
 | `jade.history` | `path` |
 | `jade.insert` | `path`, `text` |
 | `jade.job_output` | `id` |
 | `jade.job_status` | `id` |
 | `jade.outline` | `path` |
-| `jade.read_range` | `path` |
+| `jade.read_range` | — (`path` or `ranges`, enforced by the server) |
 | `jade.read_symbol` | `path` |
 | `jade.references` | `path` |
 | `jade.rename` | `newName`, `path` |
