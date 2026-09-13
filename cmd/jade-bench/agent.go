@@ -43,7 +43,21 @@ func runAgentReport(args []string) int {
 	}
 	fmt.Printf("%d runs across %d repositories\n\n", len(results), len(repositories))
 	fmt.Print(agent.Report(results))
+	fmt.Print(agent.ConfusionText(results))
 	return 0
+}
+
+// telemetryPath is where Jade-arm telemetry is kept: the flag, or beside the
+// results file.
+func telemetryPath(flagValue string, out string) string {
+	path := flagValue
+	if path == "" {
+		path = out + ".telemetry"
+	}
+	if absolute, err := filepath.Abs(path); err == nil {
+		return absolute
+	}
+	return path
 }
 
 // runAgent is `jade-bench agent`: the external benchmark with a real agent.
@@ -59,6 +73,7 @@ func runAgent(args []string) int {
 	jadeMCP := flags.String("jade-mcp", "jade-mcp", "jade-mcp binary for the Jade arms")
 	out := flags.String("out", "bench-results.jsonl", "append one JSON line per run here")
 	allowHost := flags.Bool("allow-host", false, "run agents with permissions bypassed on this machine, outside a sandbox")
+	telemetryDir := flags.String("telemetry-dir", "", "keep each Jade-arm run's telemetry here (default: <out>.telemetry)")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -118,9 +133,12 @@ func runAgent(args []string) int {
 		Repeats:   *repeats,
 		JadeMCP:   jadeBinary,
 		Out:       output,
+
+		TelemetryDir: telemetryPath(*telemetryDir, *out),
 	})
 	fmt.Printf("%s · %d tasks · %s\n\n", file.Repository.Name, len(file.Tasks), *model)
 	fmt.Print(agent.Report(results))
+	fmt.Print(agent.ConfusionText(results))
 
 	switch {
 	case runErr == nil:

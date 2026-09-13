@@ -16,6 +16,10 @@ import (
 const fakeClaude = `#!/bin/sh
 { echo "=== run"; for arg in "$@"; do printf '[%s]\n' "$arg"; done; } >> "$FAKE_ARGS_LOG"
 echo "[history $(git rev-list --all --count)]" >> "$FAKE_ARGS_LOG"
+if [ -n "$JADE_STATE_DIR" ]; then
+  mkdir -p "$JADE_STATE_DIR/ws"
+  printf '%s\n' '{"tool":"jade.read_range","target":"t1","outcome":"ok"}' '{"tool":"jade.outline","target":"t1","outcome":"ok"}' '{"tool":"jade.find","outcome":"not_found"}' '{"tool":"jade.find","outcome":"ok"}' > "$JADE_STATE_DIR/ws/telemetry.jsonl"
+fi
 echo solved > answer.txt
 echo tampered > check.txt
 printf '{"type":"result","is_error":false,"num_turns":3,"total_cost_usd":%s,"duration_ms":1200,"usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":1000,"cache_read_input_tokens":2000},"permission_denials":[]}\n' "${FAKE_COST:-0.25}"
@@ -272,6 +276,41 @@ func TestReadResultsRoundTripsWhatRunWrites(t *testing.T) {
 	}
 	if len(read) != len(written) || Report(read) != Report(written) {
 		t.Fatalf("results read back should report the same:\n%s\nvs\n%s", Report(read), Report(written))
+	}
+}
+
+// Jade arms keep their telemetry outside the workspace, and the report reads
+// tool confusion per run, never joining one run's last call to the next run's
+// first.
+func TestJadeTelemetrySurvivesTheRunAndReportsConfusion(t *testing.T) {
+	repo, claude, _ := setup(t)
+	telemetryDir := t.TempDir()
+
+	results, err := Run(context.Background(), Config{
+		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmJade, ArmJadeShell}, BudgetUSD: 5, PerRunUSD: 1,
+		JadeMCP: "/opt/jade-mcp", Claude: claude, TelemetryDir: telemetryDir,
+	})
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if results[0].TelemetryDir != "" {
+		t.Errorf("the shell arm runs no Jade, so it keeps no telemetry: %q", results[0].TelemetryDir)
+	}
+	for _, result := range results[1:] {
+		if result.TelemetryDir == "" {
+			t.Fatalf("%s: expected a telemetry directory", result.Arm)
+		}
+	}
+
+	report := ConfusionText(results)
+	for _, want := range []string{
+		"jade tool calls: jade.find 4, jade.outline 2, jade.read_range 2",
+		"switched tools on the same target: jade.read_range→jade.outline 2",
+		"retried after a failed answer: jade.find after not_found 2",
+	} {
+		if !strings.Contains(report, want) {
+			t.Errorf("expected %q in:\n%s", want, report)
+		}
 	}
 }
 

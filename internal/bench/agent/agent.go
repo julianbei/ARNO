@@ -148,6 +148,10 @@ type Config struct {
 	WorkDir string
 	// Env is added to the agent's environment.
 	Env []string
+	// TelemetryDir keeps Jade's telemetry from each Jade-arm run, one
+	// subdirectory per run, so tool confusion can be reported after the
+	// workspace is gone. Empty keeps nothing.
+	TelemetryDir string
 	// Out receives one JSON line per run as it finishes, so a benchmark cut
 	// short still leaves its results.
 	Out io.Writer
@@ -181,6 +185,9 @@ type RunResult struct {
 
 	LinesChanged int      `json:"linesChanged"`
 	FilesChanged []string `json:"filesChanged,omitempty"`
+
+	// TelemetryDir is where this run's Jade telemetry was kept, for Jade arms.
+	TelemetryDir string `json:"telemetryDir,omitempty"`
 }
 
 // TotalTokens is every token the run consumed, cached or not.
@@ -281,7 +288,14 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 
 	cmd := exec.CommandContext(runCtx, cfg.Claude, AgentArgs(task.Prompt, arm, cfg.Model, capUSD, mcpConfig)...)
 	cmd.Dir = workspace
-	cmd.Env = append(os.Environ(), cfg.Env...)
+	env := append(os.Environ(), cfg.Env...)
+	if arm != ArmShell && cfg.TelemetryDir != "" {
+		// jade-mcp inherits the agent's environment, so its telemetry log
+		// lands outside the workspace and survives the run.
+		result.TelemetryDir = filepath.Join(cfg.TelemetryDir, fmt.Sprintf("%s-%s-%s-%d", result.Repository, task.ID, arm, repeat))
+		env = append(env, "JADE_STATE_DIR="+result.TelemetryDir)
+	}
+	cmd.Env = env
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
