@@ -132,6 +132,59 @@ reading.
 | `jade.telemetry` | — |
 | `jade.workspace_tree` | — |
 
+## The edit contract
+
+What every write tool guarantees, and the test that holds each guarantee.
+`TestEditContractNamesOnlyTestsThatExist` fails if a test named here is
+renamed or deleted, so the contract cannot weaken without this table
+changing with it.
+
+### Preconditions — checked before anything is written
+
+| Guarantee | Held by |
+|---|---|
+| An edit given `expectedRevision` is refused if Jade's revision moved on | `TestApplyRejectsStaleRevision`, `TestReplaceSymbolRejectsStaleRevision` |
+| An edit given `expectedDigest` is refused if the file changed since that read, by anyone | `TestAnEditIsRefusedWhenTheFileChangedSinceItsRead` |
+| An anchor must match exactly once; an ambiguous one is refused | `TestReplaceTextRefusesAmbiguousAnchor`, `TestInsertRefusesAmbiguousAnchor`, `TestApplyRejectsAmbiguousAnchorBeforeWritingAnything` |
+| An anchor that is not there is refused | `TestReplaceTextRefusesMissingAnchor`, `TestInsertRefusesMissingAnchorText` |
+| No path outside the workspace is read or written, symlinks included | `TestEveryPathToolRefusesToLeaveTheWorkspace`, `TestEscapesAreRefusedAndNameTheRoot` |
+| `create_file` never overwrites; `replace_file` never creates | `TestCreateFileRefusesToOverwriteExisting`, `TestReplaceFileRefusesToCreate` |
+| An unknown `apply` op is refused before any edit is written | `TestApplyRejectsUnknownOpBeforeWriting` |
+
+### Atomicity
+
+| Guarantee | Held by |
+|---|---|
+| A single write is atomic, keeps permissions and follows symlinks | `TestFileKeepsPermissionsAndFollowsSymlinks` |
+| `apply` lands every edit or none | `TestApplyRollsBackEverythingWhenOneEditFails` |
+| A write across files — a language server's rename — lands in all or none | `TestFilesWritesAllOrNone` |
+| Edits write only through the one write path | `TestEditsWriteOnlyThroughThisPackage` |
+
+### Postconditions
+
+| Guarantee | Held by |
+|---|---|
+| An edit advances the revision; `apply` advances it once | `TestApplyBumpsRevisionOnce`, `TestReplaceFileBumpsTheRevision` |
+| The index reflects the write at once | `TestSymbolLocationsAreRecalculatedAfterWriteWithNoStaleCache` |
+| The response leads with the revision transition and carries diagnostics | `TestEditLeadsWithRevisionAndSurfacesDiagnostics` |
+| Files an `apply` touched are formatted when the repository declares a formatter | `TestApplyFormatsTouchedFiles` |
+| A continuation handle cut before an edit is refused after it | `TestGrepContinueRefusedAfterAnEdit` |
+
+### Checkpoint and revert
+
+| Guarantee | Held by |
+|---|---|
+| A checkpoint records git's HEAD | `TestCheckpointRecordsTheCommitItWasTakenAt` |
+| Revert restores contents and existence — edited, deleted, created since — as a new revision | `TestRevertRestoresExistenceAndAdvancesTheRevision`, `TestRevertWithoutAnInterveningCommitRestoresFiles` |
+| A revert that cannot restore every file changes nothing | `TestRevertThatCannotRestoreEverythingChangesNothing` |
+| Revert refuses once a commit has landed since the checkpoint | `TestRevertRefusesAcrossACommitAndLeavesFilesAlone` |
+| An unknown checkpoint is reported as not found | `TestRevertToAnUnknownCheckpointIsNotFound` |
+
+Not guaranteed yet: that the revision also moves for changes made outside
+Jade (the digest precondition covers the edit, not the counter), and that
+two sessions on one workspace never lose each other's work (release plan,
+concurrent-agent test).
+
 ## Deprecated in 0.0.5
 
 Served, and working, through 0.0.x; removed before 0.1.0 with a note in

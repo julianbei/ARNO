@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -197,6 +200,61 @@ func TestDeprecatedToolsSaySoFirst(t *testing.T) {
 		}
 		if coreProfileTools[name] {
 			t.Errorf("deprecated tool %q must not be in the core profile", name)
+		}
+	}
+}
+
+// TestEditContractNamesOnlyTestsThatExist keeps docs/tool-contract.md's edit
+// contract honest: every guarantee there names the test that holds it, and a
+// renamed or deleted test fails here rather than leaving a guarantee nobody
+// checks.
+func TestEditContractNamesOnlyTestsThatExist(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "docs", "tool-contract.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := string(data)
+	start := strings.Index(doc, "## The edit contract")
+	if start < 0 {
+		t.Fatal("docs/tool-contract.md has no edit contract section")
+	}
+	section := doc[start+len("## The edit contract"):]
+	if end := strings.Index(section, "\n## "); end >= 0 {
+		section = section[:end]
+	}
+	named := regexp.MustCompile("`(Test[A-Z][A-Za-z0-9_]*)`").FindAllStringSubmatch(section, -1)
+	if len(named) < 20 {
+		t.Fatalf("the edit contract names %d tests; expected every guarantee to name one", len(named))
+	}
+
+	declared := map[string]bool{}
+	function := regexp.MustCompile(`(?m)^func (Test[A-Za-z0-9_]+)\(`)
+	root := filepath.Join("..", "..")
+	err = filepath.Walk(root, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if info.IsDir() && (info.Name() == ".git" || info.Name() == "node_modules" || info.Name() == "repos") {
+			return filepath.SkipDir
+		}
+		if info.IsDir() || !strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		source, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		for _, match := range function.FindAllStringSubmatch(string(source), -1) {
+			declared[match[1]] = true
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range named {
+		if !declared[name[1]] {
+			t.Errorf("the edit contract names %s, which no test declares", name[1])
 		}
 	}
 }

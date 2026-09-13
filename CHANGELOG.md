@@ -65,6 +65,15 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### The edit contract, written down and held by tests
+
+[tool-contract.md](docs/tool-contract.md#the-edit-contract) lists what every
+write tool guarantees — preconditions checked before anything is written,
+atomicity, postconditions, checkpoint and revert — and names the test that
+holds each one. A test fails if a named test is renamed or removed. It also
+says what is not guaranteed yet: the revision does not move for changes made
+outside Jade, and concurrent sessions are untested.
+
 ### An edit can refuse a file that changed since it was read
 
 Jade's revision counts only Jade's own edits, so an `expectedRevision`

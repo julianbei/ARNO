@@ -564,7 +564,9 @@ impact-aware validation comes after the write path it depends on, not before.
   and `internal/edit` and the LSP rename; a test guards both packages.
   Revisions and the index are still updated by each caller, and checkpoint
   restore still writes on its own.
-- [ ] **Write the edit contract down, and test it.** For every write tool, in
+- [x] **Write the edit contract down, and test it.** *Done 2026-09-14:*
+  tool-contract.md "The edit contract", 21 guarantees each naming its test,
+  guarded by `TestEditContractNamesOnlyTestsThatExist`. For every write tool, in
   [tool-contract.md](tool-contract.md): preconditions (expected revision,
   unique target, target unchanged since read, path inside the workspace),
   atomicity (`apply` all or nothing; what a single edit guarantees),
