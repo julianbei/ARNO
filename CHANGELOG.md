@@ -58,6 +58,21 @@ line.
 - **`search`** and **`retrieve`** say `approximate · text index`: ranked name
   and term matches, never resolved.
 
+### `grep`'s glob reaches below the directory it names
+
+Reported from a Go and TypeScript repository: `glob: "internal/*"` answered
+"no matches" for three declarations under `internal/storage/` and
+`internal/core/`, because `*` never crossed a `/`. The same happened building
+Jade (`internal/*.go`).
+
+- **A glob with a directory selects files below it.** `internal/*`,
+  `internal/*.go` and `internal/**/state.go` match
+  `internal/core/state.go`; `internal/code/*` still selects only that
+  directory's tree, and `*.go` still matches at any depth.
+- **An empty answer says what the filter selected:**
+  `no matches for "NewState" in the 0 files glob/exclude selected`, so a
+  filter that emptied the search is not read as the code being absent.
+
 ### Found building 0.0.4 with Jade
 
 - **An edit in `apply` accepts `text`.** `insert` on its own takes `text`,

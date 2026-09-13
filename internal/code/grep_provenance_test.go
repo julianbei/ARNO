@@ -40,3 +40,25 @@ func TestFindProvenance(t *testing.T) {
 		}
 	}
 }
+func TestGlobWithADirectoryReachesBelowIt(t *testing.T) {
+	cases := []struct {
+		rel, glob string
+		want      bool
+	}{
+		{"state.go", "*.go", true},
+		{"internal/core/state.go", "*.go", true},
+		{"internal/core/state.go", "internal/core/*", true},
+		{"internal/core/state.go", "internal/*", true},
+		{"internal/core/state.go", "internal/*.go", true},
+		{"internal/core/state.go", "**/*.go", true},
+		{"internal/core/state.go", "internal/**/state.go", true},
+		{"internal/core/state.ts", "internal/*.go", false},
+		{"internal/core/state.go", "internal/code/*", false},
+		{"cmd/main.go", "internal/*", false},
+	}
+	for _, c := range cases {
+		if got := pathAllowed(c.rel, c.glob, ""); got != c.want {
+			t.Errorf("pathAllowed(%q, %q) = %v, want %v", c.rel, c.glob, got, c.want)
+		}
+	}
+}

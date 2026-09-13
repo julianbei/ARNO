@@ -87,6 +87,9 @@ func (i *Index) grep(req protocol.GrepRequest, retry bool) (protocol.GrepRespons
 	matches := make([]protocol.GrepMatch, 0, limit)
 	total := 0
 	files := map[string]bool{}
+	// selected counts the files the glob and exclude let through, so an empty
+	// answer can say whether the filter or the pattern emptied it.
+	selected := 0
 
 	walkErr := filepath.Walk(i.root, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
@@ -108,6 +111,7 @@ func (i *Index) grep(req protocol.GrepRequest, retry bool) (protocol.GrepRespons
 		if !pathAllowed(rel, req.Glob, req.Exclude) {
 			return nil
 		}
+		selected++
 
 		fileMatches, count := grepFile(path, rel, matcher, context, limit-len(matches))
 		if count > 0 {
@@ -168,6 +172,9 @@ func (i *Index) grep(req protocol.GrepRequest, retry bool) (protocol.GrepRespons
 		response.Provenance.Completeness = protocol.CompletenessCut
 	}
 	response.Summary = grepSummary(response, req.Regex)
+	if total == 0 && (req.Glob != "" || req.Exclude != "") {
+		response.Summary += fmt.Sprintf(" in the %d files glob/exclude selected", selected)
+	}
 	return response, nil
 }
 
@@ -310,6 +317,25 @@ func pathAllowed(rel string, glob string, exclude string) bool {
 	}
 	if matched, err := filepath.Match(glob, rel); err == nil && matched {
 		return true
+	}
+	// "**/" stands for any number of directories, none included.
+	if strings.Contains(glob, "**/") {
+		return pathAllowed(rel, strings.ReplaceAll(glob, "**/", ""), "")
+	}
+	// A glob naming a directory reaches below it: "internal/*" and
+	// "internal/*.go" select internal/core/state.go, the way agents write them.
+	// filepath.Match never lets * cross a /, so both answered "no matches" for
+	// code that was there, and the agent concluded it did not exist.
+	if cut := strings.LastIndex(glob, "/"); cut > 0 {
+		dirGlob, baseGlob := glob[:cut], glob[cut+1:]
+		if matched, err := filepath.Match(baseGlob, filepath.Base(rel)); err != nil || !matched {
+			return false
+		}
+		for dir := filepath.Dir(rel); dir != "." && dir != "/"; dir = filepath.Dir(dir) {
+			if matched, err := filepath.Match(dirGlob, dir); err == nil && matched {
+				return true
+			}
+		}
 	}
 	return false
 }
