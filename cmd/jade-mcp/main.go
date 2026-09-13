@@ -900,7 +900,7 @@ func tools() []mcpTool {
 					"limit":      map[string]interface{}{"type": "integer", "description": "Maximum declarations to return (default 5). Prefer budget."},
 					"budget":     map[string]interface{}{"type": "integer", "description": "Size of the answer in tokens. Cut at whole declarations; the rest is behind continue=<handle>."},
 					"continue":   map[string]interface{}{"type": "string", "description": "Handle from a cut answer: its next page."},
-					"maxLines":   map[string]interface{}{"type": "integer", "description": "Maximum lines of each body (default 40)."},
+					"maxLines":   map[string]interface{}{"type": "integer", "description": "Maximum lines of each body (default 40). Prefer budget."},
 					"dependency": map[string]interface{}{"type": "string", "description": "Look in this dependency's source instead of the workspace, read-only: a crate, Go module, npm or Python package name."},
 				},
 				"required": []string{},

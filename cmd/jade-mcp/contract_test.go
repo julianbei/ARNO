@@ -135,6 +135,50 @@ func TestEveryRequiredArgumentIsAlsoDeclaredAsAProperty(t *testing.T) {
 	}
 }
 
+// pagedTools are the tools on the 0.0.5 budget convention
+// (docs/tool-contract.md, "Budgets and provenance"), with the older size
+// argument each still accepts, or "" when it had none.
+var pagedTools = map[string]string{
+	"jade.grep":           "limit",
+	"jade.find":           "maxLines",
+	"jade.references":     "",
+	"jade.read_range":     "",
+	"jade.read_symbol":    "maxLines",
+	"jade.workspace_tree": "maxEntries",
+	"jade.history":        "",
+	"jade.diff":           "",
+	"jade.job_output":     "",
+}
+
+func TestPagedToolsOfferBudgetAndContinue(t *testing.T) {
+	served := map[string]map[string]interface{}{}
+	for _, tool := range tools() {
+		properties, _ := tool.InputSchema["properties"].(map[string]interface{})
+		served[tool.Name] = properties
+	}
+	for name, older := range pagedTools {
+		properties, ok := served[name]
+		if !ok {
+			t.Errorf("paged tool %q is not served", name)
+			continue
+		}
+		for argument, kind := range map[string]string{"budget": "integer", "continue": "string"} {
+			property, _ := properties[argument].(map[string]interface{})
+			if property == nil || property["type"] != kind {
+				t.Errorf("%s must declare %s as %s, got %v", name, argument, kind, property)
+			}
+		}
+		// The older size argument stays accepted through 0.0.x and says what
+		// replaces it, so a caller reading the schema moves to budget.
+		if older != "" {
+			property, _ := properties[older].(map[string]interface{})
+			if description, _ := property["description"].(string); !strings.Contains(description, "Prefer budget") {
+				t.Errorf("%s.%s should point to budget, got %q", name, older, description)
+			}
+		}
+	}
+}
+
 func requiredArgs(t *testing.T, schema map[string]interface{}) []string {
 	t.Helper()
 	raw, ok := schema["required"].([]string)

@@ -134,7 +134,11 @@ reading.
 
 ## Budgets and provenance — 0.0.5 design
 
-*Design, not yet implemented.* Two conventions that every list- or
+*Implemented in 0.0.5 for `grep`, `find`, `references`, `read_range` (and its
+`ranges`), `read_symbol`, `workspace_tree`, `history`, `diff` and
+`job_output`; `cmd/jade-mcp/contract_test.go` holds each to it.* `outline`
+stays whole — a file's declarations are a short list. `events` keeps its
+`after` cursor, which already continues. Two conventions that every list- or
 body-returning response will share. Both are additive: new optional
 arguments and new response lines, so neither breaks a caller. The per-tool
 size arguments they replace are deprecated in 0.0.5 and removed before 0.1.0.
