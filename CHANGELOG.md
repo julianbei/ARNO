@@ -90,6 +90,11 @@ installed but failed (`server pyright-langserver failed: exit status 1`), and
 the working states `not started`, `running` and `indexing (Importing
 projects)`.
 
+The opening server instructions carry the short form, so an agent knows
+before its first call: `This workspace: go (grammar, server gopls); kotlin
+(text scan only, no server known). Call capabilities for build and test
+commands and details.`
+
 `references` says the same when it falls back to name matching —
 `rust-analyzer is not installed`, `the python server failed: exit status 1`,
 `no language server is known for this file type` — where it said

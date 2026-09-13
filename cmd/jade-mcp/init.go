@@ -6,11 +6,77 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
+	"github.com/julianbei/jade/internal/code"
 	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/project"
 )
+
+// maxBriefLanguages bounds the languages the opening instructions name.
+const maxBriefLanguages = 5
+
+// capabilityBrief is the capability report's short form for the opening
+// instructions: the workspace's main languages, how each is read and whether
+// its server is there. An agent learns a missing server before its first
+// failed call; capabilities has the rest. Discovery of build and test commands
+// is left out, since it can run npm and would slow every session's start.
+func capabilityBrief(index *code.Index) string {
+	tree, err := index.WorkspaceTree(20000)
+	if err != nil {
+		return ""
+	}
+	counts := map[string]int{}
+	grammar := map[string]bool{}
+	for _, entry := range tree.Entries {
+		if entry.IsDir {
+			continue
+		}
+		if language, parsed := code.LanguageOf(entry.Path); language != "" {
+			counts[language]++
+			grammar[language] = parsed
+		}
+	}
+	if len(counts) == 0 {
+		return ""
+	}
+	languages := make([]string, 0, len(counts))
+	for language := range counts {
+		languages = append(languages, language)
+	}
+	sort.Slice(languages, func(a, b int) bool {
+		if counts[languages[a]] != counts[languages[b]] {
+			return counts[languages[a]] > counts[languages[b]]
+		}
+		return languages[a] < languages[b]
+	})
+	if len(languages) > maxBriefLanguages {
+		languages = languages[:maxBriefLanguages]
+	}
+
+	parts := make([]string, 0, len(languages))
+	for _, language := range languages {
+		reading := "grammar"
+		if !grammar[language] {
+			reading = "text scan only"
+		}
+		status := index.LanguageServerStatus(language)
+		var server string
+		switch status.State {
+		case "not supported":
+			server = "no server known"
+		case "not installed":
+			server = status.Detail + " not installed, references approximate"
+		case "failed":
+			server = "server failed"
+		default:
+			server = "server " + status.Detail
+		}
+		parts = append(parts, fmt.Sprintf("%s (%s, %s)", language, reading, server))
+	}
+	return " This workspace: " + strings.Join(parts, "; ") + ". Call capabilities for build and test commands and details."
+}
 
 // runInit writes a draft .jade/project.json for the workspace from what
 // discovery finds, for a person to review and commit. It never overwrites an

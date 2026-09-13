@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/julianbei/jade/internal/code"
 )
 
 func TestCapabilitiesReportsLanguagesAndGaps(t *testing.T) {
@@ -22,5 +24,24 @@ func TestCapabilitiesReportsLanguagesAndGaps(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Fatalf("missing %q in:\n%s", want, out)
 		}
+	}
+}
+func TestCapabilityBriefNamesLanguagesAndServers(t *testing.T) {
+	root := t.TempDir()
+	writeWorkspaceFile(t, root, "a.go", "package a\n")
+	writeWorkspaceFile(t, root, "b.go", "package a\n")
+	writeWorkspaceFile(t, root, "app.kt", "fun main() {}\n")
+
+	brief := capabilityBrief(code.NewIndex(root, nil))
+	for _, want := range []string{" This workspace: go (grammar, ", "kotlin (text scan only, no server known)", "Call capabilities"} {
+		if !strings.Contains(brief, want) {
+			t.Fatalf("missing %q in %q", want, brief)
+		}
+	}
+	if strings.Index(brief, "go (") > strings.Index(brief, "kotlin (") {
+		t.Fatalf("languages should come by file count, got %q", brief)
+	}
+	if empty := capabilityBrief(code.NewIndex(t.TempDir(), nil)); empty != "" {
+		t.Fatalf("an empty workspace should add nothing, got %q", empty)
 	}
 }

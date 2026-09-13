@@ -167,7 +167,7 @@ func main() {
 		fatalf("failed to start internal api: %v", err)
 	}
 
-	s := &mcpServer{api: api, telemetry: telemetry.New(root), profile: profile, instructions: projectInstructions(root)}
+	s := &mcpServer{api: api, telemetry: telemetry.New(root), profile: profile, instructions: projectInstructions(root) + capabilityBrief(ci)}
 	if err := s.loop(os.Stdin, os.Stdout); err != nil {
 		fatalf("mcp loop failed: %v", err)
 	}
