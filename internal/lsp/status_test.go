@@ -37,3 +37,15 @@ func TestADeadServerIsRestartedOnceThenFailed(t *testing.T) {
 		t.Fatal("restarts are counted per language")
 	}
 }
+func TestARunningServerWithWorkInProgressReadsAsIndexing(t *testing.T) {
+	manager := NewManager(t.TempDir())
+	manager.clients["java"] = &Client{activeProgress: map[string]string{"token": "Importing projects"}}
+	if got := manager.Status("java"); got.State != "indexing" || got.Detail != "Importing projects" {
+		t.Fatalf("got %+v", got)
+	}
+
+	manager.clients["go"] = &Client{activeProgress: map[string]string{}}
+	if got := manager.Status("go"); got.State != "running" {
+		t.Fatalf("an idle server should read as running, got %+v", got)
+	}
+}

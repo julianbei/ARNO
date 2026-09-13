@@ -44,13 +44,15 @@ func (i *Index) References(path string, symbolID string) (protocol.ReferencesRes
 	// the path that makes references exact outside Go: before it existed,
 	// everything but Go fell straight through to name matching.
 	if refs, server, ok := i.languageServerReferences(symbol, line, column); ok {
-		return protocol.ReferencesResponse{
+		response := protocol.ReferencesResponse{
 			Query:      symbolID,
 			Source:     "lsp",
 			References: refs,
 			Summary:    fmt.Sprintf("%d references to %s (%s)", len(refs), symbol.Name, server),
 			Provenance: protocol.Provenance{Certainty: protocol.CertaintyExact, Source: server, Completeness: protocol.CompletenessComplete},
-		}, nil
+		}
+		i.noteIndexing(&response, server)
+		return response, nil
 	}
 
 	// The gopls CLI remains as a second path for Go. It costs a full process

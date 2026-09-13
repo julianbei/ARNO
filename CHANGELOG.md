@@ -73,6 +73,12 @@ if it dies again, the language is marked failed for the session with the
 reason — `the python server exited again after a restart` — which
 `capabilities` and an approximate `references` report.
 
+An exact `references` answer from a server that was still indexing when the
+wait gave up now says so — `· the java server is still indexing (Importing
+projects); ask again when it ends for a complete list` — and its provenance
+reads `may be incomplete`. Such a server answers wrongly rather than slowly,
+and the list was presented as complete.
+
 ### `capabilities`: what Jade can do here, in one call
 
 The first 0.0.6 item. An agent in a repository without language servers

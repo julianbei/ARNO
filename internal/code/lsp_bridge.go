@@ -23,6 +23,22 @@ import (
 //
 // The returned string names the server, because a caller reading "42
 // references" deserves to know whether a compiler said so or a text match did.
+// noteIndexing marks an exact answer from a server that was still indexing
+// when the settle wait gave up: an indexing server answers wrongly rather than
+// slowly, so the list may be short. The summary says what the server was busy
+// with and what to do, instead of presenting a partial list as complete.
+func (i *Index) noteIndexing(response *protocol.ReferencesResponse, language string) {
+	if i.servers == nil {
+		return
+	}
+	status := i.servers.Status(language)
+	if status.State != "indexing" {
+		return
+	}
+	response.Provenance.Completeness = protocol.CompletenessMayBeIncomplete
+	response.Summary += " · the " + language + " server is still indexing (" + status.Detail + "); ask again when it ends for a complete list"
+}
+
 // noServerReason says why no language server answered for path, in the kinds
 // of missing the capability report uses: none known for the file type, not
 // installed, failed with its reason, or still indexing.
