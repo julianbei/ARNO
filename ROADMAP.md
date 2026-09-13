@@ -27,6 +27,10 @@ for or cannot act on. Worked in this order; each item links to its section.
    end line past the end of the file (§2)
 9. `check` says what will run before running it (§4)
 10. Document and anchor revisions to git (§5)
+11. Enforce the workspace boundary: no absolute, `..` or symlink escapes
+    ([release plan](docs/release-plan-0.1.0.md), Phase 1)
+12. Typed validation outcomes: `passed`, `failed`, `unavailable`, `running`,
+    `timed out` ([release plan](docs/release-plan-0.1.0.md), Phase 1)
 
 Release gate: every item above checked, `make conformance` green, README and
 CHANGELOG updated, release notes in
