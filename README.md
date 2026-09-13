@@ -15,6 +15,21 @@ it is for. Where the shell is still the better tool, use it — the question
 Jade has to answer is whether an agent gets more done, at acceptable cost,
 with it than without ([docs/benchmark.md](docs/benchmark.md)).
 
+**Half the tokens, more issues fixed.** Claude Code on 12 real closed issues
+from cobra (Go), ky (TypeScript), requests (Python) and ripgrep (Rust), judged
+by each upstream fix's own hidden tests:
+
+| Claude Code with… | Issues fixed | Tokens per task | Time per task |
+|---|---|---|---|
+| its built-in tools | 10 of 12 | 1.38M | 215s |
+| **Jade in their place** | **12 of 12** | **0.68M (−51%)** | **163s (−24%)** |
+
+Not just a shorter tool list: against a shell trimmed to Bash, Read, Edit and
+Write, Jade still used 18–25% fewer tokens and fewer turns, in two separate
+runs. Sonnet 5, one run per task, four languages —
+[results and caveats](docs/benchmark-results.md) ·
+[how to set it up](#let-jade-replace-the-built-in-tools).
+
 **Status:** 0.0.4 — early, usable, and looking for feedback.
 
 ```bash
