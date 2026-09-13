@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+### Fewer wasted turns for a Jade-only agent
+
+Reading the Jade-only agent's calls, turn by turn, in further cobra runs found
+turns lost to Jade itself, not to the task. The fixes are general; none is
+specific to cobra or Go.
+
+- **Edits return the edited region.** `replace_text`, `replace_range`,
+  `insert` and `apply` answered only `+22 -20`, so the agent read the region
+  back to see the result: nine re-reads, a turn each, in one task. They now
+  return the edited lines as the file reads after formatting, with two lines
+  of context, at most 16 lines per region and four regions per `apply`.
+- **`read_range` takes `lines: "280-400"`** (also `"280-"` and `"280"`), on
+  its own and in `ranges`. Agents repeatedly sent
+  `{"path": "command.go", "startLine": 1195, 1230}`, dropping the second key.
+  That is not JSON, so the host rejected each call before Jade saw it. One
+  string leaves no second key to drop; `startLine`/`endLine` still work.
+- **`grep` tries the other reading of a query that finds nothing.** A literal
+  query written as a pattern (`func.*SetArgs`) is run again as a regex, and a
+  regex that matches nothing (`func (c \*Command) ParseFlags`, whose
+  parentheses form a group) is run again as literal text with its escapes
+  removed. The answer says which reading matched. Before, the agent read a
+  hint and repeated the call.
+- **A passing test suite is no longer reported as failing.** Any `error` or
+  `fail` in the output counted as a failure, and cobra's passing tests print
+  `Error: if any flags in the group ...`. `apply` said `FAIL tests` and the
+  agent re-ran every test to find out whether its edit was fine. Exit status
+  decides; output only fails a run through lines that only failures print
+  (`--- FAIL`, `FAIL`, `FAILED`, `panic:`, `undefined:`).
+- **`jade-mcp --tools core` lists twelve tools instead of 35.** The host sends
+  the whole tool list again on every turn: 23 KB for the full catalog, 10 KB
+  for the tools agents actually called in the benchmark runs (`find`, `grep`,
+  `read_range`, `outline`, `replace_text`, `insert`, `apply`, `check`,
+  `run_tests`, `create_file`, `delete_file`, `workspace_tree`). Unlisted tools
+  stay callable. The default is still the full list; `jade-bench agent
+  -jade-tools core` passes the profile to the Jade arms.
+- **`jade-bench agent-report` counts output tokens correctly.** It read them
+  from streamed events, which carry the count at the start of each message,
+  and undercounted output about 40 times. Totals were unaffected; output now
+  comes from the run's result.
+
 ### Jade gets used next to the shell, and searches several patterns at once
 
 The first nine benchmark runs with full transcripts, on cobra:
@@ -44,11 +84,10 @@ Jade defects, not agent choices:
   a runner names failing tests (Go `--- FAIL:`, pytest `FAILED`, cargo
   `... FAILED` and panics, ava `✘`), the summary is those names with their
   assertion lines and the package result.
-- **A literal `grep` that reads like a pattern says so when it finds
-  nothing.** The same run searched `helpFlagName|helpCommand\b` and
-  `func (c \*Command) ParseFlags` literally and got a bare "no matches" four
-  times. The answer now adds that the text was searched literally and to pass
-  `regex: true`.
+- **A literal `grep` that reads like a pattern no longer answers a bare "no
+  matches".** The same run searched `helpFlagName|helpCommand\b` and
+  `func (c \*Command) ParseFlags` literally and got "no matches" four times.
+  Such a query is now retried as a regex (see above).
 
 ### `jade-bench agent`: the external benchmark
 
