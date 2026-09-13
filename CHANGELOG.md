@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### `jade-bench agent`: the external benchmark
+
+Release plan Phase 2 needs evidence from repositories Jade was not built in.
+`jade-bench agent -tasks <file> -repo <checkout>` runs every task with Claude
+Code headless on three arms — shell tools only, Jade only, Jade plus shell —
+and reports success, tokens, turns, cost, time and diff size per arm, with the
+scorecard fixed before any run (success never below shell; up to +10% tokens
+per +5 points of success).
+
+- **Success is the task's own verify command**, with hidden tests written
+  after the agent stops.
+- **Each run starts from a history-free baseline**, so the fix a task came
+  from cannot be found in `git log`.
+- **The budget cannot be overrun**: a run is charged its cap when it prints
+  no result.
+- **Adding a repository is a task file.** The first three are in
+  `bench/tasks/`: cobra, ky and ripgrep, three real fixes each, every one
+  checked to fail before and pass after.
+
+Agents run with permissions bypassed, so the command refuses to run outside a
+sandbox unless `-allow-host` is given. See [docs/benchmark.md](docs/benchmark.md).
+
 ### `telemetry` reports tool confusion
 
 Release plan Phase 3 merges and cuts tools by data, so the data has to say

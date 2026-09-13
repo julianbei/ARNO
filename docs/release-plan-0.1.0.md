@@ -288,7 +288,9 @@ later phase uses to decide what to merge, cut or add.
   in, and the pilot run itself. *Decided:* the pilot runs on the author's
   machine with `-allow-host`, and without Java (no JDK there) — Go,
   TypeScript, Python and Rust first; Java remains required before this item
-  is done.
+  is done. Task files for cobra, ky and ripgrep are in `bench/tasks/`, each
+  task checked through the harness to fail with a no-op agent and pass with
+  the real fix.
 - [ ] **Competitor arm.** The same tasks with Serena in place of Jade; SymForge
   and code-atlas if their setup allows. A comparison to learn from, not a gate —
   but if Serena wins on the inspect tasks, Phase 3 cuts Jade's inspect surface
