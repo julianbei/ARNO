@@ -52,6 +52,13 @@ type Insight struct {
 	DurationMS int64   `json:"durationMS"`
 	Turns      int     `json:"turns"`
 
+	// Tokens is every token the run consumed — the cost measure that holds
+	// across models and price changes, unlike dollars — and its parts.
+	Tokens           int `json:"tokens"`
+	InputTokens      int `json:"inputTokens"`
+	CacheWriteTokens int `json:"cacheWriteTokens"`
+	CacheReadTokens  int `json:"cacheReadTokens"`
+
 	// JadeStatus is the Jade MCP server's status at session start. A Jade arm
 	// whose server did not connect measured nothing about Jade.
 	JadeStatus string `json:"jadeStatus,omitempty"`
@@ -115,6 +122,8 @@ func Analyze(result RunResult) (Insight, error) {
 	in := Insight{
 		Repository: result.Repository, Task: result.Task, Arm: result.Arm, Repeat: result.Repeat,
 		Success: result.Success, CostUSD: result.CostUSD, DurationMS: result.DurationMS, Turns: result.Turns,
+		Tokens: result.TotalTokens(), InputTokens: result.InputTokens,
+		CacheWriteTokens: result.CacheWriteTokens, CacheReadTokens: result.CacheReadTokens,
 		CallsBeforeFirstEdit: -1,
 	}
 	if result.Transcript == "" {
@@ -489,10 +498,10 @@ func InsightReport(results []RunResult) string {
 	b.WriteString("\n")
 
 	header := "  %-11s %2s %5s %11s %6s %6s %6s %6s %6s %7s %6s %7s %5s %6s %5s %6s %5s\n"
-	row := "  %-11s %2d %4.0f%% %4.1f%-7s %6.1f %6.1f %6.1f %6.1f %6.1f %7.1f %6.1f %7.1f %5.1f %6.0f %5.0f %6.2f %5.0f\n"
+	row := "  %-11s %2d %4.0f%% %4.1f%-7s %6.1f %6.1f %6.1f %6.1f %6.1f %7.1f %6.1f %7.1f %5.1f %6.0f %5.0f %6.0f %5.0f\n"
 	columns := func() {
 		fmt.Fprintf(&b, header, "arm", "n", "pass", "turns", "calls", "read", "search", "edit", "verify",
-			">edit", "reread", "errors", "par", "ctx k", "res k", "cost", "sec")
+			">edit", "reread", "errors", "par", "ctx k", "res k", "tok k", "sec")
 	}
 	line := func(arm Arm, g group) {
 		pass := g.mean(func(in Insight) float64 { return boolFloat(in.Success) }) * 100
@@ -506,7 +515,7 @@ func InsightReport(results []RunResult) string {
 			g.mean(func(in Insight) float64 { return float64(in.MaxParallel) }),
 			g.mean(func(in Insight) float64 { return float64(in.PeakContextTokens) / 1000 }),
 			g.mean(func(in Insight) float64 { return float64(in.ResultBytes) / 1000 }),
-			g.mean(func(in Insight) float64 { return in.CostUSD }),
+			g.mean(func(in Insight) float64 { return float64(in.Tokens) / 1000 }),
 			g.mean(func(in Insight) float64 { return float64(in.DurationMS) / 1000 }))
 	}
 	byArm := func(list []Insight) map[Arm]group {
@@ -519,7 +528,7 @@ func InsightReport(results []RunResult) string {
 		return groups
 	}
 
-	b.WriteString("\nper task (means over repeats; turns range in brackets; >edit = calls before the first edit; par = max parallel calls; ctx = peak context; res = tool result KB)\n")
+	b.WriteString("\nper task (means over repeats; turns range in brackets; >edit = calls before the first edit; par = max parallel calls; ctx = peak context; res = tool result KB; tok = total tokens, input + cache write + cache read + output)\n")
 	var tasks []string
 	seen := map[string]bool{}
 	for _, in := range valid {
@@ -553,6 +562,20 @@ func InsightReport(results []RunResult) string {
 		if g, ok := groups[arm]; ok {
 			line(arm, g)
 		}
+	}
+
+	b.WriteString("\ntokens per run by kind (means, k)\n")
+	for _, arm := range []Arm{ArmShell, ArmJade, ArmJadeShell} {
+		g, ok := groups[arm]
+		if !ok {
+			continue
+		}
+		fmt.Fprintf(&b, "  %-11s total %6.0f · cache read %6.0f · cache write %5.0f · input %4.1f · output %5.1f\n", arm,
+			g.mean(func(in Insight) float64 { return float64(in.Tokens) / 1000 }),
+			g.mean(func(in Insight) float64 { return float64(in.CacheReadTokens) / 1000 }),
+			g.mean(func(in Insight) float64 { return float64(in.CacheWriteTokens) / 1000 }),
+			g.mean(func(in Insight) float64 { return float64(in.InputTokens) / 1000 }),
+			g.mean(func(in Insight) float64 { return float64(in.OutputTokens) / 1000 }))
 	}
 
 	b.WriteString("\ntool result bytes by category (share of each arm's context from tools)\n")

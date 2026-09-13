@@ -136,7 +136,7 @@ func TestInsightReportComparesArmsPerTask(t *testing.T) {
 	}
 	report := InsightReport(results)
 	for _, want := range []string{
-		"3 runs analysed", "1 without a readable transcript",
+		"3 runs analysed", "1 without a readable transcript", "tok k", "tokens per run by kind",
 		"demo/t1", "shell", "jade", "(20–30)",
 		"tools used by the Jade arms", "jade.outline",
 		"largest tool results",
