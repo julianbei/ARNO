@@ -24,7 +24,8 @@ The first tools on the 0.0.5 budget convention
   20,000 bytes dropped everything between its head and tail with
   `… bytes omitted …`. It now reads whole lines up to its budget (default
   5,000 tokens, the same size) and says `lines 1-612 of 3000 · continue=c7`
-  for the rest. Reads in `ranges` keep the old bound.
+  for the rest. A range in `ranges` pages the same way, with its own
+  `read_range` handle.
 - **`diff` and `job_output` page instead of cutting the middle.** A patch or a
   job log past 8,000 bytes lost its middle — in a failing test run, often the
   failure. Both now return whole lines up to a budget (default 2,000 tokens,

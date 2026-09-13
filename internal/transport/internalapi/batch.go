@@ -113,7 +113,7 @@ func (s *Server) ReadRanges(req protocol.ReadRangesRequest) (protocol.ReadRanges
 			results = append(results, result)
 			continue
 		}
-		read, err := index.ReadRangeInfo(path, request.StartLine, request.EndLine)
+		read, err := index.ReadRangePage(path, request.StartLine, request.EndLine, defaultReadBudget*4)
 		switch {
 		case os.IsNotExist(err):
 			// The OS error carries the absolute workspace path, which is noise
@@ -127,6 +127,11 @@ func (s *Server) ReadRanges(req protocol.ReadRangesRequest) (protocol.ReadRanges
 			result.TotalLines = read.Total
 			result.Clamped = read.ClampedEnd
 			result.Source = read.Source
+			// A range past its page gets a read_range handle for the rest
+			// instead of losing its middle.
+			if read.NextLine > 0 {
+				result.Continue = s.continuations.put(continuation{tool: "read_range", revision: s.workspace.Revision(), budget: defaultReadBudget, path: request.Path, shown: read.NextLine, through: read.Through})
+			}
 		}
 		results = append(results, result)
 	}

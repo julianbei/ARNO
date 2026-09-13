@@ -248,3 +248,33 @@ func TestReadSymbolBudgetPagesALongBody(t *testing.T) {
 		}
 	}
 }
+func TestReadRangesPageALargeRangeWithAReadRangeHandle(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	var b strings.Builder
+	for i := 1; i <= 3000; i++ {
+		fmt.Fprintf(&b, "line %04d padding padding padding\n", i)
+	}
+	writeWorkspaceFile(t, root, "big.txt", b.String())
+	writeWorkspaceFile(t, root, "small.txt", "one\ntwo\n")
+
+	out, err := callText(t, server, "jade.read_range", map[string]interface{}{
+		"ranges": []interface{}{
+			map[string]interface{}{"path": "big.txt"},
+			map[string]interface{}{"path": "small.txt"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := continueHandle.FindStringSubmatch(out)
+	if m == nil || strings.Contains(out, "bytes omitted") || !strings.Contains(out, "two") {
+		t.Fatalf("expected the big range paged with a handle and the small one whole, got:\n%.400s", out)
+	}
+	rest, err := callText(t, server, "jade.read_range", map[string]interface{}{"continue": m[1]})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out, "line 3000 ") == strings.Contains(rest, "line 3000 ") && !strings.Contains(rest, "continue=") {
+		t.Fatalf("the handle should continue the big range, got:\n%.400s", rest)
+	}
+}

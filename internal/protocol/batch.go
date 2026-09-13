@@ -29,6 +29,8 @@ type RangeResult struct {
 	Clamped bool
 	Source  string
 	Error   string
+	// Continue is a read_range handle for the rest of a range its page cut.
+	Continue string
 }
 
 // ReadRangesResponse is the answer to a multi-range read.

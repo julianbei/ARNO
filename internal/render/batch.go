@@ -60,6 +60,9 @@ func readRanges(r protocol.ReadRangesResponse) string {
 		if result.Clamped {
 			header += fmt.Sprintf(" (end of file, %d lines)", result.TotalLines)
 		}
+		if result.Continue != "" {
+			header += fmt.Sprintf(" of %d · continue=%s", result.TotalLines, result.Continue)
+		}
 		lines = append(lines, header, result.Source)
 	}
 	return strings.Join(lines, "\n")
