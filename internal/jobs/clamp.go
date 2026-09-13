@@ -18,3 +18,14 @@ const maxRawOutputBytes = 8000
 func clampRawOutput(output string) (string, int) {
 	return textutil.Clamp(output, maxRawOutputBytes, "re-run with a narrower scope to see the middle")
 }
+
+// maxStoredOutputBytes bounds the output kept for paging through job_output.
+// A failing test run's decisive middle is what the 8,000-byte clamp drops;
+// keeping it lets a caller page to it instead of re-running the job.
+const maxStoredOutputBytes = 1 << 20
+
+// storedRawOutput is the output job_output pages through.
+func storedRawOutput(output string) string {
+	stored, _ := textutil.Clamp(output, maxStoredOutputBytes, "re-run with a narrower scope to see the middle")
+	return stored
+}

@@ -1091,6 +1091,10 @@ type JobOutputResponse struct {
 	// short job from a clamped one rather than mistaking a truncated tail
 	// for the whole story.
 	OmittedBytes int
+	// Lines is a paged output's page, "lines 1-212 of 900", and Continue the
+	// handle for the rest.
+	Lines    string
+	Continue string
 }
 
 // DiffRequest asks for the actual patch text. An empty Target diffs the

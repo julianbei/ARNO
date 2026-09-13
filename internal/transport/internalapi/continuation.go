@@ -161,7 +161,8 @@ func (s *Server) resume(handle string, tool string) (continuation, error) {
 	if entry.tool != tool {
 		return continuation{}, fmt.Errorf("continue=%s continues %s, not %s", handle, entry.tool, tool)
 	}
-	if revision := s.workspace.Revision(); revision != entry.revision {
+	// A finished job's output does not change with the workspace; the rest do.
+	if revision := s.workspace.Revision(); tool != "job_output" && revision != entry.revision {
 		return continuation{}, fmt.Errorf("continue=%s was cut at %s; the workspace is at %s — repeat the call", handle, entry.revision, revision)
 	}
 	return entry, nil

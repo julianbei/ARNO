@@ -17,6 +17,9 @@ type Runner struct {
 	summary map[string]string
 	raw     map[string]string
 	omitted map[string]int
+	// full is each job's output as kept for paging through job_output, bounded
+	// far above raw, which verdicts read.
+	full map[string]string
 	// failed records that a job's process exited non-zero.
 	//
 	// Kept separate from the output text because the verdict was previously
@@ -42,6 +45,7 @@ func NewRunner(bus *events.Bus) *Runner {
 		status:  make(map[string]string),
 		summary: make(map[string]string),
 		raw:     make(map[string]string),
+		full:    make(map[string]string),
 		omitted: make(map[string]int),
 		failed:  make(map[string]bool),
 		done:    make(map[string]chan struct{}),
@@ -98,6 +102,7 @@ func (r *Runner) CompleteWithResult(id string, output string, failed bool) {
 	r.status[id] = "completed"
 	r.summary[id] = summary
 	r.raw[id] = clamped
+	r.full[id] = storedRawOutput(output)
 	r.omitted[id] = omitted
 	r.failed[id] = failed
 	kind := r.kind[id]
@@ -174,6 +179,15 @@ func (r *Runner) Output(id string) (JobOutput, bool) {
 		Failed:       r.failed[id],
 		OmittedBytes: r.omitted[id],
 	}, true
+}
+
+// FullOutput is a completed job's output as kept for paging: whole unless it
+// passed maxStoredOutputBytes. Output keeps the clamped form verdicts read.
+func (r *Runner) FullOutput(id string) (string, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	full, ok := r.full[id]
+	return full, ok
 }
 
 func itoa(n int) string {

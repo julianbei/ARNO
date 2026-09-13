@@ -718,7 +718,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		return jsonResult(res)
 	case "jade.job_output":
 		id := stringArg(args, "id")
-		res, err := s.api.JobOutput(id)
+		res, err := s.api.JobOutputPage(id, intArg(args, "budget"), stringArg(args, "continue"))
 		if err != nil {
 			return mcpToolResult{}, err
 		}
@@ -1218,11 +1218,13 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.job_output",
-			Description: "Fetch the raw output for a background validation job after a summary was already returned.",
+			Description: "Fetch the raw output for a background validation job after a summary was already returned. A long output comes a page at a time, whole lines, with continue=<handle> for the rest.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"id": map[string]interface{}{"type": "string", "description": "Background job ID."},
+					"id":       map[string]interface{}{"type": "string", "description": "Background job ID."},
+					"budget":   map[string]interface{}{"type": "integer", "description": "Size of the output page in tokens (default 2000). Cut at whole lines."},
+					"continue": map[string]interface{}{"type": "string", "description": "Handle from a cut output: its next page."},
 				},
 				"required": []string{"id"},
 			},

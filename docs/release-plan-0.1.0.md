@@ -398,9 +398,10 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   written 2026-09-13* in [tool-contract.md](tool-contract.md#budgets-and-provenance--005-design).
   *Progress 2026-09-13:* continuation store in `internalapi`; `grep`, `find`,
   `references` and `read_range` take `budget` and `continue`, and refuse a
-  handle after an edit. `outline`, `read_symbol`, `workspace_tree`,
-  `history`, `events`, `changes`, `diff`, `job_output`, `search`,
-  `retrieve`, `repository_map`, `context` and batched `ranges` still to do. One `budget`
+  handle after an edit; `diff` and `job_output` page whole lines instead of
+  cutting the middle. `outline`, `read_symbol`, `workspace_tree`, `history`,
+  `events`, `changes`, `search`, `retrieve`, `repository_map`, `context` and
+  batched `ranges` still to do. One `budget`
   convention and one continuation handle across every tool that can return a
   list or a body — `24 of 87 references shown · continue=…` — replacing
   per-tool limit arguments, which are deprecated.

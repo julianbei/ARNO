@@ -505,6 +505,9 @@ func jobOutput(r protocol.JobOutputResponse) string {
 	if r.OmittedBytes > 0 {
 		head += fmt.Sprintf(" (%d bytes omitted)", r.OmittedBytes)
 	}
+	if r.Lines != "" {
+		head += " · " + r.Lines
+	}
 
 	lines := []string{head}
 	if r.RawOutput != "" {

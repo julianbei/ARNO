@@ -130,3 +130,18 @@ func TestOutputReportsZeroOmittedForShortJobs(t *testing.T) {
 		t.Fatalf("expected 0 omitted bytes for a short job, got %d", output.OmittedBytes)
 	}
 }
+func TestFullOutputKeepsWhatTheClampDrops(t *testing.T) {
+	r := NewRunner(nil)
+	half := strings.Repeat("0123456789abcdef0123456789abcdef012345678\n", 500)
+	big := half + "MIDDLE-MARKER\n" + half
+	r.CompleteWithResult("job-1", big, true)
+
+	output, _ := r.Output("job-1")
+	if output.OmittedBytes == 0 || strings.Contains(output.Raw, "MIDDLE-MARKER") {
+		t.Fatal("the output verdicts read should stay clamped")
+	}
+	full, ok := r.FullOutput("job-1")
+	if !ok || full != big {
+		t.Fatalf("expected the whole output kept for paging, got %d of %d bytes", len(full), len(big))
+	}
+}

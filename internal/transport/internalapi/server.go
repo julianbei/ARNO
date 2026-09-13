@@ -735,6 +735,52 @@ func (s *Server) JobOutput(id string) (protocol.JobOutputResponse, error) {
 	}, nil
 }
 
+// JobOutputPage returns a job's output a page at a time: whole lines up to the
+// budget and a continue handle for the rest, instead of the clamped middle.
+func (s *Server) JobOutputPage(id string, budget int, handle string) (protocol.JobOutputResponse, error) {
+	offset := 0
+	if handle = strings.TrimSpace(handle); handle != "" {
+		entry, err := s.resume(handle, "job_output")
+		if err != nil {
+			return protocol.JobOutputResponse{}, err
+		}
+		id, offset = entry.path, entry.shown
+		if budget <= 0 {
+			budget = entry.budget
+		}
+	}
+	if budget <= 0 {
+		budget = defaultDiffBudget
+	}
+	if budget > maxBudgetTokens {
+		budget = maxBudgetTokens
+	}
+
+	response, err := s.JobOutput(id)
+	if err != nil {
+		return response, err
+	}
+	full, ok := s.jobs.FullOutput(id)
+	if !ok || full == "" {
+		return response, nil
+	}
+	lines := strings.Split(full, "\n")
+	if offset > len(lines) {
+		offset = len(lines)
+	}
+	end := linePage(lines, offset, budget*4)
+	response.RawOutput = strings.Join(lines[offset:end], "\n")
+	response.OmittedBytes = 0
+	switch {
+	case end < len(lines):
+		response.Continue = s.continuations.put(continuation{tool: "job_output", revision: s.workspace.Revision(), budget: budget, path: id, shown: end})
+		response.Lines = fmt.Sprintf("lines %d-%d of %d · continue=%s", offset+1, end, len(lines), response.Continue)
+	case offset > 0:
+		response.Lines = fmt.Sprintf("lines %d-%d of %d, the last", offset+1, end, len(lines))
+	}
+	return response, nil
+}
+
 func (s *Server) Events(after int64, limit int) protocol.EventsResponse {
 	if s.bus == nil {
 		return protocol.EventsResponse{}
