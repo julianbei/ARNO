@@ -87,11 +87,40 @@ func insertInto(source string, anchor string, position string, text string) (str
 	}
 
 	index := strings.Index(source, anchor)
+	text = withoutRepeatedAnchor(text, anchor, position)
 	if position == InsertAfter {
 		index += len(anchor)
 		return source[:index] + ensureLeadingNewline(text) + source[index:], nil
 	}
 	return source[:index] + ensureTrailingNewline(text) + source[index:], nil
+}
+
+// withoutRepeatedAnchor drops the anchor from the seam of text that repeats it.
+//
+// Agents write an insert the way they write a replacement: new code, then the
+// line it goes above, as if the anchor were replaced. The anchor stays in the
+// file, so it appeared twice and the file stopped parsing; in benchmark runs
+// each such insert cost two more turns to repair. Text ending (before) or
+// starting (after) with the anchor can only mean that, since the result would
+// otherwise hold the anchor twice in a row.
+func withoutRepeatedAnchor(text string, anchor string, position string) string {
+	trimmedAnchor := strings.TrimSpace(anchor)
+	if trimmedAnchor == "" {
+		return text
+	}
+	switch position {
+	case InsertBefore:
+		body := strings.TrimRight(text, " \t\n")
+		if strings.HasSuffix(body, trimmedAnchor) && strings.TrimSpace(body) != trimmedAnchor {
+			return strings.TrimRight(strings.TrimSuffix(body, trimmedAnchor), " \t")
+		}
+	case InsertAfter:
+		body := strings.TrimLeft(text, " \t\n")
+		if strings.HasPrefix(body, trimmedAnchor) && strings.TrimSpace(body) != trimmedAnchor {
+			return strings.TrimPrefix(body, trimmedAnchor)
+		}
+	}
+	return text
 }
 
 // joinWithNewline concatenates two chunks with exactly one newline between

@@ -37,6 +37,19 @@ specific to cobra or Go.
   `run_tests`, `create_file`, `delete_file`, `workspace_tree`). Unlisted tools
   stay callable. The default is still the full list; `jade-bench agent
   -jade-tools core` passes the profile to the Jade arms.
+- **`insert` no longer duplicates its anchor.** Agents write an insert like a
+  replacement: the new code, then the anchor line it goes above. The anchor
+  stays in the file, so it appeared twice and the file stopped parsing; each
+  time cost two turns of repair. Text that ends (`before`) or starts (`after`)
+  with the anchor now has that copy dropped.
+- **`find` accepts a declaration as written.** `func (c *Command) Name`,
+  `pub(crate) fn walk_dir` and `def parse_header(value)` find `Name`,
+  `walk_dir` and `parse_header`. An agent that had just read the declaration
+  searched for it verbatim, got "no declarations matching", and repeated the
+  call with the bare name.
+- **A passing `apply` check shows only its verdict.** The check summary is
+  whatever the suite logged; under `pass tests` cobra's expected
+  `Error: if any flags ...` lines still sent the agent to re-run every test.
 - **`jade-bench agent-report` counts output tokens correctly.** It read them
   from streamed events, which carry the count at the start of each message,
   and undercounted output about 40 times. Totals were unaffected; output now

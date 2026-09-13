@@ -273,7 +273,14 @@ func (s *Service) runCheck(kind string) (protocol.ValidationOutcome, string) {
 	if !finished {
 		return protocol.OutcomeTimedOut, fmt.Sprintf("%s did not finish within %s — poll job_status %s", kind, applyCheckTimeout, jobID)
 	}
-	return jobs.Outcome(output, true), output.Summary
+	outcome := jobs.Outcome(output, true)
+	if outcome == protocol.OutcomePassed {
+		// The verdict is already in the response header. A passing suite's
+		// summary is whatever it logged, and cobra's logs expected errors:
+		// shown under "pass tests", they sent the agent to re-run every test.
+		return outcome, ""
+	}
+	return outcome, output.Summary
 }
 
 // checkOutputPassed reads the verdict from the command's own output rather

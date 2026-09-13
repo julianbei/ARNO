@@ -39,6 +39,11 @@ func (i *Index) FindSymbols(query string, kind string, limit int, maxLines int) 
 		maxLines = maxFindBodyLines
 	}
 	kind = strings.TrimSpace(strings.ToLower(kind))
+	if strings.ContainsAny(query, " \t(") {
+		if name := declarationName(query); name != "" {
+			query = name
+		}
+	}
 
 	exact, partial, err := i.collectMatches(query, kind)
 	if err != nil {
@@ -221,4 +226,48 @@ func findSummary(query string, total int, shown int) string {
 		return fmt.Sprintf("%d matches for %q (showing %d)", total, query, shown)
 	}
 	return fmt.Sprintf("%d matches for %q", total, query)
+}
+
+// declarationKeywords open a declaration in the languages Jade parses.
+var declarationKeywords = map[string]bool{
+	"func": true, "fn": true, "def": true, "class": true, "struct": true, "interface": true,
+	"type": true, "function": true, "const": true, "let": true, "var": true, "val": true,
+	"enum": true, "trait": true, "impl": true, "object": true, "pub": true, "export": true,
+	"default": true, "async": true, "static": true, "public": true, "private": true,
+	"protected": true, "abstract": true, "final": true, "override": true,
+}
+
+// declarationName reduces a query copied from a declaration to the name it
+// declares: `func (c *Command) Name` to Name, `pub(crate) fn walk` to walk,
+// `def parse_header(value)` to parse_header.
+//
+// find matches names, and an agent that has just read `func (c *Command)
+// ParseFlags` searches for it as written; a benchmark run got "no
+// declarations matching" and spent a turn repeating the call with the bare
+// name. An empty result means the query names nothing recognisable.
+func declarationName(query string) string {
+	rest := strings.TrimSpace(query)
+	for {
+		word, after, found := strings.Cut(rest, " ")
+		if !found || !(declarationKeywords[word] || strings.HasPrefix(word, "pub(")) {
+			break
+		}
+		rest = strings.TrimSpace(after)
+	}
+	if strings.HasPrefix(rest, "(") {
+		if end := strings.Index(rest, ")"); end >= 0 {
+			rest = strings.TrimSpace(rest[end+1:])
+		}
+	}
+	end := strings.IndexFunc(rest, func(r rune) bool {
+		return !(r == '_' || r == '$' || r > 127 ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9'))
+	})
+	if end == 0 {
+		return ""
+	}
+	if end > 0 {
+		rest = rest[:end]
+	}
+	return rest
 }
