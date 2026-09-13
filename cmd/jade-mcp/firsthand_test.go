@@ -136,6 +136,31 @@ func TestLiteralGrepThatLooksLikeARegexSaysSo(t *testing.T) {
 	}
 }
 
+// Several patterns in one call, each answered and labelled in the order asked.
+func TestGrepAnswersSeveralPatternsInOneCall(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	writeWorkspaceFile(t, root, "command.go", "package cobra\n\nconst usage = \"version for \"\n\nfunc VersionTemplate() string { return \"\" }\n")
+
+	out, err := callText(t, server, "jade.grep", map[string]interface{}{
+		"queries": []interface{}{"VersionTemplate", "version for", "missingThing"},
+	})
+	if err != nil {
+		t.Fatalf("grep: %v", err)
+	}
+	for _, want := range []string{"VersionTemplate: 1 matches", "version for: 1 matches", `no matches for "missingThing"`} {
+		if !strings.Contains(out, want) {
+			t.Errorf("expected %q in:\n%s", want, out)
+		}
+	}
+	if strings.Index(out, "VersionTemplate:") > strings.Index(out, "version for:") {
+		t.Errorf("answers should follow the order asked:\n%s", out)
+	}
+
+	if _, err := callText(t, server, "jade.grep", map[string]interface{}{}); err == nil || !strings.Contains(err.Error(), "queries") {
+		t.Errorf("grep with neither query nor queries should say what it needs, got %v", err)
+	}
+}
+
 func TestCommandListingShowsNamesNotScripts(t *testing.T) {
 	server, _ := newTestMCPServer(t)
 	script := "set -e; " + strings.Repeat("echo step; ", 40)

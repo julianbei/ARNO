@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Jade gets used next to the shell, and searches several patterns at once
+
+The first nine benchmark runs with full transcripts, on cobra:
+
+- **With the shell available, the agent never called Jade.** Claude Code hides
+  MCP tools behind tool search by default, and an agent that already has
+  `Bash`, `Read` and `Edit` does not go looking: the jade+shell arm made 0 Jade
+  calls in 3 runs and simply measured the shell again. With `"alwaysLoad":
+  true` in the server config, the same agent called Jade directly. The README's
+  configuration includes it now and explains why, and the benchmark's Jade
+  arms set it.
+- **`grep` takes `queries`** — several patterns with the same filters in one
+  call, each answered and labelled in order. The Jade-only agent made about ten
+  more search calls per task than the shell agent, which searched
+  alternatives in one `grep` command. `query` is now optional, which the tool
+  contract allows; the server requires one of the two.
+
 ### Two turn-wasters found in benchmark transcripts
 
 The first pilot runs with full transcripts showed a Jade-only agent taking

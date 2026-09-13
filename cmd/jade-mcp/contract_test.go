@@ -45,8 +45,10 @@ var frozenSurface = map[string][]string{
 	"jade.events":          {},
 	// query or queries; the server enforces one of them. Made optional in
 	// 0.0.3, which is compatible.
-	"jade.find":    {},
-	"jade.grep":    {"query"},
+	"jade.find": {},
+	// query or queries; the server enforces one of them. Made optional in
+	// 0.0.4, which is compatible.
+	"jade.grep":    {},
 	"jade.history": {"path"},
 	// Added after the 0.0.1 freeze. Adding a tool is backward compatible:
 	// existing callers are unaffected, and new ones need a reconnect before it

@@ -588,6 +588,23 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "jade.grep":
+		if queries := stringsArg(args, "queries"); len(queries) > 0 {
+			res, err := s.api.GrepBatch(queries, protocol.GrepRequest{
+				Regex:      boolArg(args, "regex"),
+				IgnoreCase: boolArg(args, "ignoreCase"),
+				Glob:       stringArg(args, "glob"),
+				Exclude:    stringArg(args, "exclude"),
+				Context:    intArg(args, "context"),
+				Limit:      intArg(args, "limit"),
+			})
+			if err != nil {
+				return mcpToolResult{}, err
+			}
+			return jsonResult(res)
+		}
+		if blank(stringArg(args, "query")) {
+			return mcpToolResult{}, fmt.Errorf("grep needs query (one pattern) or queries (several patterns)")
+		}
 		res, err := s.api.Grep(protocol.GrepRequest{
 			Query:      stringArg(args, "query"),
 			Regex:      boolArg(args, "regex"),
@@ -1050,11 +1067,12 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.grep",
-			Description: "Literal or regex text search across the workspace, returning path:line matches with optional trailing context — the replacement for `grep -rn`. Use this for anything that is not a declaration name: struct fields, string literals, error messages, config keys, or any search needing a path filter. Use find instead when you want a declaration and its body.",
+			Description: "Literal or regex text search across the workspace, returning path:line matches with optional trailing context — the replacement for `grep -rn`. Use this for anything that is not a declaration name: struct fields, string literals, error messages, config keys, or any search needing a path filter. Use find instead when you want a declaration and its body. Pass queries to search several patterns in one call.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"query":      map[string]interface{}{"type": "string", "description": "Text to find."},
+					"queries":    map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Several patterns in one call, instead of query. Each is answered as query would be, with the same filters."},
 					"regex":      map[string]interface{}{"type": "boolean", "description": "Treat query as a regular expression. grep-style \\| alternation and \\( \\) groups work as in grep."},
 					"ignoreCase": map[string]interface{}{"type": "boolean", "description": "Case-insensitive match."},
 					"glob":       map[string]interface{}{"type": "string", "description": "Restrict by path, e.g. *.go or internal/code/*."},
@@ -1062,7 +1080,7 @@ func tools() []mcpTool {
 					"context":    map[string]interface{}{"type": "integer", "description": "Trailing lines to show per match, like grep -A (max 40)."},
 					"limit":      map[string]interface{}{"type": "integer", "description": "Maximum matches returned (default 40). The true total is always reported."},
 				},
-				"required": []string{"query"},
+				"required": []string{},
 			},
 		},
 		{

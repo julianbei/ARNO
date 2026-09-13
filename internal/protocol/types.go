@@ -377,6 +377,11 @@ type GrepResponse struct {
 	Summary   string
 }
 
+// GrepBatchResponse answers several grep patterns, in the order asked.
+type GrepBatchResponse struct {
+	Responses []GrepResponse
+}
+
 // RunCommandRequest invokes one command from the repo's declared registry.
 //
 // It carries a Name, never a shell string. That is the whole guardrail: a

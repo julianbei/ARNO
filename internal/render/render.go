@@ -43,6 +43,8 @@ func Text(value interface{}) (string, bool) {
 		return find(v), true
 	case protocol.FindBatchResponse:
 		return findBatch(v), true
+	case protocol.GrepBatchResponse:
+		return grepBatch(v), true
 	case protocol.ReadRangesResponse:
 		return readRanges(v), true
 	case protocol.ReferencesResponse:

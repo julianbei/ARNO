@@ -108,7 +108,7 @@ reading.
 | `jade.diff` | — |
 | `jade.events` | — |
 | `jade.find` | — (`query` or `queries`, enforced by the server) |
-| `jade.grep` | `query` |
+| `jade.grep` | — (`query` or `queries`, enforced by the server) |
 | `jade.history` | `path` |
 | `jade.insert` | `path`, `text` |
 | `jade.job_output` | `id` |

@@ -36,6 +36,7 @@ var renderedResponses = map[string]interface{}{
 	"HistoryResponse":        protocol.HistoryResponse{},
 	"CheckResponse":          protocol.CheckResponse{},
 	"GrepResponse":           protocol.GrepResponse{},
+	"GrepBatchResponse":      protocol.GrepBatchResponse{},
 	"TelemetryResponse":      protocol.TelemetryResponse{},
 	"RunCommandResponse":     protocol.RunCommandResponse{},
 	"DeclareCommandResponse": protocol.DeclareCommandResponse{},

@@ -360,7 +360,14 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   later plugins — adds a tool. A framework-aware provider makes `references`
   or `retrieve` better; it never adds `django_models`. That is what keeps
   profiles and schema size predictable.
-- [ ] **Tool profiles** (ROADMAP § Surface). A core profile selectable at
+- [ ] **Tool profiles** (ROADMAP § Surface). *Measured 2026-09-13:* the full
+  catalog is 35 tools, 22.6 KB of `tools/list`, and costs about 6.9k prompt
+  tokens on every turn (a one-turn Haiku run: 13.6k with Jade loaded against
+  6.7k with no MCP server). At the pilot's ~20 turns per task that is ~140k of
+  a ~1M-token run. The nine-tool subset the benchmark's Jade-only agent
+  actually leaned on (find, grep, read_range, outline, replace_text, insert,
+  apply, check, run_tests) is 9.0 KB. Moved ahead of Phase 3 by the benchmark:
+  tokens are a category Jade has to win outright. A core profile selectable at
   launch, with the full catalog opt-in. Measure schema bytes first: record the
   full catalog's `tools/list` size today, and set the core profile's budget
   from it (SymForge claims ~4.8 KB compact). Two shapes are plausible — about a

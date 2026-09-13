@@ -534,6 +534,11 @@ func writeMCPConfig(path string, jadeMCP string, workspace string) error {
 				"type":    "stdio",
 				"command": jadeMCP,
 				"args":    []string{"--root", workspace},
+				// Claude Code hides MCP tools behind tool search by default.
+				// Without this, the jade+shell arm never loaded one Jade tool
+				// in three pilot runs: it measured the shell arm twice. The
+				// README tells users to set it for the same reason.
+				"alwaysLoad": true,
 			},
 		},
 	}

@@ -142,6 +142,7 @@ Jade is a stdio MCP server. Point your client at the binary:
     "jade": {
       "type": "stdio",
       "command": "jade-mcp",
+      "alwaysLoad": true,
       "env": {
         "JADE_WORKSPACE_ROOT": "/absolute/path/to/the/repo/jade/should/work/on"
       }
@@ -161,7 +162,15 @@ Jade works on a non-git directory and on a repository with no commits yet. In
 both cases it says what is degraded — `changes`, `diff`, `history` and
 `checkpoint` need git — and everything else keeps working.
 
-### Two things that will confuse you once
+### Three things that will confuse you once
+
+**Without `"alwaysLoad": true`, Claude Code may never use Jade.** Claude Code
+hides MCP tools behind a tool search by default: the agent sees their names but
+not their definitions, and has to search before it can call one. With its own
+shell and file tools right there, it does not. In Jade's benchmark, an agent
+given both Jade and the shell made no Jade call in three of three runs; the
+same setup with `alwaysLoad` called Jade directly. Other hosts may have their
+own equivalent — check that Jade's tools are actually being called.
 
 **The MCP tool catalog is fixed at connection time.** A newly added tool does
 not appear until the client reconnects. If you upgrade Jade mid-session and a

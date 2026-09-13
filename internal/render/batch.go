@@ -22,6 +22,24 @@ func findBatch(r protocol.FindBatchResponse) string {
 	return strings.Join(parts, "\n\n")
 }
 
+// grepBatch renders several grep answers one after another, each labelled with
+// its pattern. A pattern with no match already names itself ("no matches for
+// ..."), so it is not labelled twice.
+func grepBatch(r protocol.GrepBatchResponse) string {
+	if len(r.Responses) == 0 {
+		return "no patterns"
+	}
+	parts := make([]string, 0, len(r.Responses))
+	for _, response := range r.Responses {
+		text := grep(response)
+		if response.Total > 0 {
+			text = response.Query + ": " + text
+		}
+		parts = append(parts, text)
+	}
+	return strings.Join(parts, "\n\n")
+}
+
 // readRanges renders each range under a `path:start-end` header, noting when
 // the end was clamped to the end of the file and giving a failed range its
 // error in place.
