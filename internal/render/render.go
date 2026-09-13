@@ -164,8 +164,13 @@ func inspect(r protocol.InspectResponse) string {
 	if r.Revision != "" {
 		header = append(header, r.Revision)
 	}
-	if freshness := freshnessLine(r.Freshness); freshness != "" {
-		header = append(header, freshness)
+	// Freshness appears on a read only when it is broken. A drift count was
+	// printed on every read — `r34 · drifted: 6 files` — and no read can act
+	// on it: the files changed outside Jade (a build, git, another process)
+	// and the content returned is already current. `changes` reports what
+	// moved for anyone who needs it.
+	if r.Freshness.Unknown != "" {
+		header = append(header, "freshness unknown: "+r.Freshness.Unknown)
 	}
 	if len(header) > 0 {
 		lines = append(lines, strings.Join(header, " · "))
@@ -204,24 +209,6 @@ func outlineLines(items []protocol.OutlineItem) []string {
 		lines = append(lines, fmt.Sprintf("%d-%d %s %s", item.From, item.To, item.Kind, item.Name))
 	}
 	return lines
-}
-
-// freshnessLine reduces Freshness to its decisive bit. The full changed and
-// dirty path lists — which were byte-for-byte identical 35-element arrays on
-// every read in this repo — belong in changes(), which exists to report
-// exactly that.
-func freshnessLine(f protocol.Freshness) string {
-	if f.Unknown != "" {
-		return "freshness unknown: " + f.Unknown
-	}
-	if !f.Drifted {
-		return ""
-	}
-	count := len(f.ChangedPaths)
-	if count == 0 {
-		count = len(f.DirtyPaths)
-	}
-	return fmt.Sprintf("drifted: %d files", count)
 }
 
 // find renders each match as a grep-style location header followed by the
@@ -436,9 +423,11 @@ func edit(r protocol.EditResponse) string {
 	for _, d := range r.Diagnostics {
 		lines = append(lines, fmt.Sprintf("%s %s:%d:%d %s", d.Level, d.Path, d.Line, d.Column, d.Message))
 	}
-	if len(r.Jobs) > 0 {
-		lines = append(lines, "jobs: "+strings.Join(r.Jobs, ", "))
-	}
+	// Job IDs are not rendered. Every edit starts a background typecheck, and
+	// its ID appeared on every response while its result was never seen
+	// unless it failed — and the edited file's own errors are already the
+	// diagnostic lines above. The IDs remain in JADE_JSON output for
+	// integrations that follow the event stream.
 	return strings.Join(lines, "\n")
 }
 

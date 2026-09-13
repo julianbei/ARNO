@@ -75,7 +75,15 @@ that the user did not ask for becomes part of the change.
 
 ## 2. Spend fewer tokens and turns per call
 
-- [ ] **Drop header lines a caller cannot act on.**
+- [x] **Drop header lines a caller cannot act on.**
+  - Done 2026-09-13: reads no longer print a drift count (only a broken
+    "freshness unknown" state is shown); edit responses no longer print job
+    IDs in text output (still present with `JADE_JSON=1`). Verified live: a
+    read in a repo with two files changed outside Jade renders as `r1` plus
+    content; an edit renders as `r1 → r2 · a.go · +1 -1`.
+  - Follow-up for 0.0.4: every single edit still starts a whole-repository
+    typecheck job whose result nobody reads. Either scope it to the edited
+    package and fold the verdict in, or stop starting it outside `apply`.
   - `drifted: N files` on every read. It is noise for a read, and its meaning
     (files changed outside Jade — by a build, git, another process) is never
     explained. Show it on edits, where it is a real precondition, with a

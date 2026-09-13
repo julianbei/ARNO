@@ -15,6 +15,18 @@ wholesale committed Jade's bookkeeping as part of the agent's change. Now:
   workspace.
 - A call with an unknown tool name never creates the log.
 
+### Shorter responses
+
+Two lines that appeared on every call and that no caller could act on are
+gone from text output:
+
+- `drifted: N files` on reads. Content returned by a read is current either
+  way, and `changes` reports what moved. A broken freshness check is still
+  reported.
+- `jobs: job-N` on edits. The background typecheck's result was never seen
+  unless polled, and the edited file's own errors are already in the
+  response. Job IDs remain in `JADE_JSON=1` output.
+
 ### Tool names
 
 `jade_find` is accepted as well as `jade.find`. Hosts rewrite the dot away

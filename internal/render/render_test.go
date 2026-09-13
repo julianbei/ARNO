@@ -59,7 +59,10 @@ func TestInspectLeadsWithAmbiguity(t *testing.T) {
 	}
 }
 
-func TestFreshnessReducesToOneLineAndDropsPathLists(t *testing.T) {
+// A drift count on a read is a line no reader can act on, printed on every
+// call. Reads return current content regardless, and changes() reports what
+// moved.
+func TestReadsCarryNoDriftCountOrPathLists(t *testing.T) {
 	paths := []string{"a.go", "b.go", "c.go"}
 	out, _ := Text(protocol.InspectResponse{
 		Revision: "r2",
@@ -70,20 +73,27 @@ func TestFreshnessReducesToOneLineAndDropsPathLists(t *testing.T) {
 			DirtyPaths:   paths,
 		},
 	})
-	if !strings.Contains(out, "drifted: 3 files") {
-		t.Fatalf("expected a one-line freshness summary, got:\n%s", out)
+	if strings.Contains(out, "drift") {
+		t.Fatalf("expected no drift line on a read, got:\n%s", out)
 	}
-	// The two lists were byte-identical on every read in this repo. Sending
-	// either one inline is what made reads expensive.
 	if strings.Contains(out, "b.go") {
 		t.Fatalf("expected path lists to be dropped, got:\n%s", out)
 	}
+	if !strings.HasPrefix(out, "r2\n") {
+		t.Fatalf("expected the header reduced to the revision, got:\n%s", out)
+	}
 }
 
-func TestFreshnessOmittedEntirelyWhenNotDrifted(t *testing.T) {
-	out, _ := Text(protocol.InspectResponse{Revision: "r1", Source: "x"})
-	if strings.Contains(out, "drifted") {
-		t.Fatalf("expected no freshness line for a clean tree, got:\n%s", out)
+// Broken freshness is the one case worth a line: Jade's own view of the
+// workspace cannot be trusted.
+func TestUnknownFreshnessIsStillReported(t *testing.T) {
+	out, _ := Text(protocol.InspectResponse{
+		Revision:  "r1",
+		Source:    "x",
+		Freshness: protocol.Freshness{Unknown: "git status failed"},
+	})
+	if !strings.Contains(out, "freshness unknown: git status failed") {
+		t.Fatalf("expected unknown freshness surfaced, got:\n%s", out)
 	}
 }
 
@@ -165,6 +175,11 @@ func TestEditLeadsWithRevisionAndSurfacesDiagnostics(t *testing.T) {
 	// Diagnostics are the reason an agent reads an edit response at all.
 	if !strings.Contains(out, "error main.go:9:3 undefined: X") {
 		t.Fatalf("expected the diagnostic on its own line, got:\n%s", out)
+	}
+	// The background job ID is not something a reader of this response acts
+	// on; it stays in JSON output only.
+	if strings.Contains(out, "job-1") || strings.Contains(out, "jobs:") {
+		t.Fatalf("expected no job line in an edit response, got:\n%s", out)
 	}
 }
 
