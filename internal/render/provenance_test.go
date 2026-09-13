@@ -146,3 +146,19 @@ func TestEditPointsAtApplyForErrorsFromAChangeInProgress(t *testing.T) {
 		t.Fatalf("a type error is not a change in progress, got:\n%s", real)
 	}
 }
+func TestChangesMarkOutsideEditsAndListRuns(t *testing.T) {
+	out := changes(protocol.ChangesResponse{
+		Revision: "r3",
+		Files: []protocol.ChangedFile{
+			{Path: "mine.go", Added: 2, By: "this session"},
+			{Path: "theirs.go", Added: 1, By: "outside this session"},
+		},
+		Runs: []protocol.ValidationRun{{Kind: "check tests", Outcome: "passed", Revision: "r3"}},
+	})
+	if !strings.Contains(out, "+1 -0 theirs.go · outside this session") || strings.Contains(out, "mine.go ·") {
+		t.Fatalf("only the change made elsewhere should be marked, got:\n%s", out)
+	}
+	if !strings.Contains(out, "ran: check tests passed at r3") {
+		t.Fatalf("expected the run listed, got:\n%s", out)
+	}
+}

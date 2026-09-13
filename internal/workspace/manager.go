@@ -29,6 +29,8 @@ type Manager struct {
 	changed  map[string]struct{}
 	ckptSeq  int
 	ckpts    map[string]checkpointSnapshot
+	// runs are the most recent finished validation runs, oldest first.
+	runs []protocol.ValidationRun
 }
 
 type checkpointSnapshot struct {
@@ -164,6 +166,7 @@ func (m *Manager) ChangesResponse() protocol.ChangesResponse {
 	}
 	return protocol.ChangesResponse{
 		Revision:     m.Revision(),
+		Runs:         m.recentRuns(),
 		Files:        files,
 		TotalAdded:   added,
 		TotalRemoved: removed,
@@ -199,6 +202,22 @@ func (m *Manager) mergedChangedFiles() []protocol.ChangedFile {
 		known[path] = true
 	}
 
+	// Who changed each file, from this session's view: it knows what it
+	// edited, and anything else git sees changed was someone else.
+	m.mu.RLock()
+	edited := make(map[string]bool, len(m.changed))
+	for key := range m.changed {
+		edited[pathFromChangedKey(key)] = true
+	}
+	m.mu.RUnlock()
+	for i := range files {
+		if edited[files[i].Path] {
+			files[i].By = "this session"
+		} else {
+			files[i].By = "outside this session"
+		}
+	}
+
 	sort.Slice(files, func(a, b int) bool { return files[a].Path < files[b].Path })
 	return files
 }
@@ -218,6 +237,31 @@ func (m *Manager) mergedChangedFiles() []protocol.ChangedFile {
 func (m *Manager) isDirectory(path string) bool {
 	info, err := os.Stat(filepath.Join(m.root, path))
 	return err == nil && info.IsDir()
+}
+
+// maxRecordedRuns bounds the validation runs changes lists.
+const maxRecordedRuns = 10
+
+// RecordRun notes a finished validation run — a check, a declared command, an
+// apply's check — at the current revision, so changes shows edits and the
+// validation that ran against them in one record. A run still going is not
+// recorded.
+func (m *Manager) RecordRun(kind string, outcome string) {
+	if outcome == "" || outcome == string(protocol.OutcomeRunning) {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.runs = append(m.runs, protocol.ValidationRun{Kind: kind, Outcome: outcome, Revision: revisionString(m.revision)})
+	if len(m.runs) > maxRecordedRuns {
+		m.runs = m.runs[len(m.runs)-maxRecordedRuns:]
+	}
+}
+
+func (m *Manager) recentRuns() []protocol.ValidationRun {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return append([]protocol.ValidationRun(nil), m.runs...)
 }
 
 // beforeWrite records, for every checkpoint that has not seen path yet, what

@@ -1118,6 +1118,18 @@ type ChangedFile struct {
 	Path    string
 	Added   int
 	Removed int
+	// By is "this session" for a file this session edited, and "outside this
+	// session" for one git sees changed that it did not — another session,
+	// the user or a tool.
+	By string
+}
+
+// ValidationRun is one finished validation this session ran: a check, a
+// declared command, an apply's check, at the revision it ran against.
+type ValidationRun struct {
+	Kind     string
+	Outcome  string
+	Revision string
 }
 
 // ChangesResponse returns tracked changed paths and active workspace revision.
@@ -1142,6 +1154,9 @@ type SymbolChange struct {
 
 type ChangesResponse struct {
 	Revision string
+	// Runs are this session's most recent finished validation runs, so edits
+	// and their validation read as one record.
+	Runs []ValidationRun
 	// Files is the single changed-file list. It carries jade's own edit
 	// ledger as well as git's diff, so callers never have to reconcile two
 	// overlapping path lists — see Manager.mergedChangedFiles.

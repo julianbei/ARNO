@@ -71,6 +71,7 @@ func (s *Server) RunCommand(req protocol.RunCommandRequest) (protocol.RunCommand
 
 	outcome := finishedOutcome(output)
 	passed := outcome == protocol.OutcomePassed
+	s.workspace.RecordRun("command "+req.Name, string(outcome))
 	return protocol.RunCommandResponse{
 		Name:    req.Name,
 		Run:     command.Run,
@@ -169,6 +170,7 @@ func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol
 	}
 	outcome := finishedOutcome(output)
 	passed := outcome == protocol.OutcomePassed
+	s.workspace.RecordRun("check "+kind, string(outcome))
 	return protocol.CheckResponse{
 		JobID: jobID, Kind: kind, Outcome: outcome, Status: output.Status, Passed: passed,
 		Summary: verdictSummary(passed, output.Summary, output.Raw),

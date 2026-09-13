@@ -406,7 +406,12 @@ func changes(r protocol.ChangesResponse) string {
 	}
 
 	for _, file := range files {
-		lines = append(lines, fmt.Sprintf("+%d -%d %s", file.Added, file.Removed, file.Path))
+		line := fmt.Sprintf("+%d -%d %s", file.Added, file.Removed, file.Path)
+		// Only the unusual case is marked: a change this session did not make.
+		if file.By == "outside this session" {
+			line += " · outside this session"
+		}
+		lines = append(lines, line)
 		// Symbols are nested under their file rather than repeating the path
 		// on every line — the file is already named directly above.
 		for _, change := range symbolsByPath[file.Path] {
@@ -423,6 +428,13 @@ func changes(r protocol.ChangesResponse) string {
 	}
 	if remaining := len(r.Symbols) - printed; remaining > 0 {
 		lines = append(lines, fmt.Sprintf("... %d more symbol changes", remaining))
+	}
+	if len(r.Runs) > 0 {
+		runs := make([]string, 0, len(r.Runs))
+		for _, run := range r.Runs {
+			runs = append(runs, fmt.Sprintf("%s %s at %s", run.Kind, run.Outcome, run.Revision))
+		}
+		lines = append(lines, "ran: "+strings.Join(runs, " · "))
 	}
 
 	return strings.Join(lines, "\n")

@@ -101,3 +101,30 @@ func TestRevertThatCannotRestoreEverythingChangesNothing(t *testing.T) {
 		t.Fatalf("a failed revert must leave the revision at %s, got %s", before, m.Revision())
 	}
 }
+func TestChangesRecordsRunsAndWhichFilesThisSessionEdited(t *testing.T) {
+	root := t.TempDir()
+	m := NewManager(root, nil)
+	if err := os.WriteFile(filepath.Join(root, "a.txt"), []byte("a\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m.BumpRevision("a.txt")
+	m.RecordRun("check tests", "passed")
+	m.RecordRun("command validate", "running")
+
+	response := m.ChangesResponse()
+	if len(response.Runs) != 1 || response.Runs[0].Kind != "check tests" || response.Runs[0].Revision != m.Revision() {
+		t.Fatalf("expected one finished run at %s, got %+v", m.Revision(), response.Runs)
+	}
+	found := false
+	for _, file := range response.Files {
+		if file.Path == "a.txt" {
+			found = true
+			if file.By != "this session" {
+				t.Fatalf("a file this session edited should say so, got %q", file.By)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("a.txt missing from %+v", response.Files)
+	}
+}

@@ -102,6 +102,7 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 			response.CheckOutcome, response.CheckSummary = s.runCheck(kind)
 		}
 		response.CheckPassed = response.CheckOutcome == protocol.OutcomePassed
+		s.workspace.RecordRun("apply "+kind, string(response.CheckOutcome))
 		response.CheckStatus = string(response.CheckOutcome)
 	}
 

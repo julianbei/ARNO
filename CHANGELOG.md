@@ -65,6 +65,18 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### `changes` shows who changed a file, and what validation ran
+
+- **Files this session did not change are marked:** `+4 -1 store.go ·
+  outside this session` — another session, the user or a tool. A session
+  knows what it edited; the rest git sees is someone else's.
+- **Recent validation runs are listed:** `ran: check tests passed at r12 ·
+  command validate failed at r14 · apply impact passed at r15` — checks,
+  declared commands and apply's check, the last ten, at the revision they ran
+  against.
+
+`run_tests` runs are not listed yet.
+
 ### Declared commands as validation steps
 
 `declare_command` takes a `kind`. `check kind: "lint"` or `"codegen"` runs

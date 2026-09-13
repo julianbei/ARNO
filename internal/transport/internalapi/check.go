@@ -116,6 +116,7 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 
 	outcome := finishedOutcome(output)
 	passed := outcome == protocol.OutcomePassed
+	s.workspace.RecordRun("check "+kind, string(outcome))
 	return protocol.CheckResponse{
 		JobID:   jobID,
 		Kind:    kind,
