@@ -88,11 +88,10 @@ func cases() []languageCase {
 			name: "ruby", dir: "ruby", file: "store.rb", symbol: "put",
 			declarations: []string{"Store", "put", "new_store"},
 			server:       "ruby-lsp", otherFile: "use.rb", renamed: "store2",
-			// ruby-lsp advertises renameProvider and then returns no edits
-			// for a method. References work and are exact, so the useful
-			// assertion is that jade says what happened instead of blaming a
-			// missing server the user has installed.
-			renameLimitation: "produced no edits",
+			// ruby-lsp 0.26 renames classes and modules but returns null for
+			// a method, even fully indexed. The image also has solargraph,
+			// which renames methods, so this case proves the fallback: the
+			// primary declines, jade asks the alternative, both files change.
 		},
 		{
 			name: "rust", dir: "rust", file: "src/lib.rs", symbol: "put",

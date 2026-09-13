@@ -13,6 +13,11 @@ import (
 // here rather than mocked at the Client boundary because the behaviours worth
 // testing live in the framing and the read loop — a mock that returned canned
 // structs would assert nothing about either.
+// fakeIndexingStep spaces the "indexing" script's progress messages. The whole
+// run is three steps, long enough past settleGrace to tell a client that waits
+// for `end` from one that merely waits out the grace period.
+const fakeIndexingStep = 1200 * time.Millisecond
+
 func runFakeServer(script string) {
 	in := bufio.NewReader(os.Stdin)
 	out := os.Stdout
@@ -40,6 +45,19 @@ func runFakeServer(script string) {
 
 		case "initialized":
 			// Notification: no reply.
+			if script == "indexing" {
+				// Index the way ruby-lsp does: announce, work, finish. Written
+				// from a goroutine so the read loop keeps serving meanwhile —
+				// a real server answers requests while indexing, wrongly.
+				go func() {
+					token := json.RawMessage(`"indexing"`)
+					for _, kind := range []string{"begin", "report", "end"} {
+						params, _ := json.Marshal(map[string]any{"token": token, "value": map[string]any{"kind": kind}})
+						_ = writeMessage(out, Message{Method: "$/progress", Params: params})
+						time.Sleep(fakeIndexingStep)
+					}
+				}()
+			}
 
 		case "shutdown":
 			_ = writeMessage(out, Message{ID: message.ID, Result: json.RawMessage("null")})

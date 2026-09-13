@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -90,13 +91,68 @@ func (m *Manager) ClientFor(ctx context.Context, language string) (*Client, bool
 		return nil, false
 	}
 
-	startCtx, cancel := context.WithTimeout(ctx, StartTimeout)
-	defer cancel()
-
-	client, err := Start(startCtx, resolved, m.root)
+	client, err := m.start(ctx, language, resolved)
 	if err != nil {
 		m.markFailed(language, err)
 		return nil, false
+	}
+	return client, true
+}
+
+// FallbacksFor returns running clients for the language's installed
+// alternatives, starting them on demand.
+//
+// Only used after the primary server declined an operation, so the cost of a
+// second process is paid by the sessions that need it and nobody else. A
+// fallback that fails to start is skipped rather than recorded against the
+// language: the primary is still working.
+func (m *Manager) FallbacksFor(ctx context.Context, language string) []*Client {
+	if m == nil {
+		return nil
+	}
+	spec, ok := SpecFor(language)
+	if !ok {
+		return nil
+	}
+
+	var out []*Client
+	for _, fallback := range spec.Fallbacks() {
+		key := language + "/" + fallback.Command
+		m.mu.Lock()
+		if m.closed {
+			m.mu.Unlock()
+			return out
+		}
+		existing, running := m.clients[key]
+		_, broken := m.failed[key]
+		m.mu.Unlock()
+
+		if running && !existing.closed.Load() {
+			out = append(out, existing)
+			continue
+		}
+		if broken {
+			continue
+		}
+		client, err := m.start(ctx, key, fallback)
+		if err != nil {
+			m.markFailed(key, err)
+			continue
+		}
+		out = append(out, client)
+	}
+	return out
+}
+
+// start launches a server and records it under key, handling the races with
+// Close and with a concurrent start for the same key.
+func (m *Manager) start(ctx context.Context, key string, spec ServerSpec) (*Client, error) {
+	startCtx, cancel := context.WithTimeout(ctx, StartTimeout)
+	defer cancel()
+
+	client, err := Start(startCtx, spec, m.root)
+	if err != nil {
+		return nil, err
 	}
 
 	m.mu.Lock()
@@ -104,17 +160,19 @@ func (m *Manager) ClientFor(ctx context.Context, language string) (*Client, bool
 	if m.closed {
 		// Raced with Close. Do not leak the process just started.
 		go client.Close()
-		return nil, false
+		return nil, errManagerClosed
 	}
-	// Another goroutine may have started one for the same language while this
-	// one was initializing. Keep the winner and shut down the duplicate.
-	if existing, ok := m.clients[language]; ok && !existing.closed.Load() {
+	// Another goroutine may have started one for the same key while this one
+	// was initializing. Keep the winner and shut down the duplicate.
+	if existing, ok := m.clients[key]; ok && !existing.closed.Load() {
 		go client.Close()
-		return existing, true
+		return existing, nil
 	}
-	m.clients[language] = client
-	return client, true
+	m.clients[key] = client
+	return client, nil
 }
+
+var errManagerClosed = errors.New("language server manager is closed")
 
 func (m *Manager) markFailed(language string, err error) {
 	m.mu.Lock()

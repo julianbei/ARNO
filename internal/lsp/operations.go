@@ -20,6 +20,7 @@ func References(ctx context.Context, client *Client, path string, lineText strin
 	if !client.Supports("referencesProvider") {
 		return nil, false
 	}
+	client.WaitSettled(ctx)
 
 	ctx, cancel := context.WithTimeout(ctx, RequestTimeout)
 	defer cancel()
@@ -83,6 +84,7 @@ func Rename(ctx context.Context, client *Client, path string, lineText string, l
 	if !client.Supports("renameProvider") {
 		return nil, ErrRenameUnsupported
 	}
+	client.WaitSettled(ctx)
 
 	ctx, cancel := context.WithTimeout(ctx, RequestTimeout)
 	defer cancel()

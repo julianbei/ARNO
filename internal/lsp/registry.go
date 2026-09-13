@@ -155,6 +155,36 @@ func (s ServerSpec) Resolve() (ServerSpec, bool) {
 	return s, false
 }
 
+// Fallbacks returns launchable specs for every installed alternative other
+// than the one Resolve picks, in preference order.
+//
+// Resolve answers "which server do I start"; this answers "which server do I
+// ask when that one declines". They are different questions because a
+// server can be installed, running and still unable to do one operation:
+// ruby-lsp 0.26 renames classes and modules but returns null for a method,
+// which solargraph renames correctly.
+func (s ServerSpec) Fallbacks() []ServerSpec {
+	primary, found := s.Resolve()
+	if !found {
+		return nil
+	}
+	var out []ServerSpec
+	for _, alternative := range s.Alternatives {
+		if alternative.Command == primary.Command {
+			continue
+		}
+		if _, ok := lookPath(alternative.Command); !ok {
+			continue
+		}
+		fallback := s
+		fallback.Command = alternative.Command
+		fallback.Args = alternative.Args
+		fallback.Alternatives = nil
+		out = append(out, fallback)
+	}
+	return out
+}
+
 // lookPath finds an executable, searching the usual language-toolchain
 // directories in addition to PATH.
 //

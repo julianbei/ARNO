@@ -185,3 +185,44 @@ func jsonNumber(n int) []byte {
 	raw, _ := json.Marshal(n)
 	return raw
 }
+
+// An indexing server answers wrongly rather than slowly, so the only safe
+// moment to ask is after its progress token ends. Waiting out the grace
+// period alone would return mid-index here.
+func TestWaitSettledWaitsForProgressToEnd(t *testing.T) {
+	client := startFake(t, "indexing")
+
+	started := time.Now()
+	client.WaitSettled(context.Background())
+	elapsed := time.Since(started)
+
+	if elapsed < 2*fakeIndexingStep {
+		t.Fatalf("returned after %v, before the server ended its progress token", elapsed)
+	}
+	if elapsed > SettleTimeout/2 {
+		t.Fatalf("waited %v; should have returned soon after progress ended", elapsed)
+	}
+	client.progressMu.Lock()
+	defer client.progressMu.Unlock()
+	if len(client.activeProgress) != 0 {
+		t.Fatalf("progress still active after settling: %v", client.activeProgress)
+	}
+}
+
+// A server that reports no progress must cost the grace period once, not the
+// settle timeout.
+func TestWaitSettledDoesNotStallOnAQuietServer(t *testing.T) {
+	client := startFake(t, "normal")
+
+	started := time.Now()
+	client.WaitSettled(context.Background())
+	if elapsed := time.Since(started); elapsed > settleGrace+time.Second {
+		t.Fatalf("a server with no progress to report cost %v", elapsed)
+	}
+
+	started = time.Now()
+	client.WaitSettled(context.Background())
+	if elapsed := time.Since(started); elapsed > 200*time.Millisecond {
+		t.Fatalf("an already settled server cost %v on the second call", elapsed)
+	}
+}

@@ -1,5 +1,53 @@
 # Changelog
 
+## Unreleased
+
+### Semantic answers wait for the server's index
+
+Jade sent `references` and `rename` as soon as a server finished `initialize`.
+An indexing server does not answer those slowly, it answers them wrongly:
+ruby-lsp returned `null` for a class rename it got right two seconds later,
+and a `null` rename reads as "cannot rename", not "ask again". rust-analyzer,
+jdtls and metals all index asynchronously too, so the first semantic call
+after startup was a race in four languages.
+
+Jade now declares `window.workDoneProgress`, tracks the server's `$/progress`
+tokens, and waits for them to end before a semantic request — bounded at 60
+seconds, free when the server is idle, a moment on the first call for a server
+that reports nothing.
+
+### Rename falls back to an alternative server
+
+A language's alternative server was only used when the primary was not
+installed. Now it is also asked when the primary is running and declines.
+ruby-lsp 0.26 renames classes but returns `null` for methods even when fully
+indexed; `solargraph` renames methods correctly across files. With both
+installed, Ruby method rename works. With only ruby-lsp, it still refuses and
+repeats the server's reason.
+
+### Formatting beyond Go and Rust
+
+Formatters now run for TypeScript, JavaScript, Python and Scala — **only when
+the repository declares them**:
+
+| Language | Runs when |
+|---|---|
+| TypeScript / JavaScript | a prettier config or `"prettier"` key in `package.json`, and the project's own `node_modules/.bin/prettier` |
+| Python | `[tool.black]` or `[tool.ruff.format]` in `pyproject.toml`; the project venv's binary first |
+| Scala | `.scalafmt.conf` and `scalafmt` installed |
+
+gofmt and rustfmt still run unconditionally: they are canonical and take no
+config. Every other formatter does, and running one a project did not choose
+turns a one-line edit into a whole-file diff. Config is searched from the file
+upward to the workspace root and never above it, so nested packages work and
+a repository never inherits a formatter from the directory it sits in. Ruby
+and Java stay unformatted; see [ROADMAP.md](ROADMAP.md).
+
+### Roadmap
+
+[ROADMAP.md](ROADMAP.md) collects the planned work, each item tied to the
+problem observed in real use.
+
 ## 0.0.2
 
 Semantics. 0.0.1 could read and edit nine languages structurally but only

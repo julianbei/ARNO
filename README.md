@@ -223,7 +223,7 @@ speaking the protocol directly, send the prefixed one.
 | `find` | Locate a declaration **and** get its body in one call. |
 | `grep` | Literal or regex text search with path globs. The replacement for `grep -rn`. |
 | `search` | Rank declarations by name similarity. Fuzzy and name-only — use `grep` for anything else. |
-| `references` | Find usages. gopls-backed and exact for Go; a name-matched approximation otherwise, and it says which answered. |
+| `references` | Find usages. Exact from the language server when one is installed; a name-matched approximation otherwise, and it says which answered. |
 | `repository_map` | Rank files against a task description, within a token budget. |
 | `retrieve` | Pull a working set for a query. |
 | `context` | Assemble the surrounding context for one symbol. |
@@ -245,7 +245,7 @@ rather than guessing.
 | `create_file` | Create a new file. |
 | `delete_file` | Delete a file. |
 | `delete_symbol` | Delete one declaration. |
-| `rename` | Cross-file rename. gopls-backed; refuses rather than guessing when it cannot be exact. |
+| `rename` | Cross-file rename from the language server; refuses rather than guessing when it cannot be exact. |
 | `insert` | Add text without replacing anything — a new function, a new section, an extra case. Appends with no anchor; places before or after a unique anchor with one. |
 | `apply` | Several edits as one atomic unit — anchors validated up front, all applied or none, one revision bump and one validation at the end. |
 
@@ -323,10 +323,14 @@ and shuts it down on exit.
 
 Every row is verified end-to-end by `make conformance`, which builds an image
 containing all eight servers and runs jade against a real repository per
-language. One known server limitation is recorded rather than hidden:
-**ruby-lsp advertises rename and then produces no edits for a method**, so
-jade reports the server's own reason instead of claiming no server is
-installed.
+language.
+
+Semantic requests wait for the server to finish indexing (its `$/progress`
+tokens), because an indexing server answers wrongly rather than slowly. When
+the primary server declines a rename, jade asks the language's installed
+alternative: **ruby-lsp renames classes but not methods, so Ruby method rename
+needs `solargraph` installed alongside it.** With ruby-lsp alone, method
+rename refuses and repeats the server's reason.
 
 "Structure" is outline, symbol read, edit-by-symbol, grep and search.
 "Semantics" is exact `references`, cross-file `rename`, and type-level
@@ -374,7 +378,8 @@ The longer design document is [docs/scope.md](docs/scope.md).
 ## What Jade does not do yet
 
 This list is more useful than the feature list — it tells you what is worth
-reporting and what is already known.
+reporting and what is already known. What is planned is in
+[ROADMAP.md](ROADMAP.md).
 
 - **Nine languages get a real grammar; the rest fall back to a text scan.**
   Go, TypeScript, TSX, JavaScript, Python, Ruby, Java, Scala and Rust are
@@ -393,10 +398,12 @@ reporting and what is already known.
 - **No completion, hover or code actions.** Jade's LSP client implements what
   the tools need — references, rename, diagnostics — not the whole protocol.
 - **No blame, no cross-repo work, no remote execution.**
-- **Formatting covers gofmt and rustfmt only.** Other languages are left
-  alone rather than reformatted by a tool whose config jade cannot see. TypeScript, JSON and Markdown
-  are deliberately left alone — their formatters take project config and could
-  reformat far more than the agent touched.
+- **Formatting runs only where it is safe.** gofmt and rustfmt always run.
+  prettier (TypeScript/JavaScript), black or ruff (Python) and scalafmt run
+  only when the repository declares them — its config file, and for Node and
+  Python the project's own binary — because a formatter the project did not
+  choose turns a one-line edit into a whole-file diff. Ruby, Java, JSON and
+  Markdown are left as edited.
 - **Revision tracking is Jade's own counter, not git's.** It detects concurrent
   edits within a session. It is not a VCS.
 - **Not hardened for untrusted input.** It runs shell commands you declare and

@@ -98,19 +98,119 @@ func TestFormattingDoesNotFailTheEditWhenFileIsBroken(t *testing.T) {
 }
 
 func TestFormatterSelectionByExtension(t *testing.T) {
-	if formatterFor("a.go") != "gofmt" {
-		t.Fatalf("expected gofmt for Go")
+	dir := t.TempDir()
+	if chosen, ok := formatterFor(dir, "a.go"); !ok || chosen.name != "gofmt" {
+		t.Fatalf("expected gofmt for Go, got %+v", chosen)
 	}
-	if formatterFor("a.rs") != "rustfmt" {
-		t.Fatalf("expected rustfmt for Rust")
-	}
-	// No formatter is listed for languages whose formatter needs project
-	// configuration — running one unattended could reformat far more than
+	// A project that declares no formatter gets none, even for languages
+	// that have one — running one unattended could reformat far more than
 	// the agent touched.
-	for _, path := range []string{"a.ts", "a.md", "a.json", "Makefile"} {
-		if formatterFor(path) != "" {
-			t.Fatalf("expected no formatter for %s", path)
+	for _, path := range []string{"a.ts", "a.tsx", "a.py", "a.scala", "a.rb", "a.java", "a.md", "a.json", "Makefile"} {
+		if chosen, ok := formatterFor(dir, path); ok {
+			t.Fatalf("expected no formatter for %s in an undeclared project, got %+v", path, chosen)
 		}
+	}
+}
+
+// fakeFormatter writes an executable that replaces the file's content with a
+// marker, so a test can tell whether it ran and on what.
+func fakeFormatter(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	script := "#!/bin/sh\nfor last; do :; done\nprintf 'formatted\\n' > \"$last\"\n"
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPrettierRunsOnlyWhenTheProjectDeclaresIt(t *testing.T) {
+	dir := t.TempDir()
+	writeIn(t, dir, "web/src/a.ts", "const   a=1\n")
+	fakeFormatter(t, filepath.Join(dir, "web", "node_modules", ".bin", "prettier"))
+
+	if formatted := formatFiles(dir, []string{"web/src/a.ts"}); len(formatted) != 0 {
+		t.Fatalf("prettier ran with no project config: %v", formatted)
+	}
+
+	writeIn(t, dir, "web/.prettierrc", "{}\n")
+	if formatted := formatFiles(dir, []string{"web/src/a.ts"}); len(formatted) != 1 {
+		t.Fatalf("expected prettier to run once the nested project declares it, got %v", formatted)
+	}
+	if contentOf(t, dir, "web/src/a.ts") != "formatted\n" {
+		t.Fatalf("expected the project's own prettier to have rewritten the file")
+	}
+}
+
+func TestPrettierKeyInPackageJSONCountsAsDeclared(t *testing.T) {
+	dir := t.TempDir()
+	writeIn(t, dir, "package.json", `{"name":"x","prettier":{"semi":false}}`)
+	fakeFormatter(t, filepath.Join(dir, "node_modules", ".bin", "prettier"))
+
+	if chosen, ok := formatterFor(dir, "a.js"); !ok || chosen.name != "prettier" {
+		t.Fatalf("expected prettier from package.json's prettier key, got %+v", chosen)
+	}
+}
+
+func TestPrettierConfigWithoutAnInstalledBinaryIsSkipped(t *testing.T) {
+	// A global prettier is a different version from the one the project
+	// pinned, and would reformat to different rules.
+	dir := t.TempDir()
+	writeIn(t, dir, ".prettierrc", "{}\n")
+	if chosen, ok := formatterFor(dir, "a.ts"); ok {
+		t.Fatalf("expected no formatter without the project's own prettier, got %+v", chosen)
+	}
+}
+
+func TestPythonFormatterFollowsPyproject(t *testing.T) {
+	dir := t.TempDir()
+	fakeFormatter(t, filepath.Join(dir, ".venv", "bin", "black"))
+	fakeFormatter(t, filepath.Join(dir, ".venv", "bin", "ruff"))
+
+	writeIn(t, dir, "pyproject.toml", "[tool.ruff]\nline-length = 100\n")
+	if chosen, ok := formatterFor(dir, "a.py"); ok {
+		t.Fatalf("ruff as a linter only is not a formatter choice, got %+v", chosen)
+	}
+
+	writeIn(t, dir, "pyproject.toml", "[tool.black]\nline-length = 100\n")
+	if chosen, ok := formatterFor(dir, "a.py"); !ok || chosen.name != "black" {
+		t.Fatalf("expected black, got %+v", chosen)
+	}
+
+	writeIn(t, dir, "pyproject.toml", "[tool.ruff.format]\nquote-style = \"single\"\n")
+	chosen, ok := formatterFor(dir, "a.py")
+	if !ok || chosen.name != "ruff" || chosen.args[0] != "format" {
+		t.Fatalf("expected ruff format, got %+v", chosen)
+	}
+}
+
+func TestScalafmtNeedsItsConfig(t *testing.T) {
+	dir := t.TempDir()
+	bin := t.TempDir()
+	fakeFormatter(t, filepath.Join(bin, "scalafmt"))
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	if chosen, ok := formatterFor(dir, "A.scala"); ok {
+		t.Fatalf("scalafmt without .scalafmt.conf, got %+v", chosen)
+	}
+	writeIn(t, dir, ".scalafmt.conf", "version = 3.8.0\n")
+	if chosen, ok := formatterFor(dir, "A.scala"); !ok || chosen.name != "scalafmt" {
+		t.Fatalf("expected scalafmt with its config, got %+v", chosen)
+	}
+}
+
+func TestFormatterConfigAboveTheWorkspaceIsIgnored(t *testing.T) {
+	// A repository checked out inside a directory that happens to declare a
+	// formatter must not inherit it.
+	outer := t.TempDir()
+	writeIn(t, outer, ".prettierrc", "{}\n")
+	fakeFormatter(t, filepath.Join(outer, "node_modules", ".bin", "prettier"))
+	root := filepath.Join(outer, "repo")
+	writeIn(t, root, "a.ts", "x\n")
+
+	if chosen, ok := formatterFor(root, "a.ts"); ok {
+		t.Fatalf("inherited a formatter from outside the workspace: %+v", chosen)
 	}
 }
 

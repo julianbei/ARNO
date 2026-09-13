@@ -57,6 +57,20 @@ type Client struct {
 	// returns an error that reads like a jade bug rather than an absent one.
 	capabilities map[string]json.RawMessage
 
+	// progress tracks work-done tokens the server has begun and not ended.
+	// An indexing server answers semantic requests before it is ready, and
+	// answers them wrongly rather than slowly: ruby-lsp returns null for a
+	// class rename it gets right two seconds later. The only signal that the
+	// index is ready is the `end` of its progress token.
+	progressMu     sync.Mutex
+	activeProgress map[string]struct{}
+	lastProgress   time.Time
+
+	// ready is when initialize completed, the reference point for how long a
+	// server gets to start reporting progress before it is assumed to have
+	// nothing to report.
+	ready time.Time
+
 	// closed means the process is gone — set by reap on exit, and by Close
 	// only after the shutdown handshake has been attempted. Setting it any
 	// earlier would make Close's own shutdown request fail against itself.
@@ -110,8 +124,9 @@ func Start(ctx context.Context, spec ServerSpec, root string) (*Client, error) {
 		stdout:      bufio.NewReaderSize(stdout, 64*1024),
 		pending:     make(map[string]chan Message),
 		diagnostics: make(map[string][]Diagnostic),
-		open:        make(map[string]int),
-		exited:      make(chan struct{}),
+		open:           make(map[string]int),
+		activeProgress: make(map[string]struct{}),
+		exited:         make(chan struct{}),
 	}
 
 	go client.readLoop()
@@ -188,6 +203,27 @@ func (c *Client) handleServerMessage(message Message) {
 		c.diagnosticsMu.Lock()
 		c.diagnostics[params.URI] = params.Diagnostics
 		c.diagnosticsMu.Unlock()
+
+	case "$/progress":
+		var params struct {
+			Token json.RawMessage `json:"token"`
+			Value struct {
+				Kind string `json:"kind"`
+			} `json:"value"`
+		}
+		if err := json.Unmarshal(message.Params, &params); err != nil {
+			return
+		}
+		token := string(params.Token)
+		c.progressMu.Lock()
+		switch params.Value.Kind {
+		case "begin":
+			c.activeProgress[token] = struct{}{}
+		case "end":
+			delete(c.activeProgress, token)
+		}
+		c.lastProgress = time.Now()
+		c.progressMu.Unlock()
 
 	case "workspace/configuration":
 		// Answer with one null per requested item: servers ask this during
@@ -309,6 +345,10 @@ func (c *Client) initialize(ctx context.Context, root string, spec ServerSpec) e
 			{"uri": pathToURI(root), "name": filepathBase(root)},
 		},
 		"capabilities": map[string]any{
+			// Without this a server is not allowed to report progress, and
+			// progress is the only way to know its index is ready. See
+			// WaitSettled.
+			"window": map[string]any{"workDoneProgress": true},
 			"textDocument": map[string]any{
 				"synchronization": map[string]any{
 					"didSave":           false,
@@ -343,8 +383,54 @@ func (c *Client) initialize(ctx context.Context, root string, spec ServerSpec) e
 		return err
 	}
 	c.capabilities = result.Capabilities
+	c.ready = time.Now()
 
 	return c.Notify("initialized", map[string]any{})
+}
+
+// Settling bounds. The grace period is how long after initialize a server
+// gets to announce indexing; ruby-lsp begins its progress token within a
+// fraction of a second, and a server that says nothing in that window is
+// taken at its word. Quiet absorbs back-to-back tokens, which rust-analyzer
+// and jdtls both emit, so one ending is not mistaken for all of them ending.
+const (
+	settleGrace   = 1500 * time.Millisecond
+	settleQuiet   = 300 * time.Millisecond
+	SettleTimeout = 60 * time.Second
+)
+
+// WaitSettled blocks until the server has no work-done progress outstanding.
+//
+// An indexing server does not answer slowly, it answers wrongly: ruby-lsp
+// returns null for a class rename it gets right once indexing ends, and a
+// null rename reads as "cannot rename" rather than "ask again". Waiting here
+// costs nothing when the server is idle, a moment on the first call after
+// start, and at most SettleTimeout for a server that never ends a token —
+// after which the request goes ahead and the answer is whatever it is.
+func (c *Client) WaitSettled(ctx context.Context) {
+	deadline := time.Now().Add(SettleTimeout)
+	for {
+		c.progressMu.Lock()
+		active := len(c.activeProgress)
+		last := c.lastProgress
+		c.progressMu.Unlock()
+
+		now := time.Now()
+		if active == 0 && now.Sub(c.ready) >= settleGrace && now.Sub(last) >= settleQuiet {
+			return
+		}
+		if now.After(deadline) || c.closed.Load() {
+			return
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-c.exited:
+			return
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
 }
 
 // Supports reports whether the server advertised a capability. Asking a server

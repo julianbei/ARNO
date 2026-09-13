@@ -2,6 +2,7 @@ package code
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -66,18 +67,36 @@ func (i *Index) languageServerRename(symbol Symbol, line int, column int, newNam
 	ctx := context.Background()
 	absolute := i.resolvePath(symbol.Path)
 
-	client, _, ok := i.languageClient(ctx, symbol.Path)
+	client, language, ok := i.languageClient(ctx, symbol.Path)
 	if !ok {
 		return nil, lsp.ErrNoServer
 	}
 
 	lineText := i.lineAt(absolute, line)
 	fileEdits, err := lsp.Rename(ctx, client, absolute, lineText, line, column, newName)
+	if err == nil && len(fileEdits) == 0 {
+		err = lsp.ErrRenameNoEdits
+	}
+
+	// A server that declined is asked no further, but the language may have
+	// another one installed that can do it. ruby-lsp renames classes and
+	// returns null for methods; solargraph renames methods. The primary's
+	// refusal is kept as the reported reason if every fallback declines too.
+	if errors.Is(err, lsp.ErrRenameNoEdits) || errors.Is(err, lsp.ErrRenameUnsupported) {
+		spec, _ := lsp.SpecFor(language)
+		for _, fallback := range i.servers.FallbacksFor(ctx, language) {
+			if syncErr := i.servers.Sync(fallback, symbol.Path, spec.LanguageID); syncErr != nil {
+				continue
+			}
+			edits, fallbackErr := lsp.Rename(ctx, fallback, absolute, lineText, line, column, newName)
+			if fallbackErr == nil && len(edits) > 0 {
+				fileEdits, err = edits, nil
+				break
+			}
+		}
+	}
 	if err != nil {
 		return nil, err
-	}
-	if len(fileEdits) == 0 {
-		return nil, lsp.ErrRenameNoEdits
 	}
 
 	// Preflight every file before writing any of them. A rename that succeeds

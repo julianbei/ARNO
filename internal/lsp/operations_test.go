@@ -142,3 +142,25 @@ func TestResolveUsesTheAlternativesOwnArguments(t *testing.T) {
 		t.Fatalf("expected the alternative's own args, got %v", resolved.Args)
 	}
 }
+
+// Fallbacks answers "who else can do this" when the primary declines, so it
+// must exclude the primary and include only installed alternatives.
+func TestFallbacksExcludeThePrimaryAndMissingBinaries(t *testing.T) {
+	spec := ServerSpec{
+		Language: "ruby",
+		Command:  "sh",
+		Args:     []string{"--primary-only"},
+		Alternatives: []AlternativeSpec{
+			{Command: "definitely-not-installed-alternative"},
+			{Command: "true", Args: []string{"stdio"}},
+		},
+	}
+
+	fallbacks := spec.Fallbacks()
+	if len(fallbacks) != 1 {
+		t.Fatalf("expected exactly the installed alternative, got %+v", fallbacks)
+	}
+	if fallbacks[0].Command != "true" || len(fallbacks[0].Args) != 1 || fallbacks[0].Args[0] != "stdio" {
+		t.Fatalf("expected the alternative with its own args, got %+v", fallbacks[0])
+	}
+}
