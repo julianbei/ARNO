@@ -513,7 +513,8 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   starting a server; `capabilities` reports not supported, not installed,
   failed, not started, running and indexing; an approximate `references`
   names which. Conformance does not assert it yet.
-- [ ] **Same words as provenance.** The capability report uses Phase 3's
+- [x] **Same words as provenance.** *Done 2026-09-14:* `capabilities` states
+  structure and the references promise in provenance words. The capability report uses Phase 3's
   provenance vocabulary, so what the report promises and what each answer
   reports can be compared directly.
 - [ ] **Own the abstraction leak.** Language-server trouble is reported as the
