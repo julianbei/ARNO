@@ -9,7 +9,7 @@
 read and edit by *symbol* rather than by line number, validate the result, and
 track what changed, without shelling out.
 
-**Status:** 0.0.2 — early, usable, and looking for feedback.
+**Status:** 0.0.3 — early, usable, and looking for feedback.
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest
@@ -72,7 +72,7 @@ being *named in the log* — not when the tool shipped.
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest    # newest
-go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.2    # pinned
+go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.3    # pinned
 ```
 
 Lands in `$GOBIN`, or `$(go env GOPATH)/bin` if that is unset — which is
@@ -97,7 +97,7 @@ current glibc. On an older distro, build from source or use the container
 image, which is statically linked against musl.
 
 ```bash
-VERSION=v0.0.2
+VERSION=v0.0.3
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fsSL "https://github.com/julianbei/jade/releases/download/${VERSION}/jade-mcp_${VERSION}_${OS}_${ARCH}.tar.gz" \
@@ -186,7 +186,7 @@ Jade is a child process, not a service, so the useful shape is to copy the
 binary into your own image rather than run Jade's:
 
 ```dockerfile
-FROM ghcr.io/julianbei/jade-mcp:v0.0.2 AS jade
+FROM ghcr.io/julianbei/jade-mcp:v0.0.3 AS jade
 
 FROM your-project-base
 COPY --from=jade /jade-mcp /usr/local/bin/jade-mcp
@@ -430,10 +430,10 @@ reporting and what is already known. What is planned is in
 
 ## Stability and versioning
 
-Tool names and required arguments are frozen and enforced by a test. 0.0.2
-added one tool (`insert`) and changed nothing existing — adding is backward
-compatible, but the MCP catalog is fixed at connection time, so **reconnect
-before a new tool appears**.
+Tool names and required arguments are frozen and enforced by a test. 0.0.3
+added no tools and made two arguments optional (`query` on `find`, `path` on
+`read_range`), both backward compatible. Schemas and server instructions are
+still read once at connection time, so **reconnect after upgrading**.
 [docs/tool-contract.md](docs/tool-contract.md) has the full surface and the
 policy on what counts as a breaking change.
 
