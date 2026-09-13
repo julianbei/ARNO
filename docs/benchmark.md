@@ -111,6 +111,8 @@ unless `JADE_BENCH_SANDBOX=1` is set (the benchmark container) or `-allow-host`
 is passed. Only use `-allow-host` on a machine where an agent running arbitrary
 shell commands can do no harm.
 
+Results of the 0.0.4 pilot: [benchmark-results.md](benchmark-results.md).
+
 The report prints per arm: runs, success rate, mean tokens, turns, cost,
 seconds, lines and files changed, agent errors — then each Jade arm's
 scorecard verdict against `shell`.

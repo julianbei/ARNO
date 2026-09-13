@@ -61,18 +61,20 @@ Competitor details below are the reviewer's claims, not verified here.
 
 ### Evidence before features
 
-- [ ] **External benchmark, with bash as the baseline.** The current benchmark
+- [x] **External benchmark, with bash as the baseline.** The current benchmark
   runs against Jade's own repository, which is necessary but not sufficient.
   Measure task success, tokens, tool calls, wall time, invalid edits, shell
   fallbacks and regressions across real repositories in several languages,
   comparing *agent + shell*, *agent + Jade*, and *agent + Jade + shell*. A
   bash-only agent (mini-SWE-agent's thesis) is the adversary that matters
   most. SWE-agent's configurable tool bundles are a candidate harness.
-- [ ] **Measure tool confusion.** 35 tools is a large routing surface: `find`,
+  Pilot done 2026-09-13 (0.0.4):
+  [docs/benchmark-results.md](docs/benchmark-results.md).
+- [x] **Measure tool confusion.** 35 tools is a large routing surface: `find`,
   `search`, `grep`, `retrieve`, `context`, `repository_map`, `read_symbol`,
   `read_range` and `outline` all answer overlapping questions. Use telemetry
   to find tools agents pick wrongly, retry, or never use — then merge or
-  delete them.
+  delete them. Measured 2026-09-13 (0.0.4); merging is 0.0.5.
 
 ### Surface and cost
 

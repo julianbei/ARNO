@@ -15,7 +15,7 @@ it is for. Where the shell is still the better tool, use it — the question
 Jade has to answer is whether an agent gets more done, at acceptable cost,
 with it than without ([docs/benchmark.md](docs/benchmark.md)).
 
-**Status:** 0.0.3 — early, usable, and looking for feedback.
+**Status:** 0.0.4 — early, usable, and looking for feedback.
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest
@@ -63,7 +63,11 @@ The counter-measurement matters as much. One question asked against an
 unrelated repository came out at **1.36x** — worse than the shell — because an
 ambiguous symbol name forced an extra disambiguation call. Seven scenarios at
 home and one away disagree, both are honest, and the second is the one that
-predicts outside use. Jade is not finished.
+predicts outside use. The 0.0.4 pilot on four outside repositories answers
+it at a larger scale: used in place of Claude Code's built-in tools, Jade
+solved 12 of 12 real issues with 51% fewer tokens, and 18–25% fewer than a
+shell trimmed to four tools
+([docs/benchmark-results.md](docs/benchmark-results.md)). Jade is not finished.
 
 Jade's own development log ([docs/feedback.md](docs/feedback.md)) records every
 time its author reached for bash instead, and why. The pattern it found was
@@ -78,7 +82,7 @@ being *named in the log* — not when the tool shipped.
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest    # newest
-go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.3    # pinned
+go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.4    # pinned
 ```
 
 Lands in `$GOBIN`, or `$(go env GOPATH)/bin` if that is unset — which is
@@ -103,7 +107,7 @@ current glibc. On an older distro, build from source or use the container
 image, which is statically linked against musl.
 
 ```bash
-VERSION=v0.0.3
+VERSION=v0.0.4
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fsSL "https://github.com/julianbei/jade/releases/download/${VERSION}/jade-mcp_${VERSION}_${OS}_${ARCH}.tar.gz" \
@@ -206,7 +210,8 @@ The trade-off is real: without Bash the agent cannot run arbitrary commands.
 `run_tests`, `check` and repository commands declared with `declare_command`
 cover building and testing; a task that needs git operations, network access
 or ad-hoc scripts needs the shell back. The numbers above are one run per task
-— see `docs/benchmark.md` for the method.
+— see [docs/benchmark-results.md](docs/benchmark-results.md) for the results,
+a rerun after the pilot's fixes, and the caveats.
 
 ### Three things that will confuse you once
 

@@ -264,7 +264,7 @@ Theme: find out whether Jade beats the shell before building more of it.
 Caution 2 cannot be answered by opinion; this phase produces the data every
 later phase uses to decide what to merge, cut or add.
 
-- [ ] **External benchmark with bash as the baseline** (ROADMAP § Evidence).
+- [x] **External benchmark with bash as the baseline** (ROADMAP § Evidence).
   Three arms — agent + shell, agent + Jade, agent + Jade + shell — starting
   with a pilot of at least five outside repositories covering Go, TypeScript,
   Python, Java and Rust. Record task success, tokens, tool calls, wall time,
@@ -291,10 +291,15 @@ later phase uses to decide what to merge, cut or add.
   is done. Task files for cobra, ky and ripgrep are in `bench/tasks/`, each
   task checked through the harness to fail with a no-op agent and pass with
   the real fix.
+  *Done 2026-09-13:* four repositories (cobra, ky, requests, ripgrep), 12
+  tasks, four arms including a trimmed shell; results in
+  [benchmark-results.md](benchmark-results.md). Java and a fifth repository
+  move to 0.0.5.
 - [ ] **Competitor arm.** The same tasks with Serena in place of Jade; SymForge
   and code-atlas if their setup allows. A comparison to learn from, not a gate —
   but if Serena wins on the inspect tasks, Phase 3 cuts Jade's inspect surface
-  harder rather than competing on it.
+  harder rather than competing on it. *Moved to 0.0.5 (2026-09-13):* not
+  started, and not a gate.
 - [x] **Reposition the README lead.** Done 2026-09-13: the lead describes the
   change transaction; principles 3, 7, 11 and 12 now state preconditions,
   repository-native execution and cheaper-than-the-shell. From "structural access to a codebase" to
@@ -303,12 +308,16 @@ later phase uses to decide what to merge, cut or add.
   principles Jade's design principles do not yet state into the README:
   transactional mutation (preconditions, not just consequences),
   repository-native execution, and cheaper than the escape hatch.
-- [ ] **Decide which arm Jade optimises for.** If agent + Jade + shell wins,
+- [x] **Decide which arm Jade optimises for.** *Decided 2026-09-13:* agent +
+  Jade alone, built-in tools off, core profile. Jade + shell used 9% more
+  tokens than the shell with Bash taking half its calls; Jade alone used 51%
+  fewer than the full shell and 18–25% fewer than a trimmed one. The README
+  recommends it. If agent + Jade + shell wins,
   that is the supported configuration and the README says so; Jade's job
   becomes owning the transaction, not replacing every shell call. The
   criterion is that agents use Jade where Jade is better — not that the shell
   disappears.
-- [ ] **Fix the scorecard before the first run.** Written into the benchmark
+- [x] **Fix the scorecard before the first run.** Written into the benchmark
   docs and not changed after results are seen. *Decided 2026-09-13:*
   agents run as Claude Code headless (`claude -p`), with and without Jade's
   MCP server, on Sonnet 5, pilot capped at $50; tradeable threshold is up to
@@ -322,22 +331,29 @@ later phase uses to decide what to merge, cut or add.
   spending slightly more.
 - [x] **Measure tool confusion** (ROADMAP § Evidence). Built 2026-09-13:
   `telemetry` reports same-target switches, retries and never-called tools;
-  the benchmark run's report is still to be recorded. Extend telemetry, still
+  the pilot suite's report is recorded in
+  [benchmark-results.md](benchmark-results.md). Extend telemetry, still
   content-free, with the sequences that signal a wrong pick: a tool followed
   by a different tool on the same target, retries after `ambiguous` or
   `not_found`, tools never called. *Done when* `telemetry` reports those
   per tool, and one benchmark run's report is recorded.
-- [ ] **Fix the 1.36x case for real.** 11.9 fixed the turn; the tokens were
+- [x] **Fix the 1.36x case for real.** 11.9 fixed the turn; the tokens were
   `read_symbol` returning a whole body and `find Store` returning two types.
   *Done when* that scenario re-measures at or below 1.0x, or the reason it
-  cannot is written down.
+  cannot is written down. *Closed 2026-09-13 with the reason:* the scenario
+  ran once, in a private repository not available to re-measure, and one
+  question of three calls is superseded as evidence by the 36-run pilot. Its
+  two token causes remain and belong to 0.0.5's response budgets: whole
+  `read_symbol` bodies, and `find` answering every type of a name.
 - [x] **Scope or stop the per-edit whole-repository typecheck** (ROADMAP §2
   follow-up). Done 2026-09-13: stopped; single edits start no job. Cost nobody reads distorts every benchmark number.
 - [ ] **Test the retrieval vocabulary map away from home.** `retrieve` expands
   a query with a fixed word list (auth → session, login, token…) at
   [index.go:936](../internal/code/index.go#L936). Run the outside benchmark
   with and without it; keep it only if it helps there, and in Phase 4 it
-  becomes a ranking provider rather than a map in the index.
+  becomes a ranking provider rather than a map in the index. *Moved to 0.0.5
+  (2026-09-13):* `retrieve` is not in the core profile, so no pilot agent
+  called it; measure with a profile that lists it.
 - [x] **`replace_text` line counts** and **`run_command` listing size**
   (done 2026-09-13)
   (ROADMAP §8). Small, and both inflate what the benchmark measures.
@@ -412,6 +428,10 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   (Cline's checkpoints and diff review, for instance) so Jade's instructions do
   not duplicate or fight it. goose first among equals if its ACP passthrough
   really gives Claude Code and Codex Jade through one config.
+
+- [ ] **Carried from 0.0.4.** A Java repository and a fifth pilot repository
+  (needs a JDK on the benchmark machine), the Serena competitor arm, and the
+  retrieval vocabulary test away from home.
 
 **Exit gate:** core profile is at most a dozen tools; the full catalog is
 smaller than 35 with each removal justified by telemetry; re-running the Phase 2
