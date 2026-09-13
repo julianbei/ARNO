@@ -279,7 +279,7 @@ Jade accepts both `jade.find` and `jade_find`.
 |---|---|
 | `outline` | File structure — declarations grouped by kind, without reading bodies. |
 | `read_symbol` | One declaration, by name or symbol ID. |
-| `read_range` | Verbatim lines, or a whole file. `lines: "280-400"` picks a range; `ranges` reads several files or ranges in one call; an end line past the file reads to the end. |
+| `read_range` | Verbatim lines, or a whole file. `lines: "280-400"` picks a range; `ranges` reads several files or ranges in one call; an end line past the file reads to the end. `dep:<name>/<path>` reads a dependency's source, read-only, at the locked version — `grep` and `find` take `dependency` to search it. |
 | `find` | Locate a declaration **and** get its body in one call. `queries` finds several names at once. |
 | `grep` | Literal or regex text search with path globs. The replacement for `grep -rn`. |
 | `search` | Rank declarations by name similarity. Fuzzy and name-only — use `grep` for anything else. |
