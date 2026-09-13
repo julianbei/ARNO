@@ -180,7 +180,7 @@ func decisiveLines(output string) []string {
 // testFailureHeader matches the line a test runner prints to name a failing
 // test: Go's `--- FAIL: TestX`, pytest's `FAILED tests/x.py::test_y`, cargo's
 // `test name ... FAILED` and panics, ava's `✘`.
-var testFailureHeader = regexp.MustCompile(`^(--- FAIL:|FAILED\s|test\s.+\s\.\.\.\sFAILED$|thread\s.+\spanicked at|✘|✖\s)`)
+var testFailureHeader = regexp.MustCompile(`^(--- FAIL:|FAILED\s|test\s.+\s\.\.\.\sFAILED$|thread\s.+\spanicked at|✘|✖\s|●\s)`)
 
 // packageResult matches a runner's per-package verdict, e.g.
 // `FAIL	github.com/spf13/cobra	0.26s`.
@@ -209,6 +209,9 @@ func testFailureLines(lines []string) []string {
 			continue
 		}
 		add(line)
+		if detail := failureDetail(lines, i); detail != "" {
+			add(detail)
+		}
 		// The lines that explain a named failure: its assertion
 		// (file_test.go:76: ...) or its panic. Anything else — including an
 		// `Error:` a later passing test prints — ends the block.
@@ -257,6 +260,90 @@ func withContinuation(lines []string, i int) string {
 		joined = joined[:maxContinuationBytes] + "…"
 	}
 	return joined
+}
+
+// avaFailureSuffixes are what ava appends to a failing test's title on its
+// summary line and leaves off the title of the detail block.
+var avaFailureSuffixes = []string{" Rejected promise returned by test", " Error thrown in test", " Timed out while running tests"}
+
+var (
+	// codeExcerptLine is a numbered source line in a runner's code frame:
+	// ava's `4:   t.is(...)`, jest's `> 12 | expect(...)`.
+	codeExcerptLine = regexp.MustCompile(`^(>\s*)?\d+\s*[:|]`)
+	// bareLocation is a lone file:line a runner prints above its excerpt.
+	bareLocation = regexp.MustCompile(`^[\w./@-]+:\d+(:\d+)?$`)
+)
+
+// maxDetailScan bounds how far a detail block is read.
+const maxDetailScan = 30
+
+// failureDetail returns what a JavaScript runner says about the failing test
+// named on line i: the assertion's difference, or the error and its message,
+// without the code frame and stack.
+//
+// ava names a failure as `✘ [fail]: title Rejected promise returned by test`
+// on its summary line and explains it further down, under the bare title;
+// jest explains under `● suite › title`. Summaries kept only the naming line,
+// so in a benchmark run an agent re-ran one ky test seven times and wrote
+// DEBUG tests to see what had failed.
+func failureDetail(lines []string, i int) string {
+	header := strings.TrimSpace(lines[i])
+	titles := avaFailedTitles(lines)
+	start := -1
+	switch {
+	case strings.HasPrefix(header, "●"):
+		start = i + 1
+	case strings.HasPrefix(header, "✘ [fail]: "):
+		title := avaTitle(header)
+		for j := i + 1; j < len(lines); j++ {
+			if strings.TrimSpace(lines[j]) == title {
+				start = j + 1
+				break
+			}
+		}
+	}
+	if start < 0 {
+		return ""
+	}
+
+	parts := []string{}
+	for j := start; j < len(lines) && j < start+maxDetailScan; j++ {
+		line := strings.TrimSpace(lines[j])
+		if line == "─" || titles[line] || strings.HasPrefix(line, "●") || testFailureHeader.MatchString(line) {
+			break
+		}
+		if line == "" || strings.HasPrefix(line, "at ") || strings.HasPrefix(line, "›") ||
+			codeExcerptLine.MatchString(line) || bareLocation.MatchString(line) {
+			continue
+		}
+		parts = append(parts, line)
+	}
+	joined := strings.Join(parts, " ")
+	if len(joined) > maxContinuationBytes {
+		joined = joined[:maxContinuationBytes] + "…"
+	}
+	return joined
+}
+
+// avaTitle is the test title on an ava summary line.
+func avaTitle(header string) string {
+	title := strings.TrimPrefix(strings.TrimSpace(header), "✘ [fail]: ")
+	for _, suffix := range avaFailureSuffixes {
+		title = strings.TrimSuffix(title, suffix)
+	}
+	return title
+}
+
+// avaFailedTitles is every failing title ava named, so one detail block
+// stops where the next begins.
+func avaFailedTitles(lines []string) map[string]bool {
+	titles := map[string]bool{}
+	for _, line := range lines {
+		if trimmed := strings.TrimSpace(line); strings.HasPrefix(trimmed, "✘ [fail]: ") {
+			titles[avaTitle(trimmed)] = true
+		}
+	}
+	return titles
 }
 
 // lastNLines returns the final n non-empty lines, in original order. Used as

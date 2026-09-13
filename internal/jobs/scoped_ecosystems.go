@@ -103,6 +103,12 @@ func nodeTestCommand(dir string, files []string, testName string) (string, []str
 			case "vitest", "jest":
 				args = append(args, "-t", testName)
 			case "ava":
+				// ava matches the whole title; the others match a part of
+				// it, and agents pass part of a title. Six ky runs answered
+				// "Couldn't find any matching tests" for a title's prefix.
+				if !strings.Contains(testName, "*") {
+					testName = "*" + testName + "*"
+				}
 				args = append(args, "--match", testName)
 			case "mocha":
 				args = append(args, "--grep", testName)

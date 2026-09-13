@@ -52,7 +52,7 @@ func TestScopedTestCommandPerEcosystem(t *testing.T) {
 		wantArgs []string
 	}{
 		{"ava file", ava, TestScope{Kind: "file", File: "test/stream.ts"}, "node_modules/.bin/ava", []string{"test/stream.ts"}},
-		{"ava test", ava, TestScope{Kind: "test", Test: "GET request"}, "node_modules/.bin/ava", []string{"--match", "GET request"}},
+		{"ava test", ava, TestScope{Kind: "test", Test: "GET request"}, "node_modules/.bin/ava", []string{"--match", "*GET request*"}},
 		{"jest test in file", jest, TestScope{Kind: "test", File: "a.test.ts", Test: "works"}, "node_modules/.bin/jest", []string{"a.test.ts", "-t", "works"}},
 		{"node fallback", plainNode, TestScope{Kind: "file", File: "test/a.js"}, "node", []string{"--test", "test/a.js"}},
 		{"pytest in venv", venv, TestScope{Kind: "test", File: "tests/test_utils.py", Test: "parse"}, ".venv/bin/python", []string{"-m", "pytest", "tests/test_utils.py", "-k", "parse"}},
