@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/julianbei/jade/internal/protocol"
 	"github.com/julianbei/jade/internal/telemetry"
@@ -81,5 +82,26 @@ func TestValidationOutcomesReachTelemetry(t *testing.T) {
 				t.Errorf("%T with %q: got %q (found %v), want %q", response, outcome, got, found, want)
 			}
 		}
+	}
+}
+
+// The caller's timeout bounds how long it waits, not how long the command may
+// run. Killing the process at the wait timeout ended every backgrounded run.
+func TestABackgroundedCommandOutlivesItsWait(t *testing.T) {
+	server, _ := newTestMCPServer(t)
+	if _, err := server.api.DeclareCommand(protocol.DeclareCommandRequest{Name: "build-image", Run: "sleep 2; echo built"}); err != nil {
+		t.Fatalf("declare: %v", err)
+	}
+
+	started, err := server.api.RunCommand(protocol.RunCommandRequest{Name: "build-image", Wait: false, TimeoutSeconds: 1})
+	if err != nil {
+		t.Fatalf("run_command: %v", err)
+	}
+	output, finished := server.api.WaitForJob(started.JobID, 10*time.Second)
+	if !finished {
+		t.Fatal("the command should finish on its own")
+	}
+	if output.Failed || !strings.Contains(output.Raw, "built") {
+		t.Fatalf("a backgrounded command must not be killed at its wait timeout, got %+v", output)
 	}
 }

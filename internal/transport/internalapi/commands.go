@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/julianbei/jade/internal/commands"
 	"github.com/julianbei/jade/internal/jobs"
@@ -48,7 +49,11 @@ func (s *Server) RunCommand(req protocol.RunCommandRequest) (protocol.RunCommand
 	jobID := s.jobs.Start("command:" + req.Name)
 	s.jobs.RunPlan(jobID, jobs.Plan{
 		Kind: "command:" + req.Name, Name: shell(), Args: []string{"-c", command.Run},
-		Dir: s.workspace.Root(), Source: commands.RelPath, Timeout: checkTimeout(req.TimeoutSeconds),
+		// No Timeout: the process gets the runner's own bound. The caller's
+		// timeout bounds the wait, and killing the process at the same moment
+		// ended every backgrounded or out-waited run — a docker build sent
+		// with wait: false died after 90 seconds.
+		Dir: s.workspace.Root(), Source: commands.RelPath,
 	})
 
 	if !req.Wait {
@@ -163,7 +168,7 @@ func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol
 	jobID := s.jobs.Start("check:" + kind)
 	s.jobs.RunPlan(jobID, jobs.Plan{
 		Kind: "check:" + kind, Name: shell(), Args: []string{"-c", strings.Join(runs, " && ")},
-		Dir: s.workspace.Root(), Source: commands.RelPath, Timeout: checkTimeout(req.TimeoutSeconds),
+		Dir: s.workspace.Root(), Source: commands.RelPath,
 	})
 	if !req.Wait {
 		return protocol.CheckResponse{JobID: jobID, Kind: kind, Outcome: protocol.OutcomeRunning, Status: "running", Command: command}, true
@@ -183,6 +188,12 @@ func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol
 		Summary: verdictSummary(passed, output.Summary, output.Raw),
 		Command: command,
 	}, true
+}
+
+// WaitForJob blocks until job id completes or timeout elapses. For tests and
+// integrations that started a job without waiting.
+func (s *Server) WaitForJob(id string, timeout time.Duration) (jobs.JobOutput, bool) {
+	return s.jobs.Wait(id, timeout)
 }
 
 func declaredList(registry *commands.Registry) []protocol.DeclaredCommand {

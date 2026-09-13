@@ -65,6 +65,15 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### A backgrounded command is no longer killed at its wait timeout
+
+`run_command` and `check lint`/`codegen` killed the process when the
+caller's wait ran out — 90 seconds by default, 300 at most. A docker build
+started with `wait: false` died after 90 seconds, and a run that outlived
+its wait answered "still running, poll job_status" for a process that had
+just been killed. The timeout now bounds only the wait; the process gets the
+runner's own 10-minute bound, and `job_status` reports how it ended.
+
 ### `.jade/commands.json` goes through the write path
 
 `declare_command` wrote the registry directly, so a checkpoint did not
