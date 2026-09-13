@@ -93,7 +93,7 @@ func (m *Manager) Status(language string) ServerState {
 		failure := m.failed[language]
 		m.mu.Unlock()
 		if running && !client.closed.Load() {
-			if busy := client.ActiveProgress(); busy != "" {
+			if busy := client.Busy(); busy != "" {
 				return ServerState{State: "indexing", Detail: busy}
 			}
 			return ServerState{State: "running", Detail: spec.Command}

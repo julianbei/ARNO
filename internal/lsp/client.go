@@ -541,25 +541,6 @@ func (c *Client) DeclinedPrompt(substring string) string {
 
 // ActiveProgress names the work the server has begun and not finished, or ""
 // when it is idle.
-func (c *Client) ActiveProgress() string {
-	c.progressMu.Lock()
-	defer c.progressMu.Unlock()
-	first, count := "", 0
-	for _, title := range c.activeProgress {
-		count++
-		if title == "" {
-			title = "work"
-		}
-		if first == "" || title < first {
-			first = title
-		}
-	}
-	if count > 1 {
-		return fmt.Sprintf("%s and %d more", first, count-1)
-	}
-	return first
-}
-
 // ProgressEnded is how many progress tokens have completed. Take it before a
 // change; a larger value afterwards means the server began and finished some
 // work since — for a compile-on-save server, the compile.

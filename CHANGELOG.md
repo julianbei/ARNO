@@ -79,6 +79,12 @@ projects); ask again when it ends for a complete list` — and its provenance
 reads `may be incomplete`. Such a server answers wrongly rather than slowly,
 and the list was presented as complete.
 
+The same for `rename` and edit diagnostics: a rename an indexing server
+declined says `ruby-lsp is still indexing (…), so try the rename again when
+it ends` instead of reading as final, and an edit checked by a server still
+indexing reads `checked: jdtls (still indexing: …; errors that depend on
+other files may be missing)`.
+
 ### `capabilities`: what Jade can do here, in one call
 
 The first 0.0.6 item. An agent in a repository without language servers

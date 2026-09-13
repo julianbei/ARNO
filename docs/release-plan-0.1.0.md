@@ -513,9 +513,9 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   in conformance, with a budget that fails the suite when a release makes it
   worse. A crashed server restarts once, then degrades with a reason.
   *Progress 2026-09-14:* restart once, then failed with the reason; an
-  exact `references` from a still-indexing server says so and what to do.
-  Elapsed time in the message, `rename` and diagnostics under indexing, and
-  startup timing in conformance still to do.
+  exact `references`, a declined `rename` and edit diagnostics from a
+  still-indexing server say so and what to do. Elapsed time in the message
+  and startup timing in conformance still to do.
 - [ ] **Conformance covers the degraded paths.** Each language run once with
   its server and once without, asserting the response says which it got.
   Today conformance proves the happy path.

@@ -146,6 +146,12 @@ func (i *Index) languageServerRename(symbol Symbol, line int, column int, newNam
 		}
 	}
 	if err != nil {
+		// An indexing server declines what it does once ready: ruby-lsp
+		// returns null for a class rename it gets right seconds later. Say so,
+		// rather than let "cannot rename" read as final.
+		if busy := client.Busy(); busy != "" && (errors.Is(err, lsp.ErrRenameNoEdits) || errors.Is(err, lsp.ErrRenameUnsupported)) {
+			return nil, fmt.Errorf("%w; %s is still indexing (%s), so try the rename again when it ends", err, client.Command(), busy)
+		}
 		return nil, err
 	}
 
@@ -317,7 +323,13 @@ func (i *Index) LanguageServerDiagnostics(path string) (diagnostics []protocol.D
 		return nil, "", fmt.Sprintf("%s did not report on this file within %s", client.Command(), diagnosticsWait), true
 	}
 
-	return i.convertDiagnostics(absolute, published), client.Command(), "", true
+	// A server still indexing reports this file, but may not yet know the
+	// declarations elsewhere that make an error in it.
+	checker = client.Command()
+	if busy := client.Busy(); busy != "" {
+		checker += " (still indexing: " + busy + "; errors that depend on other files may be missing)"
+	}
+	return i.convertDiagnostics(absolute, published), checker, "", true
 }
 
 // convertDiagnostics maps a server's diagnostics for one file into jade's
