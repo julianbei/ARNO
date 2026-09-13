@@ -491,3 +491,35 @@ func TestNotFoundStaysBareWithNoCandidates(t *testing.T) {
 		t.Fatalf("nothing should be suggested, got: %q", out)
 	}
 }
+
+// An edit with no diagnostic lines reads as clean only if the response says
+// what looked. A file of a known language nothing could check says why.
+func TestEditNamesWhatCheckedIt(t *testing.T) {
+	out, _ := Text(protocol.EditResponse{
+		OldRevision: "r1",
+		NewRevision: "r2",
+		Changed:     []string{"a.go", "b.py"},
+		Checks: protocol.CheckReport{
+			Checked:   []string{"gopls"},
+			Unchecked: []string{"b.py: pyright-langserver is not installed"},
+		},
+	})
+	if !strings.Contains(strings.SplitN(out, "\n", 2)[0], "checked: gopls") {
+		t.Fatalf("expected the checker in the header, got:\n%s", out)
+	}
+	if !strings.Contains(out, "not checked: b.py: pyright-langserver is not installed") {
+		t.Fatalf("expected the unchecked file with its reason, got:\n%s", out)
+	}
+}
+
+func TestApplyNamesWhatCheckedIt(t *testing.T) {
+	out, _ := Text(protocol.ApplyResponse{
+		OldRevision: "r1",
+		NewRevision: "r2",
+		Summary:     "2 edits",
+		Checks:      protocol.CheckReport{Checked: []string{"gopls", "typescript-language-server"}},
+	})
+	if !strings.Contains(out, "checked: gopls, typescript-language-server") {
+		t.Fatalf("expected the checkers in the apply header, got:\n%s", out)
+	}
+}

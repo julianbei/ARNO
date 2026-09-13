@@ -95,6 +95,11 @@ COPY . .
 RUN go build -o /usr/local/bin/jade-mcp ./cmd/jade-mcp
 ENV JADE_MCP_BINARY=/usr/local/bin/jade-mcp
 
+# metals reports errors only after importing the sbt build, which it asks
+# permission for. jade declines by default — importing runs sbt and writes
+# .bloop/ and .metals/ — so the suite opts in to exercise the Scala path.
+ENV JADE_METALS_IMPORT=1
+
 # Prepare the fixture repositories the way a real checkout would be prepared.
 #
 # This is not convenience. Two servers refuse to start against a bare source

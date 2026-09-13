@@ -32,6 +32,39 @@ type ServerSpec struct {
 	// always the same as Language: LSP's identifier for C# is "csharp", and
 	// for TSX it is "typescriptreact".
 	LanguageID string
+
+	// DiagnosticsAfterCompile marks a server whose diagnostics for a change
+	// exist only once it has compiled that change. metals publishes an empty
+	// list on save and the real errors after compiling, sometimes a minute
+	// later while a build import runs — with no progress reported in between.
+	// For such a server only a publish that follows a compile counts.
+	DiagnosticsAfterCompile bool
+
+	// AnswerPrompt decides how to answer a window/showMessageRequest: return
+	// the title of the action to take, or "" to decline. Nil declines
+	// everything. Prompts are how servers ask permission for side effects —
+	// metals asks before running sbt and writing .bloop/ and .metals/ into the
+	// repository — so the default is always no.
+	AnswerPrompt func(message string, actions []string) string
+}
+
+// MetalsImportEnv opts in to letting metals import an sbt build. Importing
+// runs `sbt bloopInstall` and creates .bloop/ and .metals/ in the workspace;
+// without it metals cannot compile, so Scala edits report "not checked".
+const MetalsImportEnv = "JADE_METALS_IMPORT"
+
+// answerMetalsPrompt accepts metals' build-import prompt when, and only when,
+// the user opted in. Every other metals prompt is declined.
+func answerMetalsPrompt(message string, actions []string) string {
+	if os.Getenv(MetalsImportEnv) != "1" || !strings.Contains(strings.ToLower(message), "import the build") {
+		return ""
+	}
+	for _, action := range actions {
+		if action == "Import build" {
+			return action
+		}
+	}
+	return ""
 }
 
 // AlternativeSpec is a second choice of binary for the same language.
@@ -100,9 +133,11 @@ var specs = map[string]ServerSpec{
 		LanguageID: "java",
 	},
 	"scala": {
-		Language:   "scala",
-		Command:    "metals",
-		LanguageID: "scala",
+		Language:                "scala",
+		Command:                 "metals",
+		LanguageID:              "scala",
+		DiagnosticsAfterCompile: true,
+		AnswerPrompt:            answerMetalsPrompt,
 	},
 }
 

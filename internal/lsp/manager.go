@@ -221,10 +221,12 @@ func (m *Manager) Sync(client *Client, path string, languageID string) error {
 	version, alreadyOpen := client.open[uri]
 	version++
 	client.open[uri] = version
+	previous := client.openText[uri]
+	client.openText[uri] = text
 	client.openMu.Unlock()
 
 	if !alreadyOpen {
-		return client.Notify("textDocument/didOpen", DidOpenTextDocumentParams{
+		err = client.Notify("textDocument/didOpen", DidOpenTextDocumentParams{
 			TextDocument: TextDocumentItem{
 				URI:        uri,
 				LanguageID: languageID,
@@ -232,12 +234,42 @@ func (m *Manager) Sync(client *Client, path string, languageID string) error {
 				Text:       text,
 			},
 		})
+	} else if client.syncKind() == 2 {
+		// Incremental servers get one change whose range covers the whole
+		// previous document. A rangeless change is valid LSP, but ruby-lsp
+		// declares incremental sync and silently keeps the old content when
+		// sent one — every diagnostic it then returns is for code that is no
+		// longer on disk.
+		err = client.Notify("textDocument/didChange", map[string]any{
+			"textDocument": VersionedTextDocumentIdentifier{URI: uri, Version: version},
+			"contentChanges": []map[string]any{{
+				"range": map[string]any{
+					"start": Position{Line: 0, Character: 0},
+					"end":   documentEnd(previous),
+				},
+				"text": text,
+			}},
+		})
+	} else {
+		err = client.Notify("textDocument/didChange", DidChangeTextDocumentParams{
+			TextDocument:   VersionedTextDocumentIdentifier{URI: uri, Version: version},
+			ContentChanges: []TextDocumentContentChangeEvent{{Text: text}},
+		})
+	}
+	if err != nil {
+		return err
 	}
 
-	return client.Notify("textDocument/didChange", DidChangeTextDocumentParams{
-		TextDocument:   VersionedTextDocumentIdentifier{URI: uri, Version: version},
-		ContentChanges: []TextDocumentContentChangeEvent{{Text: text}},
-	})
+	// The content is already on disk, so this is a save, and servers that
+	// analyse on save (metals compiles then) need to hear it. Only sent to
+	// servers that asked; the rest treat it as noise at best.
+	if client.WantsSave() {
+		return client.Notify("textDocument/didSave", map[string]any{
+			"textDocument": TextDocumentIdentifier{URI: uri},
+			"text":         text,
+		})
+	}
+	return nil
 }
 
 // Close shuts every server down. Called when the jade process exits; leaking
@@ -309,4 +341,12 @@ type errNoServerConfiguredType struct{}
 
 func (errNoServerConfiguredType) Error() string {
 	return "no language server is configured for this file type"
+}
+
+// documentEnd is the LSP position just past the last character of text: the
+// last line, at its length in UTF-16 code units.
+func documentEnd(text string) Position {
+	lines := strings.Split(text, "\n")
+	last := lines[len(lines)-1]
+	return Position{Line: len(lines) - 1, Character: utf16Column(last, len(last)+1)}
 }

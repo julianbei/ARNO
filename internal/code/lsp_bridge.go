@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/julianbei/jade/internal/lsp"
 	"github.com/julianbei/jade/internal/protocol"
@@ -175,19 +176,86 @@ func (i *Index) lineAt(absolute string, line int) string {
 	return lines[line-1]
 }
 
-// LanguageServerDiagnostics reports what a language server has published for a
-// file. Unlike references and rename it is not a fallback chain: a server
-// either has something to say or does not.
-func (i *Index) LanguageServerDiagnostics(path string) ([]protocol.Diagnostic, bool) {
-	ctx := context.Background()
-	absolute := i.resolvePath(path)
+// diagnosticsWait bounds how long an edit waits for a server to publish
+// diagnostics for the new content, after the server has settled. Servers that
+// are indexed publish within a few hundred milliseconds; one that has said
+// nothing after this is reported as not having checked, rather than holding
+// every edit hostage.
+const diagnosticsWait = 4 * time.Second
 
-	client, _, ok := i.languageClient(ctx, path)
-	if !ok {
-		return nil, false
+// LanguageServerDiagnostics checks a file with its language server after an
+// edit.
+//
+// It returns the diagnostics, the name of the server that produced them, and,
+// when nothing checked the file, why not. handled is false for a file with no
+// language at all (Markdown, a Dockerfile), for which saying "not checked" on
+// every edit would be noise rather than information.
+func (i *Index) LanguageServerDiagnostics(path string) (diagnostics []protocol.Diagnostic, checker string, unchecked string, handled bool) {
+	language := lsp.LanguageForPath(path)
+	if language == "" {
+		return nil, "", "", false
+	}
+	if i.servers == nil {
+		return nil, "", "no language servers are configured", true
 	}
 
-	published := client.Diagnostics(absolute)
+	ctx := context.Background()
+	client, ok := i.servers.ClientFor(ctx, language)
+	if !ok {
+		reason := i.servers.Unavailable(language)
+		if reason == "" {
+			reason = "no language server for " + language
+		}
+		return nil, "", reason, true
+	}
+
+	absolute := i.resolvePath(path)
+	// Generation before the sync, so only a publish for the new content
+	// counts.
+	before := client.DiagnosticsGeneration(absolute)
+	endedBefore := client.ProgressEnded()
+	spec, _ := lsp.SpecFor(language)
+	if err := i.servers.Sync(client, path, spec.LanguageID); err != nil {
+		return nil, "", fmt.Sprintf("could not send the file to %s: %v", client.Command(), err), true
+	}
+
+	if spec.DiagnosticsAfterCompile {
+		published, compiled := client.WaitForCompiledDiagnostics(ctx, absolute, endedBefore, diagnosticsWait)
+		if !compiled {
+			reason := fmt.Sprintf("%s has not compiled this change yet", client.Command())
+			if client.DeclinedPrompt("import the build") != "" {
+				reason = fmt.Sprintf("%s needs a build import to report errors; set %s=1 to allow it (runs the build tool and creates .bloop/ and .metals/)",
+					client.Command(), lsp.MetalsImportEnv)
+			}
+			if busy := client.Busy(); busy != "" {
+				reason = fmt.Sprintf("%s is still working (%s); diagnostics not available yet", client.Command(), busy)
+			}
+			return nil, "", reason, true
+		}
+		return i.convertDiagnostics(absolute, published), client.Command(), "", true
+	}
+	client.WaitSettled(ctx)
+
+	// Pull when the server implements it, push otherwise. A pull server may
+	// never publish, so waiting for a publish from one reports the file
+	// unchecked after the full timeout.
+	published, fresh := lsp.PullDiagnostics(ctx, client, absolute)
+	if !fresh {
+		published, fresh = client.WaitForDiagnostics(ctx, absolute, before, diagnosticsWait)
+	}
+	if !fresh {
+		if busy := client.Busy(); busy != "" {
+			return nil, "", fmt.Sprintf("%s is still working (%s); diagnostics not available yet", client.Command(), busy), true
+		}
+		return nil, "", fmt.Sprintf("%s did not report on this file within %s", client.Command(), diagnosticsWait), true
+	}
+
+	return i.convertDiagnostics(absolute, published), client.Command(), "", true
+}
+
+// convertDiagnostics maps a server's diagnostics for one file into jade's
+// 1-based, workspace-relative form.
+func (i *Index) convertDiagnostics(absolute string, published []lsp.Diagnostic) []protocol.Diagnostic {
 	out := make([]protocol.Diagnostic, 0, len(published))
 	for _, diagnostic := range published {
 		out = append(out, protocol.Diagnostic{
@@ -198,7 +266,7 @@ func (i *Index) LanguageServerDiagnostics(path string) ([]protocol.Diagnostic, b
 			Message: diagnostic.Message,
 		})
 	}
-	return out, true
+	return out
 }
 
 // severityLevel maps LSP's numeric severity onto jade's vocabulary. Hints are

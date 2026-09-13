@@ -175,6 +175,8 @@ deliberately still uses `go run` for that reason.
 | `JADE_WORKSPACE_ROOT` | Repository to operate on. Overridden by `--root`. |
 | `JADE_JSON=1` | Emit machine-readable JSON instead of plain text. |
 | `JADE_TELEMETRY=0` | Disable local usage recording entirely. |
+| `JADE_STATE_DIR` | Keep the telemetry log outside the workspace, one subdirectory per workspace. |
+| `JADE_METALS_IMPORT=1` | Let metals import an sbt build so Scala edits get diagnostics. Runs sbt; creates `.bloop/` and `.metals/`. |
 
 ---
 
@@ -332,6 +334,15 @@ the primary server declines a rename, jade asks the language's installed
 alternative: **ruby-lsp renames classes but not methods, so Ruby method rename
 needs `solargraph` installed alongside it.** With ruby-lsp alone, method
 rename refuses and repeats the server's reason.
+
+Every edit response names what checked the file (`checked: pyright-langserver`)
+or why nothing did (`not checked: app.py: pyright-langserver is not installed`).
+
+**Scala needs one opt-in.** metals reports errors only after importing the sbt
+build, and it asks permission first, because importing runs sbt and creates
+`.bloop/` and `.metals/` in the repository. Jade declines unless
+`JADE_METALS_IMPORT=1` is set, and says so in the edit response. A repository
+an editor has already imported needs no setting.
 
 "Structure" is outline, symbol read, edit-by-symbol, grep and search.
 "Semantics" is exact `references`, cross-file `rename`, and type-level

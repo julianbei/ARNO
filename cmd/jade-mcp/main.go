@@ -136,6 +136,9 @@ func main() {
 	defer servers.Close()
 	ci.UseLanguageServers(servers)
 	ds := diagnostics.NewService(root)
+	// Edits in every language with a server get that server's diagnostics
+	// in the response, and every response names what checked it.
+	ds.UseLanguageServers(ci.LanguageServerDiagnostics)
 	jr := jobs.NewRunner(bus)
 	es := edit.NewService(wm, ci, ds, jr)
 	lr := languages.NewRegistry()

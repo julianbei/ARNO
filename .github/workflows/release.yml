@@ -80,9 +80,25 @@ jobs:
           sha256sum *.tar.gz > checksums.txt
           cat checksums.txt
 
+      # Hand-written notes lead the release; GitHub's generated commit list is
+      # appended below them. A tag with no notes file fails here rather than
+      # publishing a release whose only description is a list of commit titles.
+      - name: Release notes
+        run: |
+          notes="docs/release-notes/${GITHUB_REF_NAME}.md"
+          if [ ! -f "$notes" ]; then
+            echo "missing $notes — write release notes before tagging" >&2
+            exit 1
+          fi
+          if grep -q '^## Draft status' "$notes"; then
+            echo "$notes still has its Draft status section — finish the notes before tagging" >&2
+            exit 1
+          fi
+
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+          body_path: docs/release-notes/${{ github.ref_name }}.md
           generate_release_notes: true
 
   image:

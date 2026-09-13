@@ -29,6 +29,21 @@ func runFakeServer(script string) {
 		}
 
 		switch message.Method {
+		case "textDocument/diagnostic":
+			if script == "pull" {
+				report, _ := json.Marshal(map[string]any{
+					"kind": "full",
+					"items": []Diagnostic{{
+						Range:    Range{Start: Position{Line: 2, Character: 4}},
+						Severity: SeverityError,
+						Message:  "pulled, not published",
+					}},
+				})
+				_ = writeMessage(out, Message{ID: message.ID, Result: report})
+				continue
+			}
+			_ = writeMessage(out, Message{ID: message.ID, Error: &ResponseError{Code: -32601, Message: "no pull"}})
+
 		case "initialize":
 			capabilities := map[string]any{
 				"referencesProvider": true,
@@ -39,6 +54,13 @@ func runFakeServer(script string) {
 				"codeLensProvider":   false,
 				"hoverProvider":      true,
 				"definitionProvider": true,
+			}
+			if script == "pull" {
+				capabilities["diagnosticProvider"] = map[string]any{"interFileDependencies": false}
+				capabilities["textDocumentSync"] = map[string]any{"change": 1, "save": map[string]any{"includeText": false}}
+			}
+			if script == "settling" {
+				capabilities["textDocumentSync"] = 1
 			}
 			result, _ := json.Marshal(map[string]any{"capabilities": capabilities})
 			_ = writeMessage(out, Message{ID: message.ID, Result: result})
@@ -66,6 +88,19 @@ func runFakeServer(script string) {
 			os.Exit(0)
 
 		case "textDocument/didOpen":
+			if script == "settling" {
+				// metals' shape: an empty publish first, the real one after.
+				var params DidOpenTextDocumentParams
+				_ = json.Unmarshal(message.Params, &params)
+				empty, _ := json.Marshal(PublishDiagnosticsParams{URI: params.TextDocument.URI, Diagnostics: []Diagnostic{}})
+				_ = writeMessage(out, Message{Method: "textDocument/publishDiagnostics", Params: empty})
+				time.Sleep(150 * time.Millisecond)
+				real, _ := json.Marshal(PublishDiagnosticsParams{
+					URI:         params.TextDocument.URI,
+					Diagnostics: []Diagnostic{{Severity: SeverityError, Message: "the real answer"}},
+				})
+				_ = writeMessage(out, Message{Method: "textDocument/publishDiagnostics", Params: real})
+			}
 			if script == "diagnostics" {
 				var params DidOpenTextDocumentParams
 				_ = json.Unmarshal(message.Params, &params)

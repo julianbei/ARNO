@@ -187,6 +187,7 @@ type ApplyResponse struct {
 	RemovedLines int
 	Formatted    []string
 	Diagnostics  []Diagnostic
+	Checks       CheckReport
 	CheckStatus  string
 	CheckPassed  bool
 	CheckSummary string
@@ -979,5 +980,18 @@ type EditResponse struct {
 	// same file is a signal the agent is writing badly-shaped code.
 	Formatted   []string
 	Diagnostics []Diagnostic
-	Jobs        []string
+	// Checks names what checked the edited files, so an empty Diagnostics
+	// list can be read as "nothing wrong" rather than "nothing looked".
+	Checks CheckReport
+	Jobs   []string
+}
+
+// CheckReport says which checkers ran over edited files and which files went
+// unchecked, with the reason.
+type CheckReport struct {
+	// Checked lists distinct checker names, e.g. "gopls", "pyright-langserver".
+	Checked []string `json:",omitempty"`
+	// Unchecked has one "path: reason" entry per file of a known language
+	// that nothing could check. Files with no language are not listed.
+	Unchecked []string `json:",omitempty"`
 }

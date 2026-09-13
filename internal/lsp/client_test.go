@@ -226,3 +226,141 @@ func TestWaitSettledDoesNotStallOnAQuietServer(t *testing.T) {
 		t.Fatalf("an already settled server cost %v on the second call", elapsed)
 	}
 }
+
+// Diagnostics read straight after a change are the previous content's. The
+// generation tells a fresh publish from a stale one.
+func TestWaitForDiagnosticsWaitsForAFreshPublish(t *testing.T) {
+	client := startFake(t, "diagnostics")
+	path := filepath.Join(t.TempDir(), "a.go")
+
+	before := client.DiagnosticsGeneration(path)
+	_ = client.Notify("textDocument/didOpen", DidOpenTextDocumentParams{
+		TextDocument: TextDocumentItem{URI: pathToURI(path), LanguageID: "go", Version: 1, Text: "x"},
+	})
+
+	published, fresh := client.WaitForDiagnostics(context.Background(), path, before, 3*time.Second)
+	if !fresh || len(published) != 1 {
+		t.Fatalf("expected the fresh publish, got %v %v", published, fresh)
+	}
+
+	// Nothing new is coming: the wait must report that, promptly, rather than
+	// handing back the old list as if it were current.
+	started := time.Now()
+	if _, fresh := client.WaitForDiagnostics(context.Background(), path, client.DiagnosticsGeneration(path), 200*time.Millisecond); fresh {
+		t.Fatal("reported a fresh publish that never happened")
+	}
+	if elapsed := time.Since(started); elapsed > 2*time.Second {
+		t.Fatalf("waited %v for a 200ms timeout", elapsed)
+	}
+	if client.Command() == "" {
+		t.Fatal("client should name the binary it launched")
+	}
+}
+
+// ruby-lsp's model: diagnostics are requested, never published.
+func TestPullDiagnosticsAsksTheServer(t *testing.T) {
+	client := startFake(t, "pull")
+	path := filepath.Join(t.TempDir(), "a.rb")
+
+	items, ok := PullDiagnostics(context.Background(), client, path)
+	if !ok || len(items) != 1 || items[0].Message != "pulled, not published" {
+		t.Fatalf("expected the pulled diagnostic, got %v %v", items, ok)
+	}
+	if !client.WantsSave() {
+		t.Fatal("a save options object must count as wanting didSave")
+	}
+}
+
+func TestPullIsNotAttemptedWithoutTheCapability(t *testing.T) {
+	client := startFake(t, "normal")
+	if _, ok := PullDiagnostics(context.Background(), client, "a.go"); ok {
+		t.Fatal("pulled from a server that does not advertise diagnosticProvider")
+	}
+	if client.WantsSave() {
+		t.Fatal("a server with no textDocumentSync save option does not want didSave")
+	}
+}
+
+// metals' model: an empty publish on change, the real result a moment later.
+// Taking the first publish reports a broken file as clean.
+func TestWaitForDiagnosticsTakesTheSettledPublishNotTheFirst(t *testing.T) {
+	client := startFake(t, "settling")
+	path := filepath.Join(t.TempDir(), "A.scala")
+
+	before := client.DiagnosticsGeneration(path)
+	_ = client.Notify("textDocument/didOpen", DidOpenTextDocumentParams{
+		TextDocument: TextDocumentItem{URI: pathToURI(path), LanguageID: "scala", Version: 1, Text: "x"},
+	})
+	published, fresh := client.WaitForDiagnostics(context.Background(), path, before, 3*time.Second)
+	if !fresh || len(published) != 1 || published[0].Message != "the real answer" {
+		t.Fatalf("expected the settled publish, got %v %v", published, fresh)
+	}
+	if client.WantsSave() {
+		t.Fatal("a bare sync kind carries no save option")
+	}
+}
+
+// A server still importing a build has not looked at the edit yet. Whatever it
+// published is not an answer, and the wait must say so rather than return it.
+func TestWaitForDiagnosticsRefusesAnAnswerFromABusyServer(t *testing.T) {
+	client := startFake(t, "diagnostics")
+	path := filepath.Join(t.TempDir(), "A.scala")
+
+	client.progressMu.Lock()
+	client.activeProgress[`"import"`] = "Importing build"
+	client.progressMu.Unlock()
+
+	before := client.DiagnosticsGeneration(path)
+	_ = client.Notify("textDocument/didOpen", DidOpenTextDocumentParams{
+		TextDocument: TextDocumentItem{URI: pathToURI(path), LanguageID: "scala", Version: 1, Text: "x"},
+	})
+	if _, fresh := client.WaitForDiagnostics(context.Background(), path, before, 800*time.Millisecond); fresh {
+		t.Fatal("returned diagnostics while the server reported it was still importing")
+	}
+	if busy := client.Busy(); busy != "Importing build" {
+		t.Fatalf("Busy() = %q", busy)
+	}
+}
+
+// A compile-on-save server's empty publish before it compiles must not be
+// taken as a clean result; only diagnostics that follow completed work count.
+func TestWaitForCompiledDiagnosticsNeedsWorkAfterTheChange(t *testing.T) {
+	client := startFake(t, "normal")
+	path := filepath.Join(t.TempDir(), "A.scala")
+	uri := pathToURI(path)
+
+	client.diagnosticsMu.Lock()
+	client.diagnostics[uri] = []Diagnostic{}
+	client.diagnosticsGeneration[uri]++
+	client.diagnosticsMu.Unlock()
+
+	endedBefore := client.ProgressEnded()
+	if _, ok := client.WaitForCompiledDiagnostics(context.Background(), path, endedBefore, 600*time.Millisecond); ok {
+		t.Fatal("accepted an empty publish with no compile after the change")
+	}
+
+	// The compile: a token begins and ends, then the real result is published.
+	go func() {
+		client.progressMu.Lock()
+		client.activeProgress[`"compile"`] = "Compiling scala"
+		client.lastProgress = time.Now()
+		client.progressMu.Unlock()
+		time.Sleep(100 * time.Millisecond)
+
+		client.diagnosticsMu.Lock()
+		client.diagnostics[uri] = []Diagnostic{{Severity: SeverityError, Message: "identifier expected"}}
+		client.diagnosticsGeneration[uri]++
+		client.diagnosticsMu.Unlock()
+
+		client.progressMu.Lock()
+		delete(client.activeProgress, `"compile"`)
+		client.progressEnded++
+		client.lastProgress = time.Now()
+		client.progressMu.Unlock()
+	}()
+
+	published, ok := client.WaitForCompiledDiagnostics(context.Background(), path, endedBefore, 3*time.Second)
+	if !ok || len(published) != 1 || published[0].Message != "identifier expected" {
+		t.Fatalf("expected the post-compile diagnostics, got %v %v", published, ok)
+	}
+}

@@ -416,6 +416,7 @@ func edit(r protocol.EditResponse) string {
 	if len(r.Formatted) > 0 {
 		head += fmt.Sprintf(" · formatted %d", len(r.Formatted))
 	}
+	head += checkedSuffix(r.Checks)
 	lines = append(lines, head)
 
 	// Diagnostics are why an agent reads an edit response at all, so they
@@ -423,6 +424,7 @@ func edit(r protocol.EditResponse) string {
 	for _, d := range r.Diagnostics {
 		lines = append(lines, fmt.Sprintf("%s %s:%d:%d %s", d.Level, d.Path, d.Line, d.Column, d.Message))
 	}
+	lines = append(lines, uncheckedLines(r.Checks)...)
 	// Job IDs are not rendered. Every edit starts a background typecheck, and
 	// its ID appeared on every response while its result was never seen
 	// unless it failed — and the edited file's own errors are already the
@@ -617,6 +619,8 @@ func apply(r protocol.ApplyResponse) string {
 	lines := []string{strings.TrimSpace(head)}
 	if lines[0] == "→" {
 		lines[0] = "(no edits)"
+	} else {
+		lines[0] += checkedSuffix(r.Checks)
 	}
 
 	// Diagnostics before the file list: a batch that compiled is routine, a
@@ -624,6 +628,7 @@ func apply(r protocol.ApplyResponse) string {
 	for _, d := range r.Diagnostics {
 		lines = append(lines, fmt.Sprintf("%s %s:%d:%d %s", d.Level, d.Path, d.Line, d.Column, d.Message))
 	}
+	lines = append(lines, uncheckedLines(r.Checks)...)
 	if r.CheckSummary != "" {
 		lines = append(lines, r.CheckSummary)
 	}
@@ -817,4 +822,23 @@ func runTests(r protocol.RunTestsResponse) string {
 		return head
 	}
 	return head + "\n" + r.Summary
+}
+
+// checkedSuffix names what checked an edit, so an edit with no diagnostic
+// lines reads as "nothing wrong" instead of "nothing looked".
+func checkedSuffix(report protocol.CheckReport) string {
+	if len(report.Checked) == 0 {
+		return ""
+	}
+	return " · checked: " + strings.Join(report.Checked, ", ")
+}
+
+// uncheckedLines gives each file of a known language that nothing could
+// check its own line, with the reason — the actionable half of the report.
+func uncheckedLines(report protocol.CheckReport) []string {
+	lines := make([]string, 0, len(report.Unchecked))
+	for _, entry := range report.Unchecked {
+		lines = append(lines, "not checked: "+entry)
+	}
+	return lines
 }

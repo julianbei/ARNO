@@ -164,3 +164,40 @@ func TestFallbacksExcludeThePrimaryAndMissingBinaries(t *testing.T) {
 		t.Fatalf("expected the alternative with its own args, got %+v", fallbacks[0])
 	}
 }
+
+func TestDocumentEndCoversTheWholeText(t *testing.T) {
+	cases := []struct {
+		text string
+		want Position
+	}{
+		{"", Position{Line: 0, Character: 0}},
+		{"abc", Position{Line: 0, Character: 3}},
+		{"a\nbc\n", Position{Line: 2, Character: 0}},
+		{"x\ncafé😀", Position{Line: 1, Character: 6}},
+	}
+	for _, tc := range cases {
+		if got := documentEnd(tc.text); got != tc.want {
+			t.Errorf("documentEnd(%q) = %+v, want %+v", tc.text, got, tc.want)
+		}
+	}
+}
+
+// Importing an sbt build runs sbt and writes .bloop/ and .metals/ into the
+// repository, so jade only says yes when the user opted in.
+func TestMetalsImportPromptNeedsOptIn(t *testing.T) {
+	message := "New sbt workspace detected, would you like to import the build?"
+	actions := []string{"Import build", "Not now", "Don't show again"}
+
+	t.Setenv(MetalsImportEnv, "")
+	if got := answerMetalsPrompt(message, actions); got != "" {
+		t.Fatalf("answered %q without opt-in", got)
+	}
+
+	t.Setenv(MetalsImportEnv, "1")
+	if got := answerMetalsPrompt(message, actions); got != "Import build" {
+		t.Fatalf("opt-in should import, got %q", got)
+	}
+	if got := answerMetalsPrompt("Http server is required, start it now?", []string{"Start", "Not now"}); got != "" {
+		t.Fatalf("opt-in covers the build import only, answered %q", got)
+	}
+}

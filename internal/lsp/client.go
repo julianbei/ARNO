@@ -9,6 +9,8 @@ import (
 	"io"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,12 +47,33 @@ type Client struct {
 	// on demand rather than requested.
 	diagnosticsMu sync.Mutex
 	diagnostics   map[string][]Diagnostic
+	// diagnosticsGeneration counts publishes per URI. Reading diagnostics
+	// right after an edit needs to know whether what is stored was published
+	// for the new content or is left over from before it — the stored list
+	// alone cannot say.
+	diagnosticsGeneration map[string]int
+
+	// command is the binary actually launched, for naming the checker in
+	// responses. The language name alone does not say whether ruby-lsp or
+	// solargraph answered.
+	command string
+
+	// answerPrompt is the spec's policy for window/showMessageRequest, and
+	// declined records prompts it said no to, so a caller can explain why a
+	// server that needed permission never became useful.
+	answerPrompt func(message string, actions []string) string
+	declinedMu   sync.Mutex
+	declined     []string
 
 	// open tracks which documents the server believes are open, and at which
 	// version. Getting this wrong is the classic LSP bug: a didChange for a
 	// document never opened is ignored by some servers and fatal to others.
 	openMu sync.Mutex
 	open   map[string]int
+	// openText is the content the server last received per URI. An
+	// incremental-sync server needs a ranged change, and the range of "the
+	// whole document" is only knowable from what the server currently holds.
+	openText map[string]string
 
 	// capabilities is what the server said it supports, recorded at
 	// initialize. Asking for an unsupported feature costs a round trip and
@@ -62,9 +85,14 @@ type Client struct {
 	// answers them wrongly rather than slowly: ruby-lsp returns null for a
 	// class rename it gets right two seconds later. The only signal that the
 	// index is ready is the `end` of its progress token.
-	progressMu     sync.Mutex
-	activeProgress map[string]struct{}
+	progressMu sync.Mutex
+	// activeProgress maps each unfinished token to its title, so a caller
+	// that gives up waiting can say what the server was busy with.
+	activeProgress map[string]string
 	lastProgress   time.Time
+	// progressEnded counts completed progress tokens, so a caller can tell
+	// whether any work began and finished after a given moment.
+	progressEnded int
 
 	// ready is when initialize completed, the reference point for how long a
 	// server gets to start reporting progress before it is assumed to have
@@ -118,15 +146,19 @@ func Start(ctx context.Context, spec ServerSpec, root string) (*Client, error) {
 	}
 
 	client := &Client{
-		name:        spec.Language,
-		cmd:         cmd,
-		stdin:       stdin,
-		stdout:      bufio.NewReaderSize(stdout, 64*1024),
-		pending:     make(map[string]chan Message),
-		diagnostics: make(map[string][]Diagnostic),
-		open:           make(map[string]int),
-		activeProgress: make(map[string]struct{}),
-		exited:         make(chan struct{}),
+		name:                  spec.Language,
+		cmd:                   cmd,
+		stdin:                 stdin,
+		stdout:                bufio.NewReaderSize(stdout, 64*1024),
+		pending:               make(map[string]chan Message),
+		diagnostics:           make(map[string][]Diagnostic),
+		diagnosticsGeneration: make(map[string]int),
+		command:               filepath.Base(binary),
+		answerPrompt:          spec.AnswerPrompt,
+		open:                  make(map[string]int),
+		openText:              make(map[string]string),
+		activeProgress:        make(map[string]string),
+		exited:                make(chan struct{}),
 	}
 
 	go client.readLoop()
@@ -202,13 +234,15 @@ func (c *Client) handleServerMessage(message Message) {
 		}
 		c.diagnosticsMu.Lock()
 		c.diagnostics[params.URI] = params.Diagnostics
+		c.diagnosticsGeneration[params.URI]++
 		c.diagnosticsMu.Unlock()
 
 	case "$/progress":
 		var params struct {
 			Token json.RawMessage `json:"token"`
 			Value struct {
-				Kind string `json:"kind"`
+				Kind  string `json:"kind"`
+				Title string `json:"title"`
 			} `json:"value"`
 		}
 		if err := json.Unmarshal(message.Params, &params); err != nil {
@@ -218,8 +252,11 @@ func (c *Client) handleServerMessage(message Message) {
 		c.progressMu.Lock()
 		switch params.Value.Kind {
 		case "begin":
-			c.activeProgress[token] = struct{}{}
+			c.activeProgress[token] = params.Value.Title
 		case "end":
+			if _, ok := c.activeProgress[token]; ok {
+				c.progressEnded++
+			}
 			delete(c.activeProgress, token)
 		}
 		c.lastProgress = time.Now()
@@ -234,6 +271,34 @@ func (c *Client) handleServerMessage(message Message) {
 		_ = json.Unmarshal(message.Params, &params)
 		reply := make([]any, len(params.Items))
 		c.respond(message.ID, reply)
+
+	case "window/showMessageRequest":
+		// A prompt is a server asking permission, often for a side effect in
+		// the user's repository. Declining is a null result, not an error: an
+		// error reads to some servers as a broken client.
+		var params struct {
+			Message string `json:"message"`
+			Actions []struct {
+				Title string `json:"title"`
+			} `json:"actions"`
+		}
+		_ = json.Unmarshal(message.Params, &params)
+		titles := make([]string, 0, len(params.Actions))
+		for _, action := range params.Actions {
+			titles = append(titles, action.Title)
+		}
+		choice := ""
+		if c.answerPrompt != nil {
+			choice = c.answerPrompt(params.Message, titles)
+		}
+		if choice == "" {
+			c.declinedMu.Lock()
+			c.declined = append(c.declined, params.Message)
+			c.declinedMu.Unlock()
+			c.respond(message.ID, nil)
+			return
+		}
+		c.respond(message.ID, map[string]string{"title": choice})
 
 	case "window/workDoneProgress/create", "client/registerCapability",
 		"client/unregisterCapability":
@@ -455,6 +520,170 @@ func (c *Client) Diagnostics(path string) []Diagnostic {
 	c.diagnosticsMu.Lock()
 	defer c.diagnosticsMu.Unlock()
 	return append([]Diagnostic(nil), c.diagnostics[pathToURI(path)]...)
+}
+
+// diagnosticsQuiet is how long a file's diagnostics must stay unchanged after a
+// publish before they are taken as the answer for the current content.
+const diagnosticsQuiet = 400 * time.Millisecond
+
+// DeclinedPrompt returns the first declined prompt whose message contains
+// substring, case-insensitively, or "" if none was declined.
+func (c *Client) DeclinedPrompt(substring string) string {
+	c.declinedMu.Lock()
+	defer c.declinedMu.Unlock()
+	for _, prompt := range c.declined {
+		if strings.Contains(strings.ToLower(prompt), strings.ToLower(substring)) {
+			return prompt
+		}
+	}
+	return ""
+}
+
+// ProgressEnded is how many progress tokens have completed. Take it before a
+// change; a larger value afterwards means the server began and finished some
+// work since — for a compile-on-save server, the compile.
+func (c *Client) ProgressEnded() int {
+	c.progressMu.Lock()
+	defer c.progressMu.Unlock()
+	return c.progressEnded
+}
+
+// WaitForCompiledDiagnostics is WaitForDiagnostics for servers whose
+// diagnostics exist only after compiling (DiagnosticsAfterCompile). It returns
+// true only once a progress token that ended after endedBefore has completed
+// and the file's diagnostics have settled after it.
+//
+// Without that condition the empty publish metals sends on save — before it
+// has compiled anything — is indistinguishable from a clean compile.
+func (c *Client) WaitForCompiledDiagnostics(ctx context.Context, path string, endedBefore int, timeout time.Duration) ([]Diagnostic, bool) {
+	uri := pathToURI(path)
+	deadline := time.Now().Add(timeout)
+	for {
+		compiled := c.ProgressEnded() > endedBefore && c.Busy() == ""
+		if compiled {
+			c.progressMu.Lock()
+			lastProgress := c.lastProgress
+			c.progressMu.Unlock()
+			if time.Since(lastProgress) >= diagnosticsQuiet {
+				c.diagnosticsMu.Lock()
+				published := append([]Diagnostic(nil), c.diagnostics[uri]...)
+				c.diagnosticsMu.Unlock()
+				return published, true
+			}
+		}
+		if time.Now().After(deadline) || c.closed.Load() {
+			return nil, false
+		}
+		select {
+		case <-ctx.Done():
+			return nil, false
+		case <-c.exited:
+			return nil, false
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+}
+
+// Busy names what the server is working on — the title of an unfinished
+// progress token — or returns empty when it reports nothing in progress.
+func (c *Client) Busy() string {
+	c.progressMu.Lock()
+	defer c.progressMu.Unlock()
+	titles := make([]string, 0, len(c.activeProgress))
+	for _, title := range c.activeProgress {
+		if title == "" {
+			title = "unnamed work"
+		}
+		titles = append(titles, title)
+	}
+	if len(titles) == 0 {
+		return ""
+	}
+	sort.Strings(titles)
+	return strings.Join(titles, ", ")
+}
+
+// syncKind is the document sync the server asked for: 1 full, 2 incremental.
+// Servers that omit it get full sync, the LSP default most accept.
+func (c *Client) syncKind() int {
+	raw, ok := c.capabilities["textDocumentSync"]
+	if !ok {
+		return 1
+	}
+	var kind int
+	if err := json.Unmarshal(raw, &kind); err == nil {
+		return kind
+	}
+	var options struct {
+		Change int `json:"change"`
+	}
+	if err := json.Unmarshal(raw, &options); err == nil && options.Change != 0 {
+		return options.Change
+	}
+	return 1
+}
+
+// Command is the name of the server binary this client launched.
+func (c *Client) Command() string {
+	return c.command
+}
+
+// DiagnosticsGeneration is how many times the server has published
+// diagnostics for a file. Take it before syncing a change, then pass it to
+// WaitForDiagnostics.
+func (c *Client) DiagnosticsGeneration(path string) int {
+	c.diagnosticsMu.Lock()
+	defer c.diagnosticsMu.Unlock()
+	return c.diagnosticsGeneration[pathToURI(path)]
+}
+
+// WaitForDiagnostics waits for a publish newer than generation `after` and
+// returns it. The bool is false when none arrived within timeout.
+//
+// Servers publish after a change on their own schedule, so reading the stored
+// list immediately after a sync returns the diagnostics for the previous
+// content — an error just fixed still showing, or one just introduced
+// missing. Both are worse than saying nothing arrived, which is what false
+// lets a caller report.
+func (c *Client) WaitForDiagnostics(ctx context.Context, path string, after int, timeout time.Duration) ([]Diagnostic, bool) {
+	uri := pathToURI(path)
+	deadline := time.Now().Add(timeout)
+	seen := after
+	var lastPublish time.Time
+	for {
+		c.diagnosticsMu.Lock()
+		generation := c.diagnosticsGeneration[uri]
+		published := append([]Diagnostic(nil), c.diagnostics[uri]...)
+		c.diagnosticsMu.Unlock()
+
+		now := time.Now()
+		if generation > seen {
+			// A fresh publish is not necessarily the final one. metals
+			// publishes an empty list on change and the real result after it
+			// compiles; returning the first reports a broken file as clean.
+			seen = generation
+			lastPublish = now
+		}
+		busy := c.Busy() != ""
+		if seen > after && !busy && now.Sub(lastPublish) >= diagnosticsQuiet {
+			return published, true
+		}
+		if now.After(deadline) || c.closed.Load() {
+			// Still working when time ran out means whatever was published
+			// may predate the work that would find the error. Not an answer.
+			if seen > after && !busy {
+				return published, true
+			}
+			return nil, false
+		}
+		select {
+		case <-ctx.Done():
+			return nil, false
+		case <-c.exited:
+			return nil, false
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
 }
 
 // Close shuts the server down, politely first.

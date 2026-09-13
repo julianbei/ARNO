@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### Edits report errors in every language with a server
+
+Only Go edits used to come back with diagnostics. Now every language with a
+running server does, and every edit response names what checked it —
+`checked: jdtls` — or why nothing did, so an empty result reads as "nothing
+wrong" rather than "nothing looked".
+
+Getting a real answer took four server-specific fixes, each found by the
+conformance suite reporting a broken file as clean:
+
+- **Fresh publishes only.** Diagnostics read right after a change are the old
+  content's. Jade counts publishes per file and waits for one newer than the
+  edit, then for the list to stop changing.
+- **Pull diagnostics.** ruby-lsp never publishes; it answers
+  `textDocument/diagnostic`. It also parses a request before applying the
+  preceding change, so a pull sent straight after an edit is answered — and
+  cached — from the old source. Jade round-trips a `documentSymbol` request
+  first.
+- **Ranged changes.** ruby-lsp declares incremental sync and cannot apply a
+  whole-document change without a range.
+- **Compile-on-save servers.** metals publishes an empty list on save and the
+  real errors after compiling. For metals, only diagnostics that follow a
+  completed compile count; until then the edit says `not checked`.
+
+metals asks permission to import an sbt build before it can compile. Importing
+runs sbt and writes `.bloop/` and `.metals/`, so Jade declines unless
+`JADE_METALS_IMPORT=1` is set, and says which setting to use.
+
 ### A good tenant in someone else's repository
 
 Jade's telemetry log appeared as an untracked file in every repository that

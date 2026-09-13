@@ -74,6 +74,7 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 	for _, path := range response.Changed {
 		response.Diagnostics = append(response.Diagnostics, s.diag.Immediate(path)...)
 	}
+	response.Checks = s.diag.Checks(response.Changed...)
 
 	if kind := strings.TrimSpace(req.Check); kind != "" {
 		response.CheckStatus, response.CheckPassed, response.CheckSummary = s.runCheck(kind)

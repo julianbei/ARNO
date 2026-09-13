@@ -5,9 +5,9 @@ import (
 	"go/parser"
 	"go/scanner"
 	"go/token"
-	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/julianbei/jade/internal/protocol"
 )
@@ -15,39 +15,37 @@ import (
 // Service normalizes parser, LSP, and lint diagnostics.
 type Service struct {
 	root string
+
+	languageServers LanguageServerCheck
+
+	memoMu sync.Mutex
+	memo   map[string]checkMemo
 }
 
 func NewService(root string) *Service {
-	return &Service{root: root}
+	return &Service{root: root, memo: make(map[string]checkMemo)}
 }
 
 // Immediate runs the fast, synchronous checks that fit within an edit's
-// latency budget. Today that is a real Go syntax parse — a genuine
-// "parser OK / parser ERROR at line N" signal, not a stub. Full type
-// checking and linting are handled by the async job runner (jobs package)
-// since they're too slow to run synchronously on every edit.
+// latency budget and returns their diagnostics. Check has the same result
+// with the name of the checker that produced it.
 func (s *Service) Immediate(scope string) []protocol.Diagnostic {
-	path := scopePath(scope)
-	if path == "" || !strings.EqualFold(filepath.Ext(path), ".go") {
-		return nil
-	}
+	return s.Check(scope).Diagnostics
+}
 
-	absolute := path
-	if !filepath.IsAbs(absolute) {
-		absolute = filepath.Join(s.root, path)
-	}
-
+// checkGo is the Go path: a real syntax parse, then gopls for type-level
+// diagnostics when the syntax is clean.
+func (s *Service) checkGo(path string, absolute string) Result {
 	fset := token.NewFileSet()
 	_, err := parser.ParseFile(fset, absolute, nil, parser.AllErrors)
 	if err == nil {
-		// Syntax is clean; try gopls for deeper (type-level) diagnostics.
-		// If gopls isn't available (or times out), fall through to nil —
-		// this is a known limitation, not a claim that gopls checked and
-		// found nothing (see goplsCheck's doc comment on that distinction).
+		// gopls not being installed, or timing out, is a different answer
+		// from gopls running and finding nothing — so the checker named is
+		// the one that actually ran.
 		if diagnostics, ran := goplsCheck(s.root, path); ran {
-			return diagnostics
+			return Result{Diagnostics: diagnostics, Checker: "gopls"}
 		}
-		return nil
+		return Result{Checker: "go/parser (syntax only; gopls unavailable)"}
 	}
 
 	if errList, ok := err.(scanner.ErrorList); ok {
@@ -61,14 +59,13 @@ func (s *Service) Immediate(scope string) []protocol.Diagnostic {
 				Message: parseErr.Msg,
 			})
 		}
-		return diagnostics
+		return Result{Diagnostics: diagnostics, Checker: "go/parser"}
 	}
 
-	return []protocol.Diagnostic{{
-		Level:   protocol.DiagnosticError,
-		Path:    path,
-		Message: err.Error(),
-	}}
+	return Result{
+		Diagnostics: []protocol.Diagnostic{{Level: protocol.DiagnosticError, Path: path, Message: err.Error()}},
+		Checker:     "go/parser",
+	}
 }
 
 // scopePath extracts the file path portion of a scope, which may be a plain

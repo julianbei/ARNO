@@ -66,6 +66,7 @@ func (s *Service) ReplaceSymbol(symbolID string, expectedRevision string, newCod
 		RemovedLines: len(oldLines),
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(symbolID),
+		Checks:       s.diag.Checks(symbolID),
 		Jobs:         []string{jobID},
 	}, nil
 }
@@ -94,6 +95,7 @@ func (s *Service) ReplaceRange(path string, expectedRevision string, start int, 
 		RemovedLines: len(oldLines),
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
+		Checks:       s.diag.Checks(path),
 		Jobs:         []string{jobID},
 	}, nil
 }
@@ -126,6 +128,7 @@ func (s *Service) ReplaceText(path string, expectedRevision string, oldText stri
 		RemovedLines: removedLines,
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
+		Checks:       s.diag.Checks(path),
 		Jobs:         []string{jobID},
 	}, nil
 }
@@ -162,6 +165,7 @@ func (s *Service) Insert(path string, expectedRevision string, anchor string, po
 		RemovedLines: 0,
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
+		Checks:       s.diag.Checks(path),
 		Jobs:         []string{jobID},
 	}, nil
 }
@@ -191,6 +195,7 @@ func (s *Service) DeleteSymbol(path string, symbolID string, expectedRevision st
 		RemovedLines: len(removed),
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(symbol.Path),
+		Checks:       s.diag.Checks(symbol.Path),
 		Jobs:         []string{jobID},
 	}, nil
 }
@@ -216,6 +221,7 @@ func (s *Service) CreateFile(path string, content string) (protocol.EditResponse
 		AddedLines:  countLines(content),
 		Formatted:   formatted,
 		Diagnostics: s.diag.Immediate(path),
+		Checks:      s.diag.Checks(path),
 		Jobs:        []string{jobID},
 	}, nil
 }
@@ -244,6 +250,7 @@ func (s *Service) ReplaceFile(path string, content string) (protocol.EditRespons
 		RemovedLines: removedLines,
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
+		Checks:       s.diag.Checks(path),
 		Jobs:         []string{jobID},
 	}, nil
 }
@@ -298,6 +305,7 @@ func (s *Service) Rename(path string, symbolID string, newName string, expectedR
 		Changed:     changed,
 		Formatted:   formatted,
 		Diagnostics: s.diag.Immediate(path),
+		Checks:      s.diag.Checks(path),
 		Jobs:        []string{jobID},
 	}, nil
 }
