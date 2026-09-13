@@ -162,7 +162,7 @@ func decisiveLines(output string) []string {
 			continue
 		}
 		seen[line] = true
-		reversed = append(reversed, line)
+		reversed = append(reversed, withContinuation(lines, i))
 	}
 
 	out := make([]string, len(reversed))
@@ -170,6 +170,34 @@ func decisiveLines(output string) []string {
 		out[len(reversed)-1-i] = line
 	}
 	return out
+}
+
+// maxContinuationLines bounds the block kept after a decisive line that
+// introduces one; maxContinuationBytes bounds the joined result.
+const (
+	maxContinuationLines = 6
+	maxContinuationBytes = 400
+)
+
+// withContinuation keeps the block a decisive line introduces. A Go test
+// assertion reads `command_test.go:76: Expected to contain:` and puts the
+// expected and actual values on the lines after it: the line alone says a
+// test failed, not what it saw. A benchmark run spent a whole job_output call
+// reading the part this dropped.
+func withContinuation(lines []string, i int) string {
+	line := lines[i]
+	if !strings.HasSuffix(line, ":") {
+		return line
+	}
+	parts := []string{line}
+	for j := i + 1; j < len(lines) && j <= i+maxContinuationLines && !isDecisive(lines[j]); j++ {
+		parts = append(parts, lines[j])
+	}
+	joined := strings.Join(parts, " ")
+	if len(joined) > maxContinuationBytes {
+		joined = joined[:maxContinuationBytes] + "…"
+	}
+	return joined
 }
 
 // lastNLines returns the final n non-empty lines, in original order. Used as

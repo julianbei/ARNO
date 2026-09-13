@@ -1055,7 +1055,7 @@ func tools() []mcpTool {
 				"type": "object",
 				"properties": map[string]interface{}{
 					"query":      map[string]interface{}{"type": "string", "description": "Text to find."},
-					"regex":      map[string]interface{}{"type": "boolean", "description": "Treat query as a regular expression."},
+					"regex":      map[string]interface{}{"type": "boolean", "description": "Treat query as a regular expression. grep-style \\| alternation and \\( \\) groups work as in grep."},
 					"ignoreCase": map[string]interface{}{"type": "boolean", "description": "Case-insensitive match."},
 					"glob":       map[string]interface{}{"type": "string", "description": "Restrict by path, e.g. *.go or internal/code/*."},
 					"exclude":    map[string]interface{}{"type": "string", "description": "Skip paths containing this substring, e.g. testdata."},

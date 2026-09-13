@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Two turn-wasters found in benchmark transcripts
+
+The first pilot runs with full transcripts showed a Jade-only agent taking
+more turns than the shell agent on one cobra task. Reading its calls found two
+Jade defects, not agent choices:
+
+- **`grep` with `regex: true` now accepts grep's `\|` alternation.** The agent
+  wrote `version for %s\|%s version %s` as it would for `grep -n`. Go's regexp
+  reads `\|` as a literal pipe, so Jade answered `no matches` three times and
+  the agent split every search into single patterns. A pattern that uses `\|`
+  and no bare `|` now has `\|`, `\(`, `\)`, `\+` and `\?` read as grep reads
+  them; patterns already in RE2 form are untouched.
+- **A failing test's summary keeps what it expected and got.** The summary kept
+  `command_test.go:76: Expected to contain:` and dropped the lines after it, so
+  the agent had to call `job_output` to see the values. A decisive line that
+  ends in `:` now carries the next few lines, capped at 400 bytes.
+
 ### `jade-bench agent`: the external benchmark
 
 Release plan Phase 2 needs evidence from repositories Jade was not built in.

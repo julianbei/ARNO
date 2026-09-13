@@ -89,6 +89,29 @@ func TestReadInARepositoryWithNoCommitsIsNotFlagged(t *testing.T) {
 	}
 }
 
+// Found in the benchmark: an agent wrote grep's `\|` alternation with regex on,
+// got "no matches" three times, and split every search into single patterns.
+func TestGrepRegexAcceptsGrepStyleAlternation(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	writeWorkspaceFile(t, root, "command.go", "package cobra\n\nconst usage = \"version for \"\nfunc VersionTemplate() string { return \"\" }\n")
+
+	out, err := callText(t, server, "jade.grep", map[string]interface{}{"query": `VersionTemplate\|version for`, "regex": true})
+	if err != nil {
+		t.Fatalf("grep: %v", err)
+	}
+	if !strings.Contains(out, "2 matches") {
+		t.Fatalf("expected both alternatives to match, got:\n%s", out)
+	}
+
+	literal, err := callText(t, server, "jade.grep", map[string]interface{}{"query": `a[|]b`, "regex": true})
+	if err != nil {
+		t.Fatalf("grep: %v", err)
+	}
+	if !strings.Contains(literal, "no matches") {
+		t.Fatalf("a literal pipe is still expressible as a class, got:\n%s", literal)
+	}
+}
+
 func TestCommandListingShowsNamesNotScripts(t *testing.T) {
 	server, _ := newTestMCPServer(t)
 	script := "set -e; " + strings.Repeat("echo step; ", 40)

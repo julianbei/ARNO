@@ -200,9 +200,25 @@ func clipLine(line string) string {
 // reported as an error naming the pattern, not silently treated as a literal:
 // silently matching something other than what was asked for is the failure
 // mode that makes a search tool untrustworthy.
+// grepToRE2 reads the escapes agents type from grep habit the way grep reads
+// them. `a\|b` is alternation to grep but a literal pipe to Go's regexp, so a
+// pattern written for `grep -n` silently matched nothing; a benchmark run spent
+// three turns on exactly that before splitting the search by hand. `\|`, `\(`,
+// `\)`, `\+` and `\?` become their RE2 operators.
+//
+// Only for a pattern written that way: one that uses `\|` and has no bare `|`.
+// A pattern already in RE2 form — `func (Read|Other)\(` — relies on `\(`
+// being a literal paren and is left exactly as written.
+func grepToRE2(pattern string) string {
+	if !strings.Contains(pattern, `\|`) || strings.Contains(strings.ReplaceAll(pattern, `\|`, ""), "|") {
+		return pattern
+	}
+	return strings.NewReplacer(`\|`, `|`, `\(`, `(`, `\)`, `)`, `\+`, `+`, `\?`, `?`).Replace(pattern)
+}
+
 func buildMatcher(query string, isRegex bool, ignoreCase bool) (func(string) bool, error) {
 	if isRegex {
-		pattern := query
+		pattern := grepToRE2(query)
 		if ignoreCase {
 			pattern = "(?i)" + pattern
 		}
