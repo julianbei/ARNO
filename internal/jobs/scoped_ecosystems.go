@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/julianbei/jade/internal/project"
 )
 
 // RunScopedTests runs tests narrowed per scope with the project's own runner:
@@ -24,7 +26,7 @@ func (r *Runner) RunScopedTests(id string, dir string, scope TestScope, changedF
 		return
 	}
 	if configured {
-		r.RunCommand(id, dir, "sh", "-c", command)
+		r.RunPlan(id, Plan{Kind: "tests", Name: "sh", Args: []string{"-c", command}, Dir: dir, Source: project.Source})
 		return
 	}
 	if fileExists(filepath.Join(dir, "go.mod")) {
@@ -44,7 +46,7 @@ func (r *Runner) RunScopedTests(id string, dir string, scope TestScope, changedF
 		r.CompleteWithOutput(id, "no changed test files to run")
 		return
 	}
-	r.RunCommand(id, dir, name, args...)
+	r.RunPlan(id, Plan{Kind: "tests", Name: name, Args: args, Dir: dir, Source: planSource(dir, name, args)})
 }
 
 // scopedTestCommand builds the scoped test command for a non-Go project. An

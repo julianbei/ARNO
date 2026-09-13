@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/julianbei/jade/internal/project"
@@ -203,18 +202,19 @@ func discoverCommand(dir string, kind string) (name string, args []string, ok bo
 // "check build" would execute, and so did not trust it. Discovery is
 // read-only apart from `make -n`, which prints commands without running them.
 func DescribeValidationCommand(dir string, kind string) (string, bool) {
-	config, err := project.Load(dir)
+	// Rendered from the same plan RunValidationCommand runs, so what check
+	// says it ran and what ran cannot drift apart.
+	plan, ok, err := PlanValidation(dir, kind)
 	if err != nil {
 		return err.Error(), true
 	}
-	if command, found := config.Command(kind); found {
-		return command + " · from " + project.Source, true
-	}
-	name, args, ok := discoverCommand(dir, kind)
 	if !ok {
 		return "", false
 	}
-	return strings.Join(append([]string{name}, args...), " "), true
+	if plan.Source == project.Source && len(plan.Args) > 1 {
+		return plan.Args[1] + " · from " + project.Source, true
+	}
+	return plan.String(), true
 }
 
 func fileExists(path string) bool {

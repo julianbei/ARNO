@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/julianbei/jade/internal/commands"
+	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/protocol"
 )
 
@@ -45,7 +46,10 @@ func (s *Server) RunCommand(req protocol.RunCommandRequest) (protocol.RunCommand
 	// The job kind carries the command name so history, events and job_status
 	// all say which command ran rather than an opaque "command".
 	jobID := s.jobs.Start("command:" + req.Name)
-	s.jobs.RunCommandWithTimeout(jobID, s.workspace.Root(), checkTimeout(req.TimeoutSeconds), shell(), "-c", command.Run)
+	s.jobs.RunPlan(jobID, jobs.Plan{
+		Kind: "command:" + req.Name, Name: shell(), Args: []string{"-c", command.Run},
+		Dir: s.workspace.Root(), Source: commands.RelPath, Timeout: checkTimeout(req.TimeoutSeconds),
+	})
 
 	if !req.Wait {
 		return protocol.RunCommandResponse{
@@ -157,7 +161,10 @@ func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol
 		return protocol.CheckResponse{Kind: kind, Status: "dry run", Command: command}, true
 	}
 	jobID := s.jobs.Start("check:" + kind)
-	s.jobs.RunCommandWithTimeout(jobID, s.workspace.Root(), checkTimeout(req.TimeoutSeconds), shell(), "-c", strings.Join(runs, " && "))
+	s.jobs.RunPlan(jobID, jobs.Plan{
+		Kind: "check:" + kind, Name: shell(), Args: []string{"-c", strings.Join(runs, " && ")},
+		Dir: s.workspace.Root(), Source: commands.RelPath, Timeout: checkTimeout(req.TimeoutSeconds),
+	})
 	if !req.Wait {
 		return protocol.CheckResponse{JobID: jobID, Kind: kind, Outcome: protocol.OutcomeRunning, Status: "running", Command: command}, true
 	}

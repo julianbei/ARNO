@@ -112,16 +112,16 @@ func (r *Runner) RunCommandWithTimeout(id string, dir string, timeout time.Durat
 // for Go specifically: since 6.5 it dispatches per ecosystem (Makefile
 // target, npm script, cargo, or the Go default).
 func (r *Runner) RunValidationCommand(id string, dir string, kind string) {
-	if _, err := project.Load(dir); err != nil {
+	plan, ok, err := PlanValidation(dir, kind)
+	if err != nil {
 		r.CompleteWithResult(id, err.Error(), true)
 		return
 	}
-	name, args, ok := discoverCommand(dir, kind)
 	if !ok {
 		r.CompleteWithOutput(id, fmt.Sprintf("no validation command configured for kind %q", kind))
 		return
 	}
-	r.RunCommand(id, dir, name, args...)
+	r.RunPlan(id, plan)
 }
 
 // projectEnv is the environment a developer's shell has in dir: the

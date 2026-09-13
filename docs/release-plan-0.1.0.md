@@ -605,7 +605,9 @@ impact-aware validation comes after the write path it depends on, not before.
 - [x] **Revisions against git, enforced.** Landed early, in 0.0.3 (f76ee88):
   each checkpoint records `HEAD`, and `revert` refuses with both commits named
   when one has landed since. What remains is the restore itself, above.
-- [ ] **Discovery returns plans, core runs them.** Ecosystem discovery (Go,
+- [x] **Discovery returns plans, core runs them.** *Done 2026-09-14:*
+  `jobs.Plan` and `Runner.RunPlan`; validation, scoped tests and declared
+  commands all plan first and run through it. Ecosystem discovery (Go,
   Node, Cargo, Maven, Gradle, pytest, bundler) returns a command plan — kind,
   command, arguments, directory — and `jobs.Runner` executes it with its own
   timeout, process group, output clamping, exit-status verdict, typed outcome

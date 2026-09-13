@@ -65,6 +65,16 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### Discovery returns plans, and one runner executes them
+
+Internal, no change in behaviour. Ecosystem discovery, `.jade/project.json`,
+scoped test runs and declared commands each decide a `jobs.Plan` — kind,
+command, arguments, directory and what decided it (`go.mod`, `Makefile`,
+`package.json`, `.jade/project.json`, `.jade/commands.json`) — and
+`Runner.RunPlan` is the one place any of them runs, with the same timeout,
+process group, output clamp and exit-status verdict. What `check` says it
+ran is rendered from the plan it runs.
+
 ### `changes` shows who changed a file, and what validation ran
 
 - **Files this session did not change are marked:** `+4 -1 store.go ·
