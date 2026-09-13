@@ -18,6 +18,20 @@ Jade defects, not agent choices:
   `command_test.go:76: Expected to contain:` and dropped the lines after it, so
   the agent had to call `job_output` to see the values. A decisive line that
   ends in `:` now carries the next few lines, capped at 400 bytes.
+- **Test summaries name the failing test first.** On another cobra task the
+  Jade agent took 51 turns to shell's 23. `run_tests` reported a failure as
+  eight `Error: if any flags in the group…` lines — expected errors printed by
+  passing tests — and dropped `--- FAIL: TestCompleteWithDisableFlagParsing`,
+  which came first. The agent chased the wrong test for eighteen calls,
+  toggling its fix in and out, until `job_output` showed the real failure. When
+  a runner names failing tests (Go `--- FAIL:`, pytest `FAILED`, cargo
+  `... FAILED` and panics, ava `✘`), the summary is those names with their
+  assertion lines and the package result.
+- **A literal `grep` that reads like a pattern says so when it finds
+  nothing.** The same run searched `helpFlagName|helpCommand\b` and
+  `func (c \*Command) ParseFlags` literally and got a bare "no matches" four
+  times. The answer now adds that the text was searched literally and to pass
+  `regex: true`.
 
 ### `jade-bench agent`: the external benchmark
 

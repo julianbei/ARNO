@@ -115,7 +115,7 @@ func (i *Index) Grep(req protocol.GrepRequest) (protocol.GrepResponse, error) {
 		Files:     len(files),
 		Truncated: total > len(matches),
 	}
-	response.Summary = grepSummary(response)
+	response.Summary = grepSummary(response, req.Regex)
 	return response, nil
 }
 
@@ -265,8 +265,22 @@ func pathAllowed(rel string, glob string, exclude string) bool {
 	return false
 }
 
-func grepSummary(r protocol.GrepResponse) string {
+// looksLikePattern reports a literal query written as a regular expression.
+func looksLikePattern(query string) bool {
+	return strings.Contains(query, "|") || strings.Contains(query, `\`) ||
+		strings.Contains(query, ".*") || strings.Contains(query, ".+")
+}
+
+func grepSummary(r protocol.GrepResponse, regex bool) string {
 	if r.Total == 0 {
+		// A literal search that reads like a pattern found nothing because it
+		// was not treated as one. In a benchmark run an agent searched
+		// `helpFlagName|helpCommand\b` and `func (c \*Command) ParseFlags`
+		// literally, got a bare "no matches" four times, and concluded the
+		// code was not there.
+		if !regex && looksLikePattern(r.Query) {
+			return fmt.Sprintf("no matches for %q — searched as literal text; pass regex: true for | alternation or \\ escapes", r.Query)
+		}
 		return fmt.Sprintf("no matches for %q", r.Query)
 	}
 	summary := fmt.Sprintf("%d matches in %d files", r.Total, r.Files)

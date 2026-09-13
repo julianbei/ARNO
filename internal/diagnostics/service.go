@@ -143,12 +143,17 @@ const maxDecisiveLines = 8
 //     for readability.
 func decisiveLines(output string) []string {
 	scanner := bufio.NewScanner(strings.NewReader(output))
+	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
 	lines := make([]string, 0, 64)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line != "" {
 			lines = append(lines, line)
 		}
+	}
+
+	if failures := testFailureLines(lines); len(failures) > 0 {
+		return failures
 	}
 
 	seen := make(map[string]bool, maxDecisiveLines)
@@ -168,6 +173,60 @@ func decisiveLines(output string) []string {
 	out := make([]string, len(reversed))
 	for i, line := range reversed {
 		out[len(reversed)-1-i] = line
+	}
+	return out
+}
+
+// testFailureHeader matches the line a test runner prints to name a failing
+// test: Go's `--- FAIL: TestX`, pytest's `FAILED tests/x.py::test_y`, cargo's
+// `test name ... FAILED` and panics, ava's `✘`.
+var testFailureHeader = regexp.MustCompile(`^(--- FAIL:|FAILED\s|test\s.+\s\.\.\.\sFAILED$|thread\s.+\spanicked at|✘|✖\s)`)
+
+// packageResult matches a runner's per-package verdict, e.g.
+// `FAIL	github.com/spf13/cobra	0.26s`.
+var packageResult = regexp.MustCompile(`^FAIL\s+\S`)
+
+// testFailureLines names the failing tests, each with the assertion lines
+// that follow it, before anything else.
+//
+// Test output is full of the word "error" that is not a failure: tests that
+// check error handling print their expected errors. A benchmark run on cobra
+// summarised a failing `go test` as eight `Error: if any flags in the group…`
+// lines from passing tests and dropped `--- FAIL: TestCompleteWithDisable…`,
+// which came first. The agent chased the wrong test for eighteen calls. When a
+// runner names its failures, those names and their assertions are the answer.
+func testFailureLines(lines []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	add := func(line string) {
+		if !seen[line] && len(out) < maxDecisiveLines {
+			seen[line] = true
+			out = append(out, line)
+		}
+	}
+	for i, line := range lines {
+		if !testFailureHeader.MatchString(line) {
+			continue
+		}
+		add(line)
+		// The lines that explain a named failure: its assertion
+		// (file_test.go:76: ...) or its panic. Anything else — including an
+		// `Error:` a later passing test prints — ends the block.
+		for j := i + 1; j < len(lines) && j <= i+3 &&
+			(compilerDiagnostic.MatchString(lines[j]) || strings.HasPrefix(lines[j], "panic:")); j++ {
+			add(withContinuation(lines, j))
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	for i := len(lines) - 1; i >= 0; i-- {
+		if packageResult.MatchString(lines[i]) {
+			if !seen[lines[i]] {
+				out = append(out, lines[i])
+			}
+			break
+		}
 	}
 	return out
 }

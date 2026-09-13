@@ -112,6 +112,30 @@ func TestGrepRegexAcceptsGrepStyleAlternation(t *testing.T) {
 	}
 }
 
+// A literal search written like a pattern says why it found nothing.
+func TestLiteralGrepThatLooksLikeARegexSaysSo(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	writeWorkspaceFile(t, root, "flags.go", "package cobra\n\nvar helpFlagName = \"help\"\n")
+
+	for _, query := range []string{`helpFlagName|helpCommand`, `func (c \*Command) ParseFlags`} {
+		out, err := callText(t, server, "jade.grep", map[string]interface{}{"query": query})
+		if err != nil {
+			t.Fatalf("grep %q: %v", query, err)
+		}
+		if !strings.Contains(out, "no matches") || !strings.Contains(out, "regex: true") {
+			t.Errorf("%q: expected a no-match that points at regex mode, got:\n%s", query, out)
+		}
+	}
+
+	plain, err := callText(t, server, "jade.grep", map[string]interface{}{"query": "notThere"})
+	if err != nil {
+		t.Fatalf("grep: %v", err)
+	}
+	if strings.Contains(plain, "regex") {
+		t.Errorf("a plain literal miss needs no hint, got:\n%s", plain)
+	}
+}
+
 func TestCommandListingShowsNamesNotScripts(t *testing.T) {
 	server, _ := newTestMCPServer(t)
 	script := "set -e; " + strings.Repeat("echo step; ", 40)
