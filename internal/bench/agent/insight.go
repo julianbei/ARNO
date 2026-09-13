@@ -203,6 +203,11 @@ func Analyze(result RunResult) (Insight, error) {
 	for _, output := range outputByRequest {
 		in.OutputTokens += output
 	}
+	// Streamed assistant events carry the output count at the start of a
+	// message, not its final count; the result event has the true total.
+	if result.OutputTokens > 0 {
+		in.OutputTokens = result.OutputTokens
+	}
 	for _, count := range callsByRequest {
 		if count > in.MaxParallel {
 			in.MaxParallel = count
