@@ -65,6 +65,21 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### An edit can refuse a file that changed since it was read
+
+Jade's revision counts only Jade's own edits, so an `expectedRevision`
+passed after the user, a formatter, a build or another agent rewrote the
+file. Now:
+
+- **Reads carry a digest** of the whole file: `r41 · digest 3f2a9c1e07bd`
+  on `read_range` and `read_symbol`.
+- **`replace_text`, `insert` and each `apply` edit take `expectedDigest`.**
+  If the file changed since that read, by anyone, the edit is refused before
+  anything is written: `a.go changed since the read that returned digest
+  3f2a9c1e07bd (now 9c1e44a0b2d7) — read it again before editing`.
+
+Optional, like `expectedRevision`: an edit without it applies as before.
+
 ### `revert` restores the state, all of it or none
 
 - **Files first changed after the checkpoint are restored.** A checkpoint

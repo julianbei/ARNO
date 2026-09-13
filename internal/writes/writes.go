@@ -5,12 +5,22 @@
 package writes
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 )
+
+// Digest names a file's contents: 12 hex characters of its SHA-256. Reads
+// return it, and edits accept it as a precondition that sees every change to
+// the file, not only Jade's.
+func Digest(data []byte) string {
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:6])
+}
 
 // Change is one file's new contents, or its removal.
 type Change struct {

@@ -288,6 +288,7 @@ func (s *Server) ReadRange(req protocol.ReadRangeRequest) (protocol.InspectRespo
 	}
 
 	return protocol.InspectResponse{
+		Digest:   s.fileDigest(req.Path),
 		Continue: continueHandle,
 		Revision: s.workspace.Revision(),
 		Source:   read.Source,
@@ -551,10 +552,16 @@ func (s *Server) ReplaceRange(req protocol.ReplaceRangeRequest) (protocol.EditRe
 }
 
 func (s *Server) Insert(req protocol.InsertRequest) (protocol.EditResponse, error) {
+	if err := s.checkDigest(req.Path, req.ExpectedDigest); err != nil {
+		return protocol.EditResponse{}, err
+	}
 	return s.edit.Insert(req.Path, req.ExpectedRevision, req.Anchor, req.Position, req.Text)
 }
 
 func (s *Server) ReplaceText(req protocol.ReplaceTextRequest) (protocol.EditResponse, error) {
+	if err := s.checkDigest(req.Path, req.ExpectedDigest); err != nil {
+		return protocol.EditResponse{}, err
+	}
 	return s.edit.ReplaceText(req.Path, req.ExpectedRevision, req.OldText, req.NewText)
 }
 
@@ -570,6 +577,12 @@ func (s *Server) ReplaceFile(req protocol.ReplaceFileRequest) (protocol.EditResp
 }
 
 func (s *Server) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, error) {
+	// Every digest is checked before any edit is written.
+	for index, op := range req.Edits {
+		if err := s.checkDigest(op.Path, op.ExpectedDigest); err != nil {
+			return protocol.ApplyResponse{}, fmt.Errorf("edit %d (%s %s): %w", index+1, op.Op, op.Path, err)
+		}
+	}
 	return s.edit.Apply(req)
 }
 

@@ -572,7 +572,10 @@ impact-aware validation comes after the write path it depends on, not before.
   revision, consequences reported). One test per guarantee, so the contract
   cannot silently weaken — this is the part competitors have not built, and
   the hardest to commoditise.
-- [ ] **Preconditions see changes Jade did not make.** Today an edit made by the
+- [x] **Preconditions see changes Jade did not make.** *Done 2026-09-14:*
+  reads return a content digest; `replace_text`, `insert` and `apply` edits
+  refuse on `expectedDigest` mismatch, naming both digests. Opt-in, like
+  `expectedRevision`; the revision itself still counts Jade's edits only. Today an edit made by the
   user, the host or another tool leaves Jade's revision unchanged, so a stale
   `expectedRevision` still passes. The requirement: a mutation detects any
   change to its target since the read that informed it. Likely shape — a

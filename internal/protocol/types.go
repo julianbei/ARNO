@@ -116,6 +116,7 @@ type ReplaceRangeRequest struct {
 type InsertRequest struct {
 	Path             string
 	ExpectedRevision string
+	ExpectedDigest   string
 	Anchor           string
 	Position         string
 	Text             string
@@ -127,6 +128,7 @@ type InsertRequest struct {
 type ReplaceTextRequest struct {
 	Path             string
 	ExpectedRevision string
+	ExpectedDigest   string
 	OldText          string
 	NewText          string
 }
@@ -154,16 +156,19 @@ type ReplaceFileRequest struct {
 // replace_symbol (SymbolID or SymbolName, NewText), delete_symbol (SymbolID
 // or SymbolName), insert (Position, optional Anchor, NewText).
 type EditOp struct {
-	Op         string
-	Path       string
-	OldText    string
-	NewText    string
-	SymbolID   string
-	SymbolName string
-	StartLine  int
-	EndLine    int
-	Anchor     string
-	Position   string
+	Op   string
+	Path string
+	// ExpectedDigest refuses the whole apply if Path changed since the read
+	// that returned this digest.
+	ExpectedDigest string
+	OldText        string
+	NewText        string
+	SymbolID       string
+	SymbolName     string
+	StartLine      int
+	EndLine        int
+	Anchor         string
+	Position       string
 }
 
 // ApplyRequest performs several edits as one unit.
@@ -647,6 +652,10 @@ type InspectResponse struct {
 	Range string
 	// Continue is the handle for the rest of a read its budget cut.
 	Continue string
+	// Digest names the file's whole contents at this read. Pass it as an
+	// edit's expectedDigest to have the edit refused if the file changed
+	// since, by anyone.
+	Digest string
 }
 
 // RepositoryMapRequest asks JADE to rank the most relevant files and symbols

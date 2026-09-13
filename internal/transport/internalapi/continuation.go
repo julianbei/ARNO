@@ -332,6 +332,9 @@ func (s *Server) ReadSymbol(req protocol.ReadSymbolRequest) (protocol.InspectRes
 		req.MaxLines = maxBudgetBodyLines
 	}
 	response, err := s.readSymbolAll(req)
+	if err == nil && response.Resolve.SelectedID != "" {
+		response.Digest = s.fileDigest(req.Path)
+	}
 	if err != nil || req.Budget <= 0 || response.Source == "" {
 		return response, err
 	}

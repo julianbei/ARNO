@@ -172,6 +172,9 @@ func inspect(r protocol.InspectResponse) string {
 	if r.Revision != "" {
 		header = append(header, r.Revision)
 	}
+	if r.Digest != "" {
+		header = append(header, "digest "+r.Digest)
+	}
 	// Only present when an end line past the file was clamped: the caller got
 	// less than it named and should know.
 	if r.Range != "" {
