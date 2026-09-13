@@ -18,6 +18,34 @@ import (
 // bypassed, such as the benchmark container.
 const sandboxEnv = "JADE_BENCH_SANDBOX"
 
+// runAgentReport is `jade-bench agent-report`: one table from the result lines
+// of any number of `agent` invocations.
+func runAgentReport(args []string) int {
+	flags := flag.NewFlagSet("agent-report", flag.ContinueOnError)
+	in := flags.String("in", "bench-results.jsonl", "result lines written by jade-bench agent")
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	file, err := os.Open(*in)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	defer file.Close()
+	results, err := agent.ReadResults(file)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	repositories := map[string]bool{}
+	for _, result := range results {
+		repositories[result.Repository] = true
+	}
+	fmt.Printf("%d runs across %d repositories\n\n", len(results), len(repositories))
+	fmt.Print(agent.Report(results))
+	return 0
+}
+
 // runAgent is `jade-bench agent`: the external benchmark with a real agent.
 func runAgent(args []string) int {
 	flags := flag.NewFlagSet("agent", flag.ContinueOnError)

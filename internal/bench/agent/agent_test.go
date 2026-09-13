@@ -255,6 +255,26 @@ func TestAgentThatPrintsNoResultIsChargedItsCap(t *testing.T) {
 	}
 }
 
+func TestReadResultsRoundTripsWhatRunWrites(t *testing.T) {
+	repo, claude, _ := setup(t)
+	var out bytes.Buffer
+	written, err := Run(context.Background(), Config{
+		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmJade}, BudgetUSD: 5, PerRunUSD: 1,
+		JadeMCP: "/opt/jade-mcp", Claude: claude, Out: &out,
+	})
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+
+	read, err := ReadResults(&out)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if len(read) != len(written) || Report(read) != Report(written) {
+		t.Fatalf("results read back should report the same:\n%s\nvs\n%s", Report(read), Report(written))
+	}
+}
+
 func TestScoreAppliesTheFixedScorecard(t *testing.T) {
 	shell := ArmSummary{Arm: ArmShell, SuccessRate: 0.60, MeanTokens: 1000}
 	cases := []struct {

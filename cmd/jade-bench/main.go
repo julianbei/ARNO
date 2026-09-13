@@ -32,6 +32,9 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "agent" {
 		os.Exit(runAgent(os.Args[2:]))
 	}
+	if len(os.Args) > 1 && os.Args[1] == "agent-report" {
+		os.Exit(runAgentReport(os.Args[2:]))
+	}
 
 	root := flag.String("root", "", "repository root to benchmark against (default: working directory)")
 	flag.Parse()

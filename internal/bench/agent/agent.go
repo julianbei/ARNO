@@ -324,6 +324,24 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 	return result
 }
 
+// ReadResults reads the JSON lines Run writes, so runs from several task files
+// and invocations can be reported as one table.
+func ReadResults(r io.Reader) ([]RunResult, error) {
+	var results []RunResult
+	decoder := json.NewDecoder(r)
+	for {
+		var result RunResult
+		err := decoder.Decode(&result)
+		if errors.Is(err, io.EOF) {
+			return results, nil
+		}
+		if err != nil {
+			return results, fmt.Errorf("result %d: %w", len(results)+1, err)
+		}
+		results = append(results, result)
+	}
+}
+
 // AgentArgs builds the headless invocation for one arm. Every arm gets the
 // same model, budget, permission mode and settings; only tools and MCP differ.
 //
