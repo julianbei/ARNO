@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Found building 0.0.4 with Jade
+
+- **An edit in `apply` accepts `text`.** `insert` on its own takes `text`,
+  an edit in `apply` takes `newText`; a batch of 21 edits was refused for
+  carrying the one spelling into the other.
+
 ## 0.0.4
 
 ### Project configuration in `.jade/project.json`

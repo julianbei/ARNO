@@ -1,7 +1,9 @@
 package main
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -184,5 +186,28 @@ func TestCommandListingShowsNamesNotScripts(t *testing.T) {
 	}
 	if strings.Contains(out, "echo step") {
 		t.Fatalf("a described command's script does not belong in the listing, got:\n%s", out)
+	}
+}
+
+// Fixes for what building 0.0.4 with Jade itself turned up.
+
+func TestApplyInsertAcceptsText(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	writeWorkspaceFile(t, root, "a.txt", "one\n")
+
+	_, err := callText(t, server, "jade.apply", map[string]interface{}{
+		"edits": []interface{}{
+			map[string]interface{}{"op": "insert", "path": "a.txt", "anchor": "one", "position": "after", "text": "\ntwo"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("an apply insert written with insert's text field should apply: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, "a.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "two") {
+		t.Fatalf("inserted text missing:\n%s", data)
 	}
 }

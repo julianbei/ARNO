@@ -1305,6 +1305,24 @@ func editOpsArg(args map[string]interface{}, key string) ([]protocol.EditOp, err
 		return nil, fmt.Errorf("%s is required", key)
 	}
 
+	// insert on its own takes text; an edit in apply takes newText. Callers
+	// carry one spelling into the other — building 0.0.4, a whole apply
+	// batch was refused for it — so an edit accepts text as well.
+	if list, ok := raw.([]interface{}); ok {
+		for _, item := range list {
+			op, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if _, has := op["newText"]; has {
+				continue
+			}
+			if text, has := op["text"]; has {
+				op["newText"] = text
+			}
+		}
+	}
+
 	encoded, err := json.Marshal(raw)
 	if err != nil {
 		return nil, fmt.Errorf("invalid %s: %w", key, err)
