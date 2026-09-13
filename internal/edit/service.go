@@ -55,8 +55,6 @@ func (s *Service) ReplaceSymbol(symbolID string, expectedRevision string, newCod
 
 	formatted := s.formatTouched(symbol.Path)
 	oldRev, newRev := s.workspace.BumpRevision(symbolID)
-	jobID := s.jobs.Start("typecheck")
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "typecheck")
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
@@ -67,7 +65,6 @@ func (s *Service) ReplaceSymbol(symbolID string, expectedRevision string, newCod
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(symbolID),
 		Checks:       s.diag.Checks(symbolID),
-		Jobs:         []string{jobID},
 	}, nil
 }
 
@@ -84,8 +81,6 @@ func (s *Service) ReplaceRange(path string, expectedRevision string, start int, 
 
 	formatted := s.formatTouched(path)
 	oldRev, newRev := s.workspace.BumpRevision(path)
-	jobID := s.jobs.Start("tests")
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "tests")
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
@@ -96,7 +91,6 @@ func (s *Service) ReplaceRange(path string, expectedRevision string, start int, 
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
 		Checks:       s.diag.Checks(path),
-		Jobs:         []string{jobID},
 	}, nil
 }
 
@@ -110,26 +104,23 @@ func (s *Service) ReplaceText(path string, expectedRevision string, oldText stri
 		return protocol.EditResponse{}, ErrStaleRevision
 	}
 
-	removedLines, err := s.index.ReplaceTextSource(path, oldText, newText)
-	if err != nil {
+	if _, err := s.index.ReplaceTextSource(path, oldText, newText); err != nil {
 		return protocol.EditResponse{}, err
 	}
+	addedLines, removedLines := lineDelta(oldText, newText)
 
 	formatted := s.formatTouched(path)
 	oldRev, newRev := s.workspace.BumpRevision(path)
-	jobID := s.jobs.Start("typecheck")
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "typecheck")
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
 		NewRevision:  newRev,
 		Changed:      []string{path},
-		AddedLines:   countLines(newText),
+		AddedLines:   addedLines,
 		RemovedLines: removedLines,
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
 		Checks:       s.diag.Checks(path),
-		Jobs:         []string{jobID},
 	}, nil
 }
 
@@ -154,8 +145,6 @@ func (s *Service) Insert(path string, expectedRevision string, anchor string, po
 
 	formatted := s.formatTouched(path)
 	oldRev, newRev := s.workspace.BumpRevision(path)
-	jobID := s.jobs.Start("typecheck")
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "typecheck")
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
@@ -166,7 +155,6 @@ func (s *Service) Insert(path string, expectedRevision string, anchor string, po
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
 		Checks:       s.diag.Checks(path),
-		Jobs:         []string{jobID},
 	}, nil
 }
 
@@ -185,8 +173,6 @@ func (s *Service) DeleteSymbol(path string, symbolID string, expectedRevision st
 
 	formatted := s.formatTouched(symbol.Path)
 	oldRev, newRev := s.workspace.BumpRevision(symbol.Path)
-	jobID := s.jobs.Start("typecheck")
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "typecheck")
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
@@ -196,7 +182,6 @@ func (s *Service) DeleteSymbol(path string, symbolID string, expectedRevision st
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(symbol.Path),
 		Checks:       s.diag.Checks(symbol.Path),
-		Jobs:         []string{jobID},
 	}, nil
 }
 
@@ -211,8 +196,6 @@ func (s *Service) CreateFile(path string, content string) (protocol.EditResponse
 
 	formatted := s.formatTouched(path)
 	oldRev, newRev := s.workspace.BumpRevision(path)
-	jobID := s.jobs.Start("typecheck")
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "typecheck")
 
 	return protocol.EditResponse{
 		OldRevision: oldRev,
@@ -222,7 +205,6 @@ func (s *Service) CreateFile(path string, content string) (protocol.EditResponse
 		Formatted:   formatted,
 		Diagnostics: s.diag.Immediate(path),
 		Checks:      s.diag.Checks(path),
-		Jobs:        []string{jobID},
 	}, nil
 }
 
@@ -239,8 +221,6 @@ func (s *Service) ReplaceFile(path string, content string) (protocol.EditRespons
 
 	formatted := s.formatTouched(path)
 	oldRev, newRev := s.workspace.BumpRevision(path)
-	jobID := s.jobs.Start("typecheck")
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "typecheck")
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
@@ -251,7 +231,6 @@ func (s *Service) ReplaceFile(path string, content string) (protocol.EditRespons
 		Formatted:    formatted,
 		Diagnostics:  s.diag.Immediate(path),
 		Checks:       s.diag.Checks(path),
-		Jobs:         []string{jobID},
 	}, nil
 }
 
@@ -263,15 +242,12 @@ func (s *Service) DeleteFile(path string) (protocol.EditResponse, error) {
 	}
 
 	oldRev, newRev := s.workspace.BumpRevision(path)
-	jobID := s.jobs.Start("typecheck")
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "typecheck")
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
 		NewRevision:  newRev,
 		Changed:      []string{path},
 		RemovedLines: removedLines,
-		Jobs:         []string{jobID},
 	}, nil
 }
 
@@ -296,8 +272,6 @@ func (s *Service) Rename(path string, symbolID string, newName string, expectedR
 	// gets formatted, not just the declaring file.
 	formatted := s.formatTouched(changed...)
 	oldRev, newRev := s.workspace.BumpRevision(symbolID)
-	jobID := s.jobs.Start("typecheck")
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), "typecheck")
 
 	return protocol.EditResponse{
 		OldRevision: oldRev,
@@ -306,8 +280,39 @@ func (s *Service) Rename(path string, symbolID string, newName string, expectedR
 		Formatted:   formatted,
 		Diagnostics: s.diag.Immediate(path),
 		Checks:      s.diag.Checks(path),
-		Jobs:        []string{jobID},
 	}, nil
+}
+
+// Single edits start no background validation job. Each one used to start a
+// whole-repository typecheck (a full test run for replace_range) whose result
+// no response showed: diagnostics already come back inline, and check or
+// apply's check runs validation when the caller asks. The jobs cost CPU on
+// every edit and distorted every benchmark timing.
+
+// lineDelta counts the lines a text replacement actually adds and removes,
+// ignoring lines the old and new text share at the start and end. Appending
+// 14 lines after a 4-line anchor is +14 -0, not +18 -4: the anchor was kept,
+// and counting it as rewritten made a pure addition read as a rewrite.
+func lineDelta(oldText string, newText string) (int, int) {
+	split := func(text string) []string {
+		trimmed := strings.TrimSuffix(text, "\n")
+		if trimmed == "" {
+			return nil
+		}
+		return strings.Split(trimmed, "\n")
+	}
+	oldLines, newLines := split(oldText), split(newText)
+
+	prefix := 0
+	for prefix < len(oldLines) && prefix < len(newLines) && oldLines[prefix] == newLines[prefix] {
+		prefix++
+	}
+	suffix := 0
+	for suffix < len(oldLines)-prefix && suffix < len(newLines)-prefix &&
+		oldLines[len(oldLines)-1-suffix] == newLines[len(newLines)-1-suffix] {
+		suffix++
+	}
+	return len(newLines) - prefix - suffix, len(oldLines) - prefix - suffix
 }
 
 func countLines(s string) int {

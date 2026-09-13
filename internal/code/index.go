@@ -1417,7 +1417,7 @@ var declarationPatterns = []struct {
 	kind    string
 	pattern *regexp.Regexp
 }{
-	{kind: "class", pattern: regexp.MustCompile(`^\s*type\s+([A-Z][A-Za-z0-9_]*)\s+struct\b`)},
+	{kind: "struct", pattern: regexp.MustCompile(`^\s*type\s+([A-Z][A-Za-z0-9_]*)\s+struct\b`)},
 	{kind: "type", pattern: regexp.MustCompile(`^\s*type\s+([A-Za-z_][A-Za-z0-9_]*)\s`)},
 	{kind: "function", pattern: regexp.MustCompile(`^\s*func\s+(?:\([^)]+\)\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\(`)},
 	{kind: "function", pattern: regexp.MustCompile(`^\s*export\s+function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(`)},
@@ -1608,7 +1608,7 @@ func groupSymbols(symbols []Symbol) OutlineSections {
 	sections := OutlineSections{}
 	for _, symbol := range symbols {
 		switch symbol.Kind {
-		case "type":
+		case "type", "struct":
 			sections.Types = append(sections.Types, symbol)
 		case "class":
 			sections.Classes = append(sections.Classes, symbol)

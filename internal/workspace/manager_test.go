@@ -399,13 +399,24 @@ func TestHeadCommitResolvesNormally(t *testing.T) {
 	}
 }
 
-func TestFreshnessOnAFreshRepoIsShort(t *testing.T) {
-	// The end-to-end property: this string is what reaches the top of every
-	// response, so its length is the thing that actually matters.
+func TestFreshnessOnAFreshRepoReportsNothing(t *testing.T) {
+	// This string reaches the top of every read. A repository with no commits
+	// is a normal state with nothing to be stale against, so it says nothing
+	// rather than "freshness unknown" on every call.
 	root := t.TempDir()
 	runGit(t, root, "init")
 
 	freshness := NewManager(root, nil).Freshness("")
+	if freshness.Unknown != "" {
+		t.Fatalf("expected no freshness warning before the first commit, got %q", freshness.Unknown)
+	}
+}
+
+func TestFreshnessOutsideARepositoryIsShort(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+	freshness := NewManager(t.TempDir(), nil).Freshness("")
 	if freshness.Unknown == "" {
 		t.Fatalf("expected the situation reported")
 	}

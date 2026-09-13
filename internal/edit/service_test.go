@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/julianbei/jade/internal/code"
 	"github.com/julianbei/jade/internal/diagnostics"
@@ -138,7 +137,9 @@ func TestReplaceSymbolReportsRealDiffCountsForSameSizeSwap(t *testing.T) {
 	}
 }
 
-func TestReplaceSymbolActuallyRunsAndCompletesTheValidationJob(t *testing.T) {
+// A single edit starts no background job: its result was never shown, and
+// diagnostics already come back inline.
+func TestReplaceSymbolStartsNoBackgroundJob(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "greeter.go")
 	if err := os.WriteFile(path, []byte("package main\n\nfunc Greet() string {\n\treturn \"hi\"\n}\n"), 0o644); err != nil {
@@ -166,24 +167,7 @@ func TestReplaceSymbolActuallyRunsAndCompletesTheValidationJob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("replace symbol: %v", err)
 	}
-	if len(resp.Jobs) != 1 {
-		t.Fatalf("expected exactly one job id, got %#v", resp.Jobs)
-	}
-
-	// Regression: before wiring the edit path to the real executor, this job
-	// would sit at "running" forever because nothing ever called Complete.
-	deadline := time.Now().Add(5 * time.Second)
-	for {
-		_, status, _, ok := svc.jobs.Status(resp.Jobs[0])
-		if !ok {
-			t.Fatalf("unknown job id %s", resp.Jobs[0])
-		}
-		if status == "completed" {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("job %s did not complete within timeout (still %q)", resp.Jobs[0], status)
-		}
-		time.Sleep(10 * time.Millisecond)
+	if len(resp.Jobs) != 0 {
+		t.Fatalf("expected no background job, got %#v", resp.Jobs)
 	}
 }

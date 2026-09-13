@@ -184,6 +184,8 @@ that the user did not ask for becomes part of the change.
   - Follow-up for 0.0.4: every single edit still starts a whole-repository
     typecheck job whose result nobody reads. Either scope it to the edited
     package and fold the verdict in, or stop starting it outside `apply`.
+  - Done 2026-09-13 (0.0.4): single edits start no background job;
+    validation runs through `check` or `apply`'s `check`.
 - [x] **Name the core tools in the server instructions.** Hosts load MCP tool
   schemas lazily, so an agent's first call to any Jade tool first costs a
   schema-search turn. A worker with a four-turn budget lost one of them this
@@ -349,20 +351,23 @@ Agents bypassed `check` for four reasons, each fixable:
 
 Found while building 0.0.3 with Jade itself rather than the host's own tools.
 
-- [ ] **`replace_text` line counts misdescribe additions.** Appending 14 lines
+- [x] **`replace_text` line counts misdescribe additions.** Done 2026-09-13:
+  lines shared at the start and end are not counted. Appending 14 lines
   after a 4-line anchor reported `+18 -4`: the anchor is counted as removed and
   re-added. A reader sees a rewrite where there was a pure addition. Report the
   diff of the change, not the size of the two texts.
-- [ ] **`run_command` with no name prints every command's full script.** One
+- [x] **`run_command` with no name prints every command's full script.**
+  Done 2026-09-13: name and description; an undescribed script is clipped. One
   declared command is a ~700-byte shell pipeline; the listing's job is to show
   what exists. Show name and description, and the script only for the command
   actually run.
-- [ ] **`grep` searches binary files.** A search for an error string matched
+- [x] **`grep` searches binary files.** Done 2026-09-13: NUL-byte sniff. A search for an error string matched
   inside `bin/jade-mcp` and returned kilobytes of runtime strings. Skip files
   that are not text, as `grep -I` and ripgrep do.
-- [ ] **Go types are labelled `class`.** `find Project` on a Go struct rendered
+- [x] **Go types are labelled `class`.** Done 2026-09-13: `struct`. `find Project` on a Go struct rendered
   `store.go:3-3 class Project`. Go has no classes; say `type` or `struct`.
-- [ ] **"freshness unknown" on every read in a repository with no commits.**
+- [x] **"freshness unknown" on every read in a repository with no commits.**
+  Done 2026-09-13: no commits reports nothing.
   `repository has no commits yet` is a normal state, not a broken one, and
   appears on every read — the same noise the drift count was. Show it once,
   or only where it changes an answer.

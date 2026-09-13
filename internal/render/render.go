@@ -759,15 +759,26 @@ func runCommand(r protocol.RunCommandResponse) string {
 	return head + "\n" + r.Summary
 }
 
+// maxListedScript clips an undescribed command's script in a listing.
+const maxListedScript = 60
+
 func declaredListing(summary string, available []protocol.DeclaredCommand) string {
 	lines := make([]string, 0, len(available)+1)
 	if summary != "" {
 		lines = append(lines, summary)
 	}
+	// The listing shows what exists, not how each command works: one declared
+	// pipeline was ~700 bytes, printed in full on every listing. The script
+	// appears only when there is no description, clipped.
 	for _, command := range available {
-		line := command.Name + "  " + command.Run
-		if command.Description != "" {
+		line := command.Name
+		switch {
+		case command.Description != "":
 			line += "  — " + command.Description
+		case len(command.Run) > maxListedScript:
+			line += "  " + command.Run[:maxListedScript] + "…"
+		default:
+			line += "  " + command.Run
 		}
 		lines = append(lines, line)
 	}

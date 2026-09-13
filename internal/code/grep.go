@@ -2,7 +2,9 @@ package code
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -138,6 +140,19 @@ func grepFile(absolute string, rel string, matcher func(string) bool, context in
 		return nil, 0
 	}
 	defer file.Close()
+
+	// Binary files are skipped, as grep -I and ripgrep do. isTextLike only
+	// knows extensions, so a built binary with none (bin/jade-mcp) was
+	// searched and returned kilobytes of runtime strings. A NUL byte in the
+	// first block is the same test git uses.
+	head := make([]byte, 8000)
+	n, _ := file.Read(head)
+	if bytes.IndexByte(head[:n], 0) >= 0 {
+		return nil, 0
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return nil, 0
+	}
 
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)

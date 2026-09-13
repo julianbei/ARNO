@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Smaller, truer edit and search responses
+
+Found while building 0.0.3 with Jade itself:
+
+- **Single edits start no background job.** Each edit started a
+  whole-repository typecheck (`replace_range` started the whole test suite)
+  whose result no response showed. Diagnostics already come back inline;
+  `check` and `apply`'s `check` validate when asked.
+- **`replace_text` counts what changed.** Appending two lines after a kept
+  anchor reads `+2 -0`, not a rewrite of the anchor. Same for `apply`.
+- **`grep` skips binary files**, detected by a NUL byte in the first block as
+  git and ripgrep do. A built binary without an extension was searched before.
+- **Go structs are `struct`, not `class`.** `find` still accepts `type`,
+  `struct` and `class` for them.
+- **No "freshness unknown" before the first commit.** A repository with no
+  commits has nothing to be stale against.
+- **`run_command` with no name lists names and descriptions**, not every
+  script; an undescribed command's script is clipped to 60 characters.
+
+## 0.0.3
+
 ### Validation says passed, failed, unavailable, running or timed out
 
 `check`, `run_tests`, `run_command` and `apply`'s check reported a free-form

@@ -37,9 +37,11 @@ func extractGoSymbolsTreeSitter(relPath string, source []byte) ([]Symbol, error)
 			if name == "" {
 				return
 			}
+			// Go has no classes. A struct is labelled struct; find still
+			// accepts type, struct and class as one family.
 			kind := "type"
 			if hasDescendantType(node, "struct_type") {
-				kind = "class"
+				kind = "struct"
 			}
 			out = append(out, newSymbol(relPath, kind, name, node))
 		}

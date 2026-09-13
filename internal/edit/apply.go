@@ -185,8 +185,9 @@ func validateAnchor(index int, op protocol.EditOp, source string) error {
 func (s *Service) applyOne(op protocol.EditOp) (int, int, error) {
 	switch op.Op {
 	case "replace_text":
-		removed, err := s.index.ReplaceTextSource(op.Path, op.OldText, op.NewText)
-		return countLines(op.NewText), removed, err
+		_, err := s.index.ReplaceTextSource(op.Path, op.OldText, op.NewText)
+		added, removed := lineDelta(op.OldText, op.NewText)
+		return added, removed, err
 
 	case "replace_range":
 		oldLines, err := s.index.ReplaceRangeSource(op.Path, op.StartLine, op.EndLine, op.NewText)

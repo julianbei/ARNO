@@ -446,6 +446,12 @@ func (m *Manager) Freshness(indexedCommit string) Freshness {
 	f := Freshness{IndexedCommit: indexedCommit}
 
 	head, err := m.HeadCommit()
+	if errors.Is(err, ErrNoCommits) {
+		// A repository with no commits is a normal state, not a broken one:
+		// there is nothing to be stale against. Reporting it put "freshness
+		// unknown" on every read, the same noise the drift count was.
+		return f
+	}
 	if err != nil {
 		f.Unknown = err.Error()
 		return f
