@@ -65,6 +65,13 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### A validation chain through a declared command
+
+The README shows how to put repository rules into validation without a
+native integration: one declared command, steps joined with `&&` — tests,
+then `semgrep scan --error`. A test holds the behaviour it relies on: a
+failing later step fails the run, and no step after it runs.
+
 ### `apply` can validate only what the change reached
 
 `check: "impact"` traces the declarations the edits touched, finds their

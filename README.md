@@ -428,6 +428,29 @@ whatever) worked out the incantation, replayed by name forever after. Calling
 an unknown name answers with the commands that *do* exist, so a wrong guess
 teaches rather than fails.
 
+### A validation chain
+
+Repository rules — Semgrep, a custom linter, a licence check — belong in
+validation, and they need no integration in Jade. Declare one command that
+runs the steps in order, joined with `&&`:
+
+```json
+{
+  "validate": {
+    "run": "go test ./... && semgrep scan --config .semgrep.yml --error",
+    "description": "tests, then repository rules"
+  }
+}
+```
+
+or, without editing the file, `declare_command(name: "validate", run: "…")`.
+
+`run_command(name: "validate")` runs it inside Jade, so the run is part of the
+session's record. Exit status decides: a rule that fails fails the run, the
+steps after it do not run, and the summary leads with the failing output.
+Use `semgrep scan --error` or the equivalent flag of your tool — a tool that
+prints findings and exits 0 passes.
+
 ---
 
 ## Language support
