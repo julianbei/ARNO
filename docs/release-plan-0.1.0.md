@@ -279,6 +279,13 @@ later phase uses to decide what to merge, cut or add.
   Harness candidates, to pick before building one: Jade as a SWE-agent tool
   bundle, mini-SWE-agent as the bash arm, a SWE-bench Verified subset as one
   task source, SWE-ReX sandboxes as the runtime.
+  *Progress 2026-09-13:* harness built — `jade-bench agent` runs the three
+  arms with Claude Code headless against any checkout and task file, verifies
+  success with the task's own command, records cost, tokens, turns, time and
+  diff size, enforces the budget and applies the fixed scorecard
+  ([benchmark.md](benchmark.md)). Still to do: pick the five pilot
+  repositories and write their tasks, a sandbox the agent can authenticate
+  in, and the pilot run itself.
 - [ ] **Competitor arm.** The same tasks with Serena in place of Jade; SymForge
   and code-atlas if their setup allows. A comparison to learn from, not a gate —
   but if Serena wins on the inspect tasks, Phase 3 cuts Jade's inspect surface

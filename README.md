@@ -452,7 +452,9 @@ the shell.
 
 It is written to `.jade/telemetry.jsonl` in your workspace and **never
 transmitted anywhere**. It records no arguments, no response bodies and no
-error text. `JADE_TELEMETRY=0` turns it off; `telemetry(reset: true)` clears it.
+error text — only a 10-character hash of each call's target (path, symbol or
+query), so the confusion report can tell a second tool asked about the same
+thing. `JADE_TELEMETRY=0` turns it off; `telemetry(reset: true)` clears it.
 
 Jade tries not to leave files in a repository it was only asked to work in:
 

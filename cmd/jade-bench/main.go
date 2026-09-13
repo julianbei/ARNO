@@ -1,10 +1,14 @@
 // Command jade-bench measures what it costs an agent to answer questions
 // with jade versus with shell and file tools.
 //
-// Usage: jade-bench [-root <path>]
+// Usage:
 //
-// It answers docs/scope.md §26's question for the tokens dimension only. Turns
-// and success rate need a real agent; see internal/bench's package comment.
+//	jade-bench [-root <path>]             tokens to answer, no agent
+//	jade-bench agent -tasks f -repo dir    real agent, three arms
+//
+// The default mode answers docs/scope.md §26's question for the tokens
+// dimension only. `agent` measures success, turns, tokens, cost and diff size
+// with Claude Code headless; see docs/benchmark.md.
 package main
 
 import (
@@ -25,6 +29,10 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "agent" {
+		os.Exit(runAgent(os.Args[2:]))
+	}
+
 	root := flag.String("root", "", "repository root to benchmark against (default: working directory)")
 	flag.Parse()
 
