@@ -91,3 +91,22 @@ func TestContextHeadSaysHowCallersWereFound(t *testing.T) {
 		t.Fatalf("got %q", head)
 	}
 }
+func TestCapabilitiesTellTheKindsOfMissingApart(t *testing.T) {
+	structural := protocol.Provenance{Certainty: protocol.CertaintyStructural, Source: "tree-sitter"}
+	out := capabilities(protocol.CapabilitiesResponse{Languages: []protocol.LanguageCapability{
+		{Language: "go", Files: 3, Structure: structural, Server: "gopls", ServerState: "running"},
+		{Language: "python", Files: 2, Structure: structural, Server: "pyright-langserver", ServerState: "failed", ServerDetail: "exit status 1"},
+		{Language: "java", Files: 1, Structure: structural, Server: "jdtls", ServerState: "indexing", ServerDetail: "Importing projects"},
+		{Language: "rust", Files: 1, Structure: structural, MissingServer: "rust-analyzer", ServerState: "not installed"},
+	}})
+	for _, want := range []string{
+		"server gopls (running)",
+		"server pyright-langserver failed: exit status 1",
+		"server jdtls indexing (Importing projects)",
+		"no server (rust-analyzer not installed)",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in:\n%s", want, out)
+		}
+	}
+}

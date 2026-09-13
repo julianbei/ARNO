@@ -84,6 +84,12 @@ declared commands: release-gate
 It uses the provenance words, so what the report promises and what each
 answer reports can be compared directly.
 
+It tells the kinds of missing apart, and reads them without starting a
+server: no server known for the language, server not installed, server
+installed but failed (`server pyright-langserver failed: exit status 1`), and
+the working states `not started`, `running` and `indexing (Importing
+projects)`.
+
 ### Five overlapping tools deprecated
 
 `search`, `search_nudge`, `repository_map`, `read_symbol` and `replace_range`

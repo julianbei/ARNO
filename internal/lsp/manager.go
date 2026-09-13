@@ -46,6 +46,49 @@ func NewManager(root string) *Manager {
 	}
 }
 
+// ServerState is what a language's server is doing, telling apart the three
+// kinds of missing — no server known, server not installed, server installed
+// but failed — from one that runs, indexes, or has not been needed yet.
+type ServerState struct {
+	// State is "running", "indexing", "not started", "failed", "not installed"
+	// or "not supported".
+	State string
+	// Detail is the server's command, its current work while indexing, or the
+	// reason it failed.
+	Detail string
+}
+
+// Status reports language's server without starting one.
+func (m *Manager) Status(language string) ServerState {
+	spec, known := SpecFor(language)
+	if !known {
+		return ServerState{State: "not supported"}
+	}
+	if m != nil {
+		m.mu.Lock()
+		client, running := m.clients[language]
+		failure := m.failed[language]
+		m.mu.Unlock()
+		if running && !client.closed.Load() {
+			if busy := client.ActiveProgress(); busy != "" {
+				return ServerState{State: "indexing", Detail: busy}
+			}
+			return ServerState{State: "running", Detail: spec.Command}
+		}
+		if failure != nil {
+			var missing errNotInstalled
+			if errors.As(failure, &missing) {
+				return ServerState{State: "not installed", Detail: spec.Command}
+			}
+			return ServerState{State: "failed", Detail: failure.Error()}
+		}
+	}
+	if resolved, found := spec.Resolve(); found {
+		return ServerState{State: "not started", Detail: resolved.Command}
+	}
+	return ServerState{State: "not installed", Detail: spec.Command}
+}
+
 // ClientFor returns a running server for the given language, starting one if
 // needed.
 //

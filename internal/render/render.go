@@ -453,8 +453,16 @@ func capabilities(r protocol.CapabilitiesResponse) string {
 	for _, language := range r.Languages {
 		parts := []string{fmt.Sprintf("%s (%d files)", language.Language, language.Files), language.Structure.String()}
 		switch {
+		case language.ServerState == "indexing":
+			parts = append(parts, "server "+language.Server+" indexing ("+language.ServerDetail+") · semantic answers wait until it ends")
+		case language.ServerState == "failed":
+			parts = append(parts, "server "+language.Server+" failed: "+language.ServerDetail+" · references approximate, rename refused")
 		case language.Server != "":
-			parts = append(parts, "server "+language.Server)
+			state := language.ServerState
+			if state == "" {
+				state = "installed"
+			}
+			parts = append(parts, "server "+language.Server+" ("+state+")")
 		case language.MissingServer != "":
 			parts = append(parts, "no server ("+language.MissingServer+" not installed) · references approximate, rename refused")
 		default:

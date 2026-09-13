@@ -57,12 +57,18 @@ func (s *Server) Capabilities() (protocol.CapabilitiesResponse, error) {
 		} else {
 			capability.Structure = protocol.Provenance{Certainty: protocol.CertaintyTextFallback, Source: "text scan", Completeness: protocol.CompletenessMayBeIncomplete}
 		}
-		if spec, known := lsp.SpecFor(language); known {
-			if resolved, installed := spec.Resolve(); installed {
-				capability.Server = resolved.Command
-			} else {
-				capability.MissingServer = spec.Command
+		status := s.index.LanguageServerStatus(language)
+		capability.ServerState, capability.ServerDetail = status.State, status.Detail
+		switch status.State {
+		case "running", "indexing", "not started", "failed":
+			if spec, known := lsp.SpecFor(language); known {
+				capability.Server = spec.Command
+				if resolved, installed := spec.Resolve(); installed {
+					capability.Server = resolved.Command
+				}
 			}
+		case "not installed":
+			capability.MissingServer = status.Detail
 		}
 		if name, ok := edit.FormatterName(root, found.sample); ok {
 			capability.Formatter = name

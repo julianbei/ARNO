@@ -85,6 +85,11 @@ func (i *Index) UseLanguageServers(manager *lsp.Manager) {
 	i.servers = manager
 }
 
+// LanguageServerStatus reports language's server without starting it.
+func (i *Index) LanguageServerStatus(language string) lsp.ServerState {
+	return i.servers.Status(language)
+}
+
 // languageClient returns a started server for path's language, or false when
 // there is none. The false case is ordinary, not exceptional.
 func (i *Index) languageClient(ctx context.Context, path string) (*lsp.Client, string, bool) {

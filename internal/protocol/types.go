@@ -722,6 +722,12 @@ type LanguageCapability struct {
 	Server        string
 	MissingServer string
 	Formatter     string
+	// ServerState tells the kinds of missing apart: "not supported" (no
+	// server known), "not installed", "failed" (installed, would not start or
+	// died), and the working states "not started", "running", "indexing".
+	// ServerDetail is the failure or the work in progress.
+	ServerState  string
+	ServerDetail string
 }
 
 // ValidationCapability is a command check would run for kind.
