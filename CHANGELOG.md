@@ -62,6 +62,17 @@ specific to cobra or Go.
 - **Python checks use the repository's virtual environment.** `.venv/bin/python`
   or `venv/bin/python` is preferred over the system `python3`, which usually
   has neither the project nor pytest installed.
+- **Validation commands run in the project's environment.** A Makefile target,
+  npm script or tox run that calls bare `python` got the system interpreter:
+  requests' `make test` (`python -m pytest tests`) would fail without the
+  project or pytest installed. Commands now run with the repository's
+  `.venv`/`venv` activated (`VIRTUAL_ENV`, its `bin` first on `PATH`) and
+  `node_modules/.bin` on `PATH`, as a developer's shell would.
+- **Validation commands are no longer killed after 60 seconds.** `run_tests`
+  waits up to 300, but the command underneath was killed at 60: a cold
+  `cargo test` compiles for minutes, so a first Rust test run always timed out.
+  The kill bound is 10 minutes; the caller's wait still decides when to answer,
+  and a slower job stays pollable.
 - **`check typecheck` finds TypeScript's compiler.** A project with a
   `tsconfig.json` and no typecheck script runs `node_modules/.bin/tsc --noEmit`
   instead of answering unavailable.

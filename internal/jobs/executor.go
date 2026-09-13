@@ -3,7 +3,9 @@ package jobs
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -23,7 +25,12 @@ var goCommandsByKind = map[string][]string{
 // wait for a JOB_COMPLETED event instead.
 // defaultCommandTimeout bounds how long a validation command may run before
 // its whole process group is killed.
-const defaultCommandTimeout = 60 * time.Second
+//
+// It was 60 seconds while run_tests waits up to 300: a cold `cargo test`
+// compiles for minutes, so every first Rust test run was killed and reported
+// as timed out. How long a caller waits is the caller's timeout; this bound
+// only stops a hung command, and a slow one stays pollable until it ends.
+const defaultCommandTimeout = 10 * time.Minute
 
 // RunCommand executes name/args in dir with the default timeout. See
 // RunCommandWithTimeout for the full behavior.
@@ -47,6 +54,7 @@ func (r *Runner) RunCommandWithTimeout(id string, dir string, timeout time.Durat
 	go func() {
 		cmd := exec.Command(name, args...)
 		cmd.Dir = dir
+		cmd.Env = projectEnv(dir)
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 		var output bytes.Buffer
@@ -108,4 +116,38 @@ func (r *Runner) RunValidationCommand(id string, dir string, kind string) {
 		return
 	}
 	r.RunCommand(id, dir, name, args...)
+}
+
+// projectEnv is the environment a developer's shell has in dir: the
+// repository's Python virtual environment activated and its local node
+// binaries on PATH. Nil, when there is neither, inherits jade's own.
+//
+// Without it a Makefile `test: python -m pytest tests` — requests' — ran the
+// system python, which has neither the project nor pytest installed, and
+// failed for a reason that has nothing to do with the code.
+func projectEnv(dir string) []string {
+	absolute, err := filepath.Abs(dir)
+	if err != nil {
+		return nil
+	}
+	env := os.Environ()
+	prefix := []string{}
+	for _, venv := range []string{".venv", "venv"} {
+		bin := filepath.Join(absolute, venv, "bin")
+		if info, err := os.Stat(bin); err == nil && info.IsDir() {
+			prefix = append(prefix, bin)
+			env = append(env, "VIRTUAL_ENV="+filepath.Join(absolute, venv))
+			break
+		}
+	}
+	nodeBin := filepath.Join(absolute, "node_modules", ".bin")
+	if info, err := os.Stat(nodeBin); err == nil && info.IsDir() {
+		prefix = append(prefix, nodeBin)
+	}
+	if len(prefix) == 0 {
+		return nil
+	}
+	// exec keeps the last value of a repeated key, so this PATH wins.
+	path := strings.Join(append(prefix, os.Getenv("PATH")), string(os.PathListSeparator))
+	return append(env, "PATH="+path)
 }
