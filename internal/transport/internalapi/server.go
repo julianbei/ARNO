@@ -27,6 +27,8 @@ type Server struct {
 	jobs        *jobs.Runner
 	languages   *languages.Registry
 	bus         *events.Bus
+	// continuations holds the rest of answers cut by a budget.
+	continuations continuationStore
 }
 
 func NewServer(
@@ -418,7 +420,8 @@ func (s *Server) Telemetry(req protocol.TelemetryRequest) (protocol.TelemetryRes
 
 // Grep is text search, as opposed to Search's symbol-name ranking. See
 // Index.Grep for why both exist.
-func (s *Server) Grep(req protocol.GrepRequest) (protocol.GrepResponse, error) {
+// grepAll answers a grep whole, up to its limit. Grep pages it by budget.
+func (s *Server) grepAll(req protocol.GrepRequest) (protocol.GrepResponse, error) {
 	if strings.TrimSpace(req.Dependency) == "" {
 		return s.index.Grep(req)
 	}

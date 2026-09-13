@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### `grep` pages by budget
+
+The first tool on the 0.0.5 budget convention
+([tool-contract.md](docs/tool-contract.md#budgets-and-provenance--005-design)).
+
+- **`budget`** sizes the answer in tokens (four bytes each). It is cut at whole
+  matches, never mid-line, and says so:
+  `87 matches in 12 files, shown 1-24 · continue=c3 · exact · text search · cut`.
+- **`continue=<handle>`** returns the next page, under the same budget or a
+  new one. The last page reads `shown 73-87, the last · … · complete`.
+- **A handle is never answered from a different state.** After an edit it is
+  refused with both revisions named: `continue=c3 was cut at r12; the
+  workspace is at r14 — repeat the call`.
+- `limit` still works and is marked as the older form. A budgeted grep pages
+  through its first 2,000 matches; the total still counts past them.
+
 ### Answers say how sure they are
 
 The first provenance lines from the 0.0.5 design

@@ -619,14 +619,15 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 				Exclude:    stringArg(args, "exclude"),
 				Context:    intArg(args, "context"),
 				Limit:      intArg(args, "limit"),
+				Budget:     intArg(args, "budget"),
 			})
 			if err != nil {
 				return mcpToolResult{}, err
 			}
 			return jsonResult(res)
 		}
-		if blank(stringArg(args, "query")) {
-			return mcpToolResult{}, fmt.Errorf("grep needs query (one pattern) or queries (several patterns)")
+		if blank(stringArg(args, "query")) && blank(stringArg(args, "continue")) {
+			return mcpToolResult{}, fmt.Errorf("grep needs query (one pattern), queries (several patterns) or continue (the next page)")
 		}
 		res, err := s.api.Grep(protocol.GrepRequest{
 			Dependency: stringArg(args, "dependency"),
@@ -637,6 +638,8 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			Exclude:    stringArg(args, "exclude"),
 			Context:    intArg(args, "context"),
 			Limit:      intArg(args, "limit"),
+			Budget:     intArg(args, "budget"),
+			Continue:   stringArg(args, "continue"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -1101,7 +1104,9 @@ func tools() []mcpTool {
 					"glob":       map[string]interface{}{"type": "string", "description": "Restrict by path, e.g. *.go or internal/code/*."},
 					"exclude":    map[string]interface{}{"type": "string", "description": "Skip paths containing this substring, e.g. testdata."},
 					"context":    map[string]interface{}{"type": "integer", "description": "Trailing lines to show per match, like grep -A (max 40)."},
-					"limit":      map[string]interface{}{"type": "integer", "description": "Maximum matches returned (default 40). The true total is always reported."},
+					"limit":      map[string]interface{}{"type": "integer", "description": "Maximum matches returned (default 40). The true total is always reported. Prefer budget."},
+					"budget":     map[string]interface{}{"type": "integer", "description": "Size of the answer in tokens. Cut at whole matches; the rest is behind continue=<handle>."},
+					"continue":   map[string]interface{}{"type": "string", "description": "Handle from a cut answer: its next page. Other arguments except budget are ignored."},
 					"dependency": map[string]interface{}{"type": "string", "description": "Search this dependency's source instead of the workspace, read-only, at the version the project locks: a crate, Go module, npm or Python package name. Matches read as dep:<name>/<path>, which read_range accepts."},
 				},
 				"required": []string{},

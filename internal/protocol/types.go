@@ -359,6 +359,11 @@ type GrepRequest struct {
 	Context int
 	// Limit caps returned matches. Total still reports the true count.
 	Limit int
+	// Budget, in tokens, pages the answer at whole matches; the rest is behind
+	// a Continue handle. Zero keeps Limit's behaviour.
+	Budget int
+	// Continue is a handle from a cut answer: the same call's next page.
+	Continue string
 }
 
 // GrepMatch is one matching line and its trailing context.
@@ -380,6 +385,8 @@ type GrepResponse struct {
 	Truncated  bool
 	Summary    string
 	Provenance Provenance
+	// Continue is the handle for the next page when a budget cut the answer.
+	Continue string
 }
 
 // GrepBatchResponse answers several grep patterns, in the order asked.
