@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Project configuration in `.jade/project.json`
+
+A committed file tells Jade how the repository builds and tests, instead of
+leaving it to discovery's guesses:
+
+- **Areas** with a path, a language and build, typecheck, test, `testFile` and
+  `testName` commands (`{file}` and `{name}` placeholders). `check` and
+  `run_tests` use them first, inside the area's path; for a file, the deepest
+  area containing it decides. Empty fields fall back to discovery.
+- **`env`**: an interpreter put first on `PATH`, and variables for every
+  command. **`generated`**: paths `grep`, `find` and the tree skip.
+  **`notes`**: sent with the list of areas when a session starts.
+- An invalid config fails checks and tests with the reason rather than falling
+  back to guessing, and `check` with `dryRun` names the config as the source.
+- `jade-mcp init` drafts the file from discovery without overwriting one.
+
+The pilot benchmark hit each case this settles: the system interpreter under
+a Makefile's pytest, a whole npm test script for one file, cargo testing only
+the root package, and a Go module with Node packages beside it.
+
 ### Acting on the pilot benchmark
 
 The full pilot suite (36 runs, see `docs/benchmark.md`) found that Jade alone

@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/julianbei/jade/internal/project"
 )
 
 // manifestDiscoveryTimeout bounds the ecosystem probes (`npm run`,
@@ -132,6 +134,13 @@ var npmScriptLine = regexp.MustCompile(`(?m)^ {2}([A-Za-z0-9:_-]+)$`)
 // `npm run`) → cargo (manifest-verified only) → the Go default. Returns
 // ok=false only when kind itself is unrecognized everywhere.
 func discoverCommand(dir string, kind string) (name string, args []string, ok bool) {
+	// The repository's own .jade/project.json wins over every guess.
+	if config, err := project.Load(dir); err == nil && config != nil {
+		if command, found := config.Command(kind); found {
+			return "sh", []string{"-c", command}, true
+		}
+	}
+
 	// A repository-specific Makefile target wins over any ecosystem
 	// default regardless of language — a project that wrapped its own
 	// build/test in a target did so for a reason (4.2's rationale).
@@ -194,6 +203,13 @@ func discoverCommand(dir string, kind string) (name string, args []string, ok bo
 // "check build" would execute, and so did not trust it. Discovery is
 // read-only apart from `make -n`, which prints commands without running them.
 func DescribeValidationCommand(dir string, kind string) (string, bool) {
+	config, err := project.Load(dir)
+	if err != nil {
+		return err.Error(), true
+	}
+	if command, found := config.Command(kind); found {
+		return command + " · from " + project.Source, true
+	}
 	name, args, ok := discoverCommand(dir, kind)
 	if !ok {
 		return "", false

@@ -18,6 +18,15 @@ import (
 // lint, build and browser suites — whose unrelated failures cost it dozens of
 // turns.
 func (r *Runner) RunScopedTests(id string, dir string, scope TestScope, changedFiles []string) {
+	command, configured, err := configuredTestCommand(dir, scope)
+	if err != nil {
+		r.CompleteWithResult(id, err.Error(), true)
+		return
+	}
+	if configured {
+		r.RunCommand(id, dir, "sh", "-c", command)
+		return
+	}
 	if fileExists(filepath.Join(dir, "go.mod")) {
 		r.RunScopedGoTests(id, dir, scope, changedFiles)
 		return

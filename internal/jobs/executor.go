@@ -9,6 +9,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/julianbei/jade/internal/project"
 )
 
 // goCommandsByKind maps a job kind to the "go" subcommand arguments that
@@ -110,6 +112,10 @@ func (r *Runner) RunCommandWithTimeout(id string, dir string, timeout time.Durat
 // for Go specifically: since 6.5 it dispatches per ecosystem (Makefile
 // target, npm script, cargo, or the Go default).
 func (r *Runner) RunValidationCommand(id string, dir string, kind string) {
+	if _, err := project.Load(dir); err != nil {
+		r.CompleteWithResult(id, err.Error(), true)
+		return
+	}
 	name, args, ok := discoverCommand(dir, kind)
 	if !ok {
 		r.CompleteWithOutput(id, fmt.Sprintf("no validation command configured for kind %q", kind))
@@ -144,7 +150,18 @@ func projectEnv(dir string) []string {
 	if info, err := os.Stat(nodeBin); err == nil && info.IsDir() {
 		prefix = append(prefix, nodeBin)
 	}
-	if len(prefix) == 0 {
+	// A declared interpreter goes first, and declared variables are added.
+	configured := false
+	if config, err := project.Load(absolute); err == nil && config != nil {
+		if bin := config.PythonBinDir(absolute); bin != "" {
+			prefix = append([]string{bin}, prefix...)
+		}
+		for key, value := range config.Env.Vars {
+			env = append(env, key+"="+value)
+			configured = true
+		}
+	}
+	if len(prefix) == 0 && !configured {
 		return nil
 	}
 	// exec keeps the last value of a repeated key, so this PATH wins.

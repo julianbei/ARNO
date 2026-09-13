@@ -72,6 +72,9 @@ type mcpServer struct {
 	telemetry *telemetry.Recorder
 	// profile is the --tools choice: which tools tools/list advertises.
 	profile string
+	// instructions is sent on initialize: the server's own plus what the
+	// repository's .jade/project.json declares. Empty sends the server's own.
+	instructions string
 }
 
 // version is stamped at build time via -ldflags (see the Makefile). It is
@@ -101,6 +104,12 @@ func resolveVersion() string {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "init" {
+		if err := runInit(os.Args[2:], os.Stdout); err != nil {
+			fatalf("%v", err)
+		}
+		return
+	}
 	// Answered before anything else is constructed, so `--version` works even
 	// when the workspace root is wrong or missing — which is exactly when
 	// someone is trying to find out what they are running.
@@ -158,7 +167,7 @@ func main() {
 		fatalf("failed to start internal api: %v", err)
 	}
 
-	s := &mcpServer{api: api, telemetry: telemetry.New(root), profile: profile}
+	s := &mcpServer{api: api, telemetry: telemetry.New(root), profile: profile, instructions: projectInstructions(root)}
 	if err := s.loop(os.Stdin, os.Stdout); err != nil {
 		fatalf("mcp loop failed: %v", err)
 	}
@@ -227,7 +236,7 @@ func (s *mcpServer) handleRequest(req rpcRequest) rpcResponse {
 					"version":     resolveVersion(),
 					"description": "Agent IDE runtime for inspect, modify, validate, and state workflows.",
 				},
-				"instructions": serverInstructions,
+				"instructions": s.instructionsText(),
 			},
 		}
 	case "ping":

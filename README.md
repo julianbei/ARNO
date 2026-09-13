@@ -342,6 +342,49 @@ exits non-zero fails.
 
 ---
 
+## Project configuration
+
+Discovery guesses how to build and test a repository from its manifests, and the
+guess is sometimes wrong: a Makefile's `python -m pytest` picks the system
+interpreter, `npm run test` runs lint and browser suites for a one-file check,
+and a Go module with a TypeScript app beside it has two answers to "build". A
+committed `.jade/project.json` states the answer once, the way an editor keeps
+its settings in `.vscode/`:
+
+```json
+{
+  "areas": [
+    { "path": ".", "language": "go",
+      "build": "go build ./...", "test": "go test ./...",
+      "testName": "go test -run {name} ./..." },
+    { "path": "web", "language": "typescript",
+      "typecheck": "node_modules/.bin/tsc --noEmit",
+      "test": "node_modules/.bin/vitest run",
+      "testFile": "node_modules/.bin/vitest run {file}",
+      "testName": "node_modules/.bin/vitest run {file} -t {name}" }
+  ],
+  "env": { "python": ".venv/bin/python", "vars": { "CI": "1" } },
+  "generated": ["web/dist", "*.pb.go"],
+  "notes": "Browser tests need Playwright; run unit tests by file."
+}
+```
+
+- **Areas** are parts of the repository with their own language and commands,
+  each run inside its path. `check` runs a kind in every area that declares
+  it; `run_tests` with a file uses the deepest area containing that file, with
+  `{file}` relative to the area and `{name}` the test name.
+- **Empty fields fall back to discovery**, so a config can state only what
+  discovery gets wrong. A config that does not parse, names an unknown field
+  or a path outside the workspace fails the check instead of being ignored.
+- **`env`** puts the interpreter's directory first on `PATH` and adds the
+  variables to every command. **`generated`** paths are skipped by `grep`,
+  `find` and the workspace tree. **`notes`**, with the list of areas, is sent
+  to the agent when a session starts.
+- `check` with `dryRun` says when a command comes `from .jade/project.json`.
+
+`jade-mcp init --root /path/to/repo` drafts the file from discovery, one area,
+for you to review and commit; it never overwrites an existing one.
+
 ## Repository commands
 
 Beyond build and test, every repository has its own verbs — lint, codegen,

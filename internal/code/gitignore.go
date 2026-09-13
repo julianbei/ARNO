@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/julianbei/jade/internal/project"
 )
 
 // ignoreRefresh bounds how stale the ignore list may be. One walk asks for
@@ -21,6 +23,8 @@ type ignoreCache struct {
 	mu      sync.Mutex
 	loaded  time.Time
 	ignored map[string]bool
+	// config is the workspace's .jade/project.json, for its generated paths.
+	config *project.Config
 }
 
 // gitIgnored reports a path that git ignores and that is not tracked.
@@ -36,6 +40,9 @@ func (i *Index) gitIgnored(path string) bool {
 		return false
 	}
 	ignored := i.ignore.snapshot(i.root)
+	if i.ignore.generated(filepath.ToSlash(rel)) {
+		return true
+	}
 	if len(ignored) == 0 {
 		return false
 	}
@@ -57,8 +64,17 @@ func (c *ignoreCache) snapshot(root string) map[string]bool {
 		return c.ignored
 	}
 	c.ignored = listIgnored(root)
+	c.config, _ = project.Load(root)
 	c.loaded = time.Now()
 	return c.ignored
+}
+
+// generated reports a path the project config marks generated. Call after
+// snapshot, which loads the config.
+func (c *ignoreCache) generated(rel string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.config.IsGenerated(rel)
 }
 
 // listIgnored asks git for untracked ignored paths, whole directories
