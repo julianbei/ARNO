@@ -437,7 +437,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		return jsonResult(res)
 	case "jade.find":
 		if queries := stringsArg(args, "queries"); len(queries) > 0 {
-			res, err := s.api.FindBatch(queries, stringArg(args, "kind"), intArg(args, "limit"), intArg(args, "maxLines"))
+			res, err := s.api.FindBatch(queries, stringArg(args, "kind"), intArg(args, "limit"), intArg(args, "maxLines"), stringArg(args, "dependency"))
 			if err != nil {
 				return mcpToolResult{}, err
 			}
@@ -447,10 +447,11 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			return mcpToolResult{}, fmt.Errorf("find needs query (one name) or queries (several names)")
 		}
 		res, err := s.api.Find(protocol.FindRequest{
-			Query:    stringArg(args, "query"),
-			Kind:     stringArg(args, "kind"),
-			Limit:    intArg(args, "limit"),
-			MaxLines: intArg(args, "maxLines"),
+			Dependency: stringArg(args, "dependency"),
+			Query:      stringArg(args, "query"),
+			Kind:       stringArg(args, "kind"),
+			Limit:      intArg(args, "limit"),
+			MaxLines:   intArg(args, "maxLines"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -602,6 +603,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 	case "jade.grep":
 		if queries := stringsArg(args, "queries"); len(queries) > 0 {
 			res, err := s.api.GrepBatch(queries, protocol.GrepRequest{
+				Dependency: stringArg(args, "dependency"),
 				Regex:      boolArg(args, "regex"),
 				IgnoreCase: boolArg(args, "ignoreCase"),
 				Glob:       stringArg(args, "glob"),
@@ -618,6 +620,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			return mcpToolResult{}, fmt.Errorf("grep needs query (one pattern) or queries (several patterns)")
 		}
 		res, err := s.api.Grep(protocol.GrepRequest{
+			Dependency: stringArg(args, "dependency"),
 			Query:      stringArg(args, "query"),
 			Regex:      boolArg(args, "regex"),
 			IgnoreCase: boolArg(args, "ignoreCase"),
@@ -760,7 +763,7 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.read_range",
-			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address. An end line past the end of the file reads to the end. Several ranges, in one file or many, go in one call: {\"ranges\": [{\"path\": \"a.go\", \"lines\": \"280-400\"}, {\"path\": \"b.go\", \"lines\": \"700-760\"}]}.",
+			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address. An end line past the end of the file reads to the end. A dependency's source reads as dep:<name>/<path>, read-only. Several ranges, in one file or many, go in one call: {\"ranges\": [{\"path\": \"a.go\", \"lines\": \"280-400\"}, {\"path\": \"b.go\", \"lines\": \"700-760\"}]}.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -861,11 +864,12 @@ func tools() []mcpTool {
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"query":    map[string]interface{}{"type": "string", "description": "Symbol name, exact or partial."},
-					"queries":  map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Several symbol names in one call, instead of query. Each is answered as query would be."},
-					"kind":     map[string]interface{}{"type": "string", "description": "Narrow by kind. func/function, type/struct/class/interface, method, const, var — spellings within a family are equivalent. Empty matches any."},
-					"limit":    map[string]interface{}{"type": "integer", "description": "Maximum declarations to return (default 5)."},
-					"maxLines": map[string]interface{}{"type": "integer", "description": "Maximum lines of each body (default 40)."},
+					"query":      map[string]interface{}{"type": "string", "description": "Symbol name, exact or partial."},
+					"queries":    map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Several symbol names in one call, instead of query. Each is answered as query would be."},
+					"kind":       map[string]interface{}{"type": "string", "description": "Narrow by kind. func/function, type/struct/class/interface, method, const, var — spellings within a family are equivalent. Empty matches any."},
+					"limit":      map[string]interface{}{"type": "integer", "description": "Maximum declarations to return (default 5)."},
+					"maxLines":   map[string]interface{}{"type": "integer", "description": "Maximum lines of each body (default 40)."},
+					"dependency": map[string]interface{}{"type": "string", "description": "Look in this dependency's source instead of the workspace, read-only: a crate, Go module, npm or Python package name."},
 				},
 				"required": []string{},
 			},
@@ -1093,6 +1097,7 @@ func tools() []mcpTool {
 					"exclude":    map[string]interface{}{"type": "string", "description": "Skip paths containing this substring, e.g. testdata."},
 					"context":    map[string]interface{}{"type": "integer", "description": "Trailing lines to show per match, like grep -A (max 40)."},
 					"limit":      map[string]interface{}{"type": "integer", "description": "Maximum matches returned (default 40). The true total is always reported."},
+					"dependency": map[string]interface{}{"type": "string", "description": "Search this dependency's source instead of the workspace, read-only, at the version the project locks: a crate, Go module, npm or Python package name. Matches read as dep:<name>/<path>, which read_range accepts."},
 				},
 				"required": []string{},
 			},

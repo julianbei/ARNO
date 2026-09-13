@@ -27,7 +27,7 @@ func clampNote(start, end, total int, clamped bool) string {
 
 // FindBatch runs find for several names in one call, answering each in the
 // order asked.
-func (s *Server) FindBatch(queries []string, kind string, limit int, maxLines int) (protocol.FindBatchResponse, error) {
+func (s *Server) FindBatch(queries []string, kind string, limit int, maxLines int, dependency string) (protocol.FindBatchResponse, error) {
 	names := make([]string, 0, len(queries))
 	for _, query := range queries {
 		if query = strings.TrimSpace(query); query != "" {
@@ -43,7 +43,7 @@ func (s *Server) FindBatch(queries []string, kind string, limit int, maxLines in
 
 	responses := make([]protocol.FindResponse, 0, len(names))
 	for _, name := range names {
-		response, err := s.index.FindSymbols(name, kind, limit, maxLines)
+		response, err := s.Find(protocol.FindRequest{Query: name, Kind: kind, Limit: limit, MaxLines: maxLines, Dependency: dependency})
 		if err != nil {
 			return protocol.FindBatchResponse{}, fmt.Errorf("%s: %w", name, err)
 		}
@@ -107,7 +107,13 @@ func (s *Server) ReadRanges(req protocol.ReadRangesRequest) (protocol.ReadRanges
 			results = append(results, result)
 			continue
 		}
-		read, err := s.index.ReadRangeInfo(request.Path, request.StartLine, request.EndLine)
+		index, path, indexErr := s.indexFor(request.Path)
+		if indexErr != nil {
+			result.Error = indexErr.Error()
+			results = append(results, result)
+			continue
+		}
+		read, err := index.ReadRangeInfo(path, request.StartLine, request.EndLine)
 		switch {
 		case os.IsNotExist(err):
 			// The OS error carries the absolute workspace path, which is noise

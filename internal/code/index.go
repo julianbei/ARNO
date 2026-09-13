@@ -283,7 +283,7 @@ func (i *Index) WorkspaceTree(maxEntries int) (protocol.WorkspaceTreeResponse, e
 			return nil
 		}
 
-		if shouldSkipPath(path) || i.gitIgnored(path) {
+		if i.skipped(path) || i.gitIgnored(path) {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
@@ -334,7 +334,7 @@ func (i *Index) RepositoryMap(query string, maxTokens int) (protocol.RepositoryM
 		if info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) || i.leavesWorkspace(path, info) {
+		if i.skipped(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 		if !isTextLike(path) {
@@ -428,7 +428,7 @@ func (i *Index) Search(query string, mode string, limit int) (protocol.SearchRes
 		if info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
+		if i.skipped(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 		rel, err := filepath.Rel(i.root, path)
@@ -668,7 +668,7 @@ func (i *Index) BuildRetrievalIndex() (protocol.RetrievalIndex, error) {
 		if info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
+		if i.skipped(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 		rel, err := filepath.Rel(i.root, path)
@@ -731,7 +731,7 @@ func (i *Index) BuildSymbolGraph() (protocol.SymbolGraph, error) {
 		if info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
+		if i.skipped(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 		rel, err := filepath.Rel(i.root, path)
@@ -1481,6 +1481,18 @@ func isReservedName(name string) bool {
 	default:
 		return false
 	}
+}
+
+// skipped applies shouldSkipPath to the part of path below the index's root.
+// The directories above the root are the root's own business: an index rooted
+// in node_modules/left-pad, to read a dependency, skipped every file in it, and
+// a workspace under a directory named build skipped the whole repository.
+func (i *Index) skipped(path string) bool {
+	rel, err := filepath.Rel(i.root, path)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return shouldSkipPath(path)
+	}
+	return shouldSkipPath(rel)
 }
 
 // shouldSkipPath reports whether path lies inside a directory that should

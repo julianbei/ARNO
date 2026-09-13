@@ -90,7 +90,7 @@ func (i *Index) collectMatches(query string, kind string) ([]findMatch, []findMa
 		if walkErr != nil || info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
+		if i.skipped(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 		rel, err := filepath.Rel(i.root, path)

@@ -245,7 +245,11 @@ func (s *Server) ReadSymbol(req protocol.ReadSymbolRequest) (protocol.InspectRes
 
 func (s *Server) ReadRange(req protocol.ReadRangeRequest) (protocol.InspectResponse, error) {
 	freshness := s.workspace.Freshness(req.IndexedCommit)
-	read, err := s.index.ReadRangeInfo(req.Path, req.StartLine, req.EndLine)
+	index, path, err := s.indexFor(req.Path)
+	if err != nil {
+		return protocol.InspectResponse{}, err
+	}
+	read, err := index.ReadRangeInfo(path, req.StartLine, req.EndLine)
 	if err != nil {
 		return protocol.InspectResponse{}, err
 	}
@@ -321,7 +325,24 @@ func (s *Server) RepositoryMap(req protocol.RepositoryMapRequest) (protocol.Repo
 }
 
 func (s *Server) Find(req protocol.FindRequest) (protocol.FindResponse, error) {
-	return s.index.FindSymbols(req.Query, req.Kind, req.Limit, req.MaxLines)
+	if strings.TrimSpace(req.Dependency) == "" {
+		return s.index.FindSymbols(req.Query, req.Kind, req.Limit, req.MaxLines)
+	}
+	index, source, err := s.dependencyIndex(strings.TrimSpace(req.Dependency))
+	if err != nil {
+		return protocol.FindResponse{}, err
+	}
+	response, err := index.FindSymbols(req.Query, req.Kind, req.Limit, req.MaxLines)
+	if err != nil {
+		return response, err
+	}
+	prefix := DependencyPrefix + source.Name + "/"
+	for i := range response.Results {
+		response.Results[i].Path = prefix + response.Results[i].Path
+		response.Results[i].SymbolID = prefix + response.Results[i].SymbolID
+	}
+	response.Summary = dependencyLabel(source) + ": " + response.Summary
+	return response, nil
 }
 
 func (s *Server) Search(req protocol.SearchRequest) (protocol.SearchResponse, error) {
@@ -398,7 +419,23 @@ func (s *Server) Telemetry(req protocol.TelemetryRequest) (protocol.TelemetryRes
 // Grep is text search, as opposed to Search's symbol-name ranking. See
 // Index.Grep for why both exist.
 func (s *Server) Grep(req protocol.GrepRequest) (protocol.GrepResponse, error) {
-	return s.index.Grep(req)
+	if strings.TrimSpace(req.Dependency) == "" {
+		return s.index.Grep(req)
+	}
+	index, source, err := s.dependencyIndex(strings.TrimSpace(req.Dependency))
+	if err != nil {
+		return protocol.GrepResponse{}, err
+	}
+	response, err := index.Grep(req)
+	if err != nil {
+		return response, err
+	}
+	prefix := DependencyPrefix + source.Name + "/"
+	for i := range response.Matches {
+		response.Matches[i].Path = prefix + response.Matches[i].Path
+	}
+	response.Summary = dependencyLabel(source) + ": " + response.Summary
+	return response, nil
 }
 
 func (s *Server) SearchNudge(req protocol.SearchNudgeRequest) protocol.SearchNudgeResponse {

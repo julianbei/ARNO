@@ -16,6 +16,13 @@ agent used Bash for four calls in five and spent 9% more tokens.
 - **`jade-bench agent` has a `shell-lean` arm**: Bash, Read, Edit and Write
   only. Measured against it, a result says how much of Jade's saving is its
   tools and how much a shorter tool list.
+- **Dependency source is readable.** `grep` and `find` take `dependency`, and
+  `read_range` reads `dep:<name>/<path>`: the crate in the Cargo registry, the
+  module in the Go module cache, the package in `node_modules` or the
+  repository's virtual environment, at the version the lock or manifest pins.
+  On ripgrep an agent searched for a type in `regex-syntax` and could not reach
+  it. Reads only: a dependency gets its own index, edits use the workspace's,
+  and a name that is a path is refused.
 - **Edits in languages without a running language server get a syntax
   check.** No server ran for TypeScript, Python or Rust in the pilot, so every
   edit there said "not checked" and a broken edit showed up only at the next

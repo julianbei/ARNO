@@ -94,7 +94,7 @@ func (i *Index) grep(req protocol.GrepRequest, retry bool) (protocol.GrepRespons
 		if info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
+		if i.skipped(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 

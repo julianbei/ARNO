@@ -342,6 +342,9 @@ type TelemetryRetry struct {
 // string literal", or any query with a negative filter. See Index.Grep.
 type GrepRequest struct {
 	Query string
+	// Dependency searches that dependency's source instead of the workspace,
+	// read-only; matches are reported as dep:<name>/<path>.
+	Dependency string
 	// Regex treats Query as a regular expression instead of a literal.
 	Regex bool
 	// IgnoreCase folds case on both sides.
@@ -607,7 +610,9 @@ type RetrievalRequest struct {
 // call — the fused search-and-read that `grep -n "func X" -A 30` provides
 // and jade previously needed two calls (outline, then read_symbol) to match.
 type FindRequest struct {
-	Query string
+	// Dependency looks in that dependency's source instead of the workspace.
+	Dependency string
+	Query      string
 	// Kind narrows to func, type, method, class and so on. Empty matches any.
 	Kind     string
 	Limit    int
