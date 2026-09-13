@@ -104,6 +104,9 @@ projects); ask again when it ends for a complete list` — and its provenance
 reads `may be incomplete`. Such a server answers wrongly rather than slowly,
 and the list was presented as complete.
 
+Each of these says for how long the server has been busy — `still indexing
+(Importing projects, 38s)` — which tells a moment's wait from a stuck server.
+
 The same for `rename` and edit diagnostics: a rename an indexing server
 declined says `ruby-lsp is still indexing (…), so try the rename again when
 it ends` instead of reading as final, and an edit checked by a server still

@@ -517,7 +517,7 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   structure and the references promise in provenance words. The capability report uses Phase 3's
   provenance vocabulary, so what the report promises and what each answer
   reports can be compared directly.
-- [ ] **Own the abstraction leak.** Language-server trouble is reported as the
+- [x] **Own the abstraction leak.** Language-server trouble is reported as the
   server's, with what to do: `jdtls still initializing (38s) · references
   approximate until ready`, `pyright exited: …`, `pyright ignored
   pyrightconfig.json: …`. Startup and first-answer time per server measured
@@ -525,8 +525,8 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   worse. A crashed server restarts once, then degrades with a reason.
   *Progress 2026-09-14:* restart once, then failed with the reason; an
   exact `references`, a declined `rename` and edit diagnostics from a
-  still-indexing server say so and what to do. Elapsed time in the message
-  and startup timing in conformance still to do.
+  still-indexing server say so, for how long, and what to do. Conformance
+  fails over a per-language first-answer budget. *Done 2026-09-14.*
 - [x] **Conformance covers the degraded paths.**
  *Progress 2026-09-14:* `TestDegraded`
   asserts the not-installed report and the approximate answer for all eight

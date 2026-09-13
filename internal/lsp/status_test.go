@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestStatusTellsTheKindsOfMissingApart(t *testing.T) {
@@ -47,5 +48,11 @@ func TestARunningServerWithWorkInProgressReadsAsIndexing(t *testing.T) {
 	manager.clients["go"] = &Client{activeProgress: map[string]string{}}
 	if got := manager.Status("go"); got.State != "running" {
 		t.Fatalf("an idle server should read as running, got %+v", got)
+	}
+}
+func TestBusySaysForHowLong(t *testing.T) {
+	client := &Client{activeProgress: map[string]string{"token": "Importing projects"}, busySince: time.Now().Add(-38 * time.Second)}
+	if got := client.Busy(); got != "Importing projects, 38s" {
+		t.Fatalf("got %q", got)
 	}
 }

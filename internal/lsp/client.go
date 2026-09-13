@@ -93,6 +93,9 @@ type Client struct {
 	// progressEnded counts completed progress tokens, so a caller can tell
 	// whether any work began and finished after a given moment.
 	progressEnded int
+	// busySince is when the current stretch of work began: the first progress
+	// token opened while none was active. Zero when idle or never busy.
+	busySince time.Time
 
 	// ready is when initialize completed, the reference point for how long a
 	// server gets to start reporting progress before it is assumed to have
@@ -252,6 +255,9 @@ func (c *Client) handleServerMessage(message Message) {
 		c.progressMu.Lock()
 		switch params.Value.Kind {
 		case "begin":
+			if len(c.activeProgress) == 0 {
+				c.busySince = time.Now()
+			}
 			c.activeProgress[token] = params.Value.Title
 		case "end":
 			if _, ok := c.activeProgress[token]; ok {
@@ -602,7 +608,13 @@ func (c *Client) Busy() string {
 		return ""
 	}
 	sort.Strings(titles)
-	return strings.Join(titles, ", ")
+	busy := strings.Join(titles, ", ")
+	// How long it has been busy is what tells "wait a moment" from "this
+	// server is stuck": jdtls importing for 8s is normal, for 4 minutes is not.
+	if !c.busySince.IsZero() {
+		busy += ", " + time.Since(c.busySince).Round(time.Second).String()
+	}
+	return busy
 }
 
 // syncKind is the document sync the server asked for: 1 full, 2 incremental.
