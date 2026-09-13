@@ -63,13 +63,15 @@ specific to cobra or Go.
   whole title, so a title's first words answered "Couldn't find any matching
   tests" six times in one ky round; a name without `*` is now matched as a part
   of the title, as jest, vitest, mocha and pytest already do.
-- **A failing JavaScript test's summary says why it failed.** ava and jest
-  explain a failure in a detail block below the summary line, and the summary
-  kept only `✘ [fail]: <title> Rejected promise returned by test`. An agent
-  re-ran one test seven times and wrote DEBUG tests to see the value. The
-  summary now carries the block's difference or error (`Difference (- actual,
-  + expected): - 'a' + 'b'`, `TypeError: Illegal invocation`), without the code
-  frame and stack, capped at 400 bytes.
+- **A failing JavaScript or Python test's summary says why it failed.** ava
+  and jest explain a failure in a detail block below the summary line, and the
+  summary kept only `✘ [fail]: <title> Rejected promise returned by test`. An
+  agent re-ran one test seven times and wrote DEBUG tests to see the value.
+  pytest cuts its summary line to the terminal width
+  (`FAILED tests/test_utils.py::test_parse - Ass...`). The summary now carries
+  the block's difference or error (`Difference (- actual, + expected): - 'a'
+  + 'b'`, `TypeError: Illegal invocation`, pytest's `E` lines), without the
+  code frame and stack, capped at 400 bytes.
 - **Python checks use the repository's virtual environment.** `.venv/bin/python`
   or `venv/bin/python` is preferred over the system `python3`, which usually
   has neither the project nor pytest installed.

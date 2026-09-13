@@ -293,6 +293,8 @@ func failureDetail(lines []string, i int) string {
 	switch {
 	case strings.HasPrefix(header, "●"):
 		start = i + 1
+	case strings.HasPrefix(header, "FAILED "):
+		return pytestDetail(lines, header)
 	case strings.HasPrefix(header, "✘ [fail]: "):
 		title := avaTitle(header)
 		for j := i + 1; j < len(lines); j++ {
@@ -319,6 +321,57 @@ func failureDetail(lines []string, i int) string {
 		parts = append(parts, line)
 	}
 	joined := strings.Join(parts, " ")
+	if len(joined) > maxContinuationBytes {
+		joined = joined[:maxContinuationBytes] + "…"
+	}
+	return joined
+}
+
+// pytestDetail returns the `E` lines of the failure a pytest short-summary
+// line names. pytest cuts that line to the terminal width —
+// `FAILED tests/test_utils.py::test_parse - Ass...` — and puts the assertion
+// and its values in the failure's block above, under `____ test_parse ____`.
+func pytestDetail(lines []string, header string) string {
+	nodeID := strings.TrimPrefix(header, "FAILED ")
+	if cut := strings.Index(nodeID, " - "); cut >= 0 {
+		nodeID = nodeID[:cut]
+	}
+	parts := strings.Split(nodeID, "::")
+	if len(parts) < 2 {
+		return ""
+	}
+	// A test in a class is TestClass::test_name in the node ID and
+	// TestClass.test_name in the block's rule line.
+	name := strings.Join(parts[1:], ".")
+
+	start := -1
+	for j, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "_") && strings.TrimSpace(strings.Trim(trimmed, "_")) == name {
+			start = j + 1
+			break
+		}
+	}
+	if start < 0 {
+		return ""
+	}
+
+	details := []string{}
+	for j := start; j < len(lines) && j < start+2*maxDetailScan; j++ {
+		trimmed := strings.TrimSpace(lines[j])
+		if strings.HasPrefix(trimmed, "___") || strings.HasPrefix(trimmed, "===") {
+			break
+		}
+		if trimmed != "E" && !strings.HasPrefix(trimmed, "E ") {
+			continue
+		}
+		detail := strings.TrimSpace(strings.TrimPrefix(trimmed, "E"))
+		if detail == "" || strings.HasPrefix(detail, "Use -v to get") {
+			continue
+		}
+		details = append(details, detail)
+	}
+	joined := strings.Join(details, " ")
 	if len(joined) > maxContinuationBytes {
 		joined = joined[:maxContinuationBytes] + "…"
 	}
