@@ -40,46 +40,15 @@ func (i *Index) References(path string, symbolID string) (protocol.ReferencesRes
 		return protocol.ReferencesResponse{}, err
 	}
 
-	// A real language server first, for any language that has one. This is
-	// the path that makes references exact outside Go: before it existed,
-	// everything but Go fell straight through to name matching.
-	if refs, server, ok := i.languageServerReferences(symbol, line, column); ok {
-		response := protocol.ReferencesResponse{
-			Query:      symbolID,
-			Source:     "lsp",
-			References: refs,
-			Summary:    fmt.Sprintf("%d references to %s (%s)", len(refs), symbol.Name, server),
-			Provenance: protocol.Provenance{Certainty: protocol.CertaintyExact, Source: server, Completeness: protocol.CompletenessComplete},
-		}
-		i.noteIndexing(&response, server)
-		return response, nil
-	}
-
-	// The gopls CLI remains as a second path for Go. It costs a full process
-	// start and workspace load per call, but it needs no server running, so
-	// it still answers where the client could not start at all.
-	if strings.EqualFold(filepath.Ext(symbol.Path), ".go") {
-		if refs, ok := i.goplsReferences(symbol.Path, line, column); ok {
-			return protocol.ReferencesResponse{
-				Query:      symbolID,
-				Source:     "lsp",
-				References: refs,
-				Summary:    fmt.Sprintf("%d references to %s (gopls)", len(refs), symbol.Name),
-				Provenance: protocol.Provenance{Certainty: protocol.CertaintyExact, Source: "gopls", Completeness: protocol.CompletenessComplete},
-			}, nil
+	// Providers strongest first (providers.go): language server, the gopls
+	// command, then the name-matched text index, which always answers.
+	request := referenceRequest{symbolID: symbolID, symbol: symbol, line: line, column: column}
+	for _, provider := range referenceProviders() {
+		if response, ok := provider.references(i, request); ok {
+			return response, nil
 		}
 	}
-
-	refs := i.approximateReferences(symbolID, symbol)
-	return protocol.ReferencesResponse{
-		Query:      symbolID,
-		Source:     "approximate",
-		Provenance: protocol.Provenance{Certainty: protocol.CertaintyApproximate, Source: "text index", Completeness: protocol.CompletenessMayBeIncomplete},
-		References: refs,
-		Summary: fmt.Sprintf(
-			"%d approximate references to %s (name-matched call graph; %s — duplicate names, dynamic dispatch and cross-file shadowing are not resolved)",
-			len(refs), symbol.Name, i.noServerReason(symbol.Path)),
-	}, nil
+	return protocol.ReferencesResponse{}, fmt.Errorf("no reference provider answered for %s", symbolID)
 }
 
 // locateSymbolPosition resolves symbolID to its declaration position,

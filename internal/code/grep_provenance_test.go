@@ -74,3 +74,13 @@ func TestNoServerReasonNamesTheKindOfMissing(t *testing.T) {
 		t.Fatalf("the old generic wording is back: %q", got)
 	}
 }
+func TestReferenceProvidersAreAskedStrongestFirst(t *testing.T) {
+	got := strings.Join(ReferenceProviderIDs(), ", ")
+	if got != "language server, gopls, text index" {
+		t.Fatalf("references registry order: got %s", got)
+	}
+	last := referenceProviders()[len(referenceProviders())-1]
+	if last.ID() != "text index" {
+		t.Fatalf("the always-answering text index must be last, got %s", last.ID())
+	}
+}
