@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Nothing reads or writes outside the workspace
+
+A path was used as given: an absolute path went wherever it pointed, `..` was
+joined without a check, and a symlink inside the repository was followed out
+of it. Nothing stopped an edit from writing outside the workspace, so "safe
+to leave running" could not be claimed.
+
+Every path a caller passes — to reads, edits, `create_file`, `delete_file`,
+`apply`, symbol IDs, `rename` — now resolves through one function that refuses
+absolute paths outside the root, `..` escapes, and symlinks whose target leaves
+the root, with an error naming the root. A language server proposing a rename
+edit outside the workspace is refused before any file is written. `grep`,
+`find` and retrieval skip symlinked files that point outside rather than
+reading through them. Absolute paths inside the workspace still work,
+including ones spelled through a symlinked root such as `/private/var` for
+`/var`.
+
 ### `revert` will not overwrite committed work
 
 Jade's revisions ran alongside commits made from the shell, and nothing said

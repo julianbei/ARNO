@@ -34,7 +34,10 @@ func (i *Index) ReplaceTextSource(path string, oldText string, newText string) (
 		return 0, fmt.Errorf("anchor text is required")
 	}
 
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return 0, err
+	}
 	data, err := os.ReadFile(absolute)
 	if err != nil {
 		return 0, err

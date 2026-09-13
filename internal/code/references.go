@@ -82,7 +82,10 @@ func (i *Index) References(path string, symbolID string) (protocol.ReferencesRes
 // gopls addresses positions as file:line:col, but jade's Symbol only
 // carries line ranges.
 func (i *Index) locateSymbolPosition(path string, symbolID string) (Symbol, int, int, error) {
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return Symbol{}, 0, 0, err
+	}
 	rel, err := filepath.Rel(i.root, absolute)
 	if err != nil {
 		return Symbol{}, 0, 0, err

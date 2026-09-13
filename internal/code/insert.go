@@ -33,7 +33,10 @@ func (i *Index) InsertSource(path string, anchor string, position string, text s
 		return 0, fmt.Errorf("insert text is required")
 	}
 
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return 0, err
+	}
 	data, err := os.ReadFile(absolute)
 	if err != nil {
 		return 0, err

@@ -24,7 +24,10 @@ func (i *Index) DeleteSymbolSource(path string, symbolID string) (Symbol, []stri
 		return Symbol{}, nil, err
 	}
 
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return Symbol{}, nil, err
+	}
 	data, err := os.ReadFile(absolute)
 	if err != nil {
 		return Symbol{}, nil, err

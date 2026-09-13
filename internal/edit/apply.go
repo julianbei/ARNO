@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/julianbei/jade/internal/pathguard"
 	"github.com/julianbei/jade/internal/protocol"
 )
 
@@ -104,8 +105,15 @@ func (s *Service) preflight(root string, edits []protocol.EditOp) error {
 			return err
 		}
 
+		// Checked for every op, including repeats of a path, before anything
+		// is written: one escaping op refuses the whole batch.
+		absolute, err := pathguard.Resolve(root, op.Path)
+		if err != nil {
+			return fmt.Errorf("edit %d: %w", index+1, err)
+		}
+
 		if !willTouch[op.Path] {
-			data, err := os.ReadFile(filepath.Join(root, op.Path))
+			data, err := os.ReadFile(absolute)
 			if err != nil {
 				return fmt.Errorf("edit %d (%s): %w", index+1, op.Path, err)
 			}

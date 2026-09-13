@@ -15,6 +15,7 @@ import (
 
 	"github.com/julianbei/jade/internal/events"
 	"github.com/julianbei/jade/internal/lsp"
+	"github.com/julianbei/jade/internal/pathguard"
 	"github.com/julianbei/jade/internal/protocol"
 	"github.com/julianbei/jade/internal/textutil"
 )
@@ -103,7 +104,10 @@ func (i *Index) languageClient(ctx context.Context, path string) (*lsp.Client, s
 }
 
 func (i *Index) Outline(path string) ([]Symbol, error) {
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return nil, err
+	}
 	rel, err := filepath.Rel(i.root, absolute)
 	if err != nil {
 		return nil, err
@@ -213,7 +217,10 @@ func ParserFor(path string, mode string) protocol.ParserInfo {
 // ParserInfo saying how those symbols were obtained — see ParserFor for why
 // the last one is not optional.
 func (i *Index) OutlineStructured(path string) (OutlineSections, []Symbol, protocol.ParserInfo, error) {
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return OutlineSections{}, nil, protocol.ParserInfo{}, err
+	}
 	rel, err := filepath.Rel(i.root, absolute)
 	if err != nil {
 		return OutlineSections{}, nil, protocol.ParserInfo{}, err
@@ -324,7 +331,7 @@ func (i *Index) RepositoryMap(query string, maxTokens int) (protocol.RepositoryM
 		if info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) {
+		if shouldSkipPath(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 		if !isTextLike(path) {
@@ -418,7 +425,7 @@ func (i *Index) Search(query string, mode string, limit int) (protocol.SearchRes
 		if info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) || !isTextLike(path) {
+		if shouldSkipPath(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 		rel, err := filepath.Rel(i.root, path)
@@ -658,7 +665,7 @@ func (i *Index) BuildRetrievalIndex() (protocol.RetrievalIndex, error) {
 		if info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) || !isTextLike(path) {
+		if shouldSkipPath(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 		rel, err := filepath.Rel(i.root, path)
@@ -721,7 +728,7 @@ func (i *Index) BuildSymbolGraph() (protocol.SymbolGraph, error) {
 		if info == nil || info.IsDir() {
 			return nil
 		}
-		if shouldSkipPath(path) || !isTextLike(path) {
+		if shouldSkipPath(path) || !isTextLike(path) || i.leavesWorkspace(path, info) {
 			return nil
 		}
 		rel, err := filepath.Rel(i.root, path)
@@ -1001,7 +1008,10 @@ func (i *Index) ReadSymbol(path string, symbolID string, maxLines int) (Symbol, 
 		maxLines = 150
 	}
 
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return Symbol{}, "", err
+	}
 	rel, err := filepath.Rel(i.root, absolute)
 	if err != nil {
 		return Symbol{}, "", err
@@ -1083,7 +1093,10 @@ type RangeRead struct {
 // reported so the caller knows it got less than it named. A start past the end
 // is still an error — there is nothing there to read.
 func (i *Index) ReadRangeInfo(path string, start int, end int) (RangeRead, error) {
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return RangeRead{}, err
+	}
 	data, err := os.ReadFile(absolute)
 	if err != nil {
 		return RangeRead{}, err
@@ -1131,7 +1144,10 @@ func (i *Index) ReplaceSymbolSource(symbolID string, newCode string) (Symbol, []
 		return Symbol{}, nil, fmt.Errorf("invalid symbol id: %s", symbolID)
 	}
 
-	absolute := i.resolvePath(relPath)
+	absolute, err := i.resolvePath(relPath)
+	if err != nil {
+		return Symbol{}, nil, err
+	}
 	data, err := os.ReadFile(absolute)
 	if err != nil {
 		return Symbol{}, nil, err
@@ -1158,7 +1174,10 @@ func (i *Index) ReplaceSymbolSource(symbolID string, newCode string) (Symbol, []
 // 1-indexed) of path and writes the file back to disk. It returns the
 // source lines it displaced.
 func (i *Index) ReplaceRangeSource(path string, start int, end int, newCode string) ([]string, error) {
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return nil, err
+	}
 	data, err := os.ReadFile(absolute)
 	if err != nil {
 		return nil, err
@@ -1177,7 +1196,10 @@ func (i *Index) ReplaceRangeSource(path string, start int, end int, newCode stri
 // ReplaceSymbolSource/ReplaceRangeSource, which carry revision checks;
 // CreateFile has none, so silently overwriting would be unsafe.
 func (i *Index) CreateFile(path string, content string) error {
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return err
+	}
 	if _, err := os.Stat(absolute); err == nil {
 		return fmt.Errorf("file already exists: %s (use replace_symbol/replace_range to modify it)", path)
 	} else if !os.IsNotExist(err) {
@@ -1210,7 +1232,10 @@ func (i *Index) CreateFile(path string, content string) error {
 // notes file. That gap is total rather than merely awkward: there is no
 // partial workaround, so it fell to a raw shell write every single time.
 func (i *Index) ReplaceFileSource(path string, content string) (int, error) {
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return 0, err
+	}
 
 	existing, err := os.ReadFile(absolute)
 	if os.IsNotExist(err) {
@@ -1234,7 +1259,10 @@ func (i *Index) ReplaceFileSource(path string, content string) (int, error) {
 // DeleteFile removes a file and evicts its cached symbols (if any), and
 // returns the line count it had for the caller's diff accounting.
 func (i *Index) DeleteFile(path string) (int, error) {
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return 0, err
+	}
 	data, err := os.ReadFile(absolute)
 	if err != nil {
 		return 0, err
@@ -1280,7 +1308,10 @@ func symbolIDPath(symbolID string) (string, bool) {
 }
 
 func (i *Index) SymbolsByName(path string, symbolName string) ([]Symbol, error) {
-	absolute := i.resolvePath(path)
+	absolute, err := i.resolvePath(path)
+	if err != nil {
+		return nil, err
+	}
 	rel, err := filepath.Rel(i.root, absolute)
 	if err != nil {
 		return nil, err
@@ -1356,11 +1387,18 @@ func (i *Index) parseSymbolsForPath(absolute string, relPath string, data []byte
 	return extractSymbols(relPath, lines), "regex"
 }
 
-func (i *Index) resolvePath(path string) string {
-	if filepath.IsAbs(path) {
-		return filepath.Clean(path)
-	}
-	return filepath.Join(i.root, path)
+// resolvePath turns a caller's path into an absolute one inside the
+// workspace, refusing absolute, `..` and symlink escapes. Every read and write
+// the index does on a caller's behalf starts here.
+func (i *Index) resolvePath(path string) (string, error) {
+	return pathguard.Resolve(i.root, path)
+}
+
+// leavesWorkspace reports a symlinked file whose target lies outside the
+// workspace. Walks skip it: a link into ~/.aws is not repository content, and
+// grep or find must not read through it.
+func (i *Index) leavesWorkspace(path string, info os.FileInfo) bool {
+	return info.Mode()&os.ModeSymlink != 0 && !pathguard.Contains(i.root, path)
 }
 
 func splitLines(input string) []string {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/julianbei/jade/internal/lsp"
+	"github.com/julianbei/jade/internal/pathguard"
 	"github.com/julianbei/jade/internal/protocol"
 )
 
@@ -24,7 +25,10 @@ import (
 // references" deserves to know whether a compiler said so or a text match did.
 func (i *Index) languageServerReferences(symbol Symbol, line int, column int) ([]protocol.ReferenceLocation, string, bool) {
 	ctx := context.Background()
-	absolute := i.resolvePath(symbol.Path)
+	absolute, pathErr := i.resolvePath(symbol.Path)
+	if pathErr != nil {
+		return nil, "", false
+	}
 
 	client, language, ok := i.languageClient(ctx, symbol.Path)
 	if !ok {
@@ -66,7 +70,10 @@ func (i *Index) languageServerReferences(symbol Symbol, line int, column int) ([
 // invisible edit jade exists to prevent.
 func (i *Index) languageServerRename(symbol Symbol, line int, column int, newName string) ([]string, error) {
 	ctx := context.Background()
-	absolute := i.resolvePath(symbol.Path)
+	absolute, pathErr := i.resolvePath(symbol.Path)
+	if pathErr != nil {
+		return nil, pathErr
+	}
 
 	client, language, ok := i.languageClient(ctx, symbol.Path)
 	if !ok {
@@ -105,6 +112,11 @@ func (i *Index) languageServerRename(symbol Symbol, line int, column int, newNam
 	// that compiles nowhere and that nobody asked for.
 	contents := make(map[string][]string, len(fileEdits))
 	for _, fileEdit := range fileEdits {
+		// The server chooses these paths, not the caller. A server confused
+		// by a symlink or a vendored copy must not get Jade to write outside.
+		if !pathguard.Contains(i.root, fileEdit.Path) {
+			return nil, fmt.Errorf("language server proposed an edit to %s, outside the workspace root %s; nothing was written", fileEdit.Path, i.root)
+		}
 		data, err := os.ReadFile(fileEdit.Path)
 		if err != nil {
 			return nil, err
@@ -209,7 +221,10 @@ func (i *Index) LanguageServerDiagnostics(path string) (diagnostics []protocol.D
 		return nil, "", reason, true
 	}
 
-	absolute := i.resolvePath(path)
+	absolute, pathErr := i.resolvePath(path)
+	if pathErr != nil {
+		return nil, "", pathErr.Error(), true
+	}
 	// Generation before the sync, so only a publish for the new content
 	// counts.
 	before := client.DiagnosticsGeneration(absolute)

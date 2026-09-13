@@ -238,7 +238,8 @@ listed here so the sequence is complete.
 - [x] `check` says what will run before running it (ROADMAP §4)
 - [x] Document and anchor revisions to git (ROADMAP §5) — checkpoints record
   `HEAD`, and revert refuses across a commit (f76ee88)
-- [ ] **Workspace boundary enforced.** Foundational correctness, so it ships in
+- [x] **Workspace boundary enforced.** Done 2026-09-13: `internal/pathguard`,
+  tested per escape on every path tool. Foundational correctness, so it ships in
   0.0.3 rather than waiting for the transaction work. Every file operation —
   read, edit, create, delete, rename, checkpoint restore, `read_range`,
   formatter and LSP edits — resolves through one core path function that

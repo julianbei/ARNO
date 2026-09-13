@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/julianbei/jade/internal/events"
+	"github.com/julianbei/jade/internal/pathguard"
 	"github.com/julianbei/jade/internal/protocol"
 )
 
@@ -292,7 +293,11 @@ func (m *Manager) RevertCheckpoint(id string) (Checkpoint, error) {
 	// Best-effort restore: a write failure for one path (e.g. permissions)
 	// should not prevent restoring the others.
 	for path, data := range snapshot.files {
-		_ = os.WriteFile(filepath.Join(m.root, path), data, 0o644)
+		absolute, err := pathguard.Resolve(m.root, path)
+		if err != nil {
+			continue
+		}
+		_ = os.WriteFile(absolute, data, 0o644)
 	}
 
 	checkpoint := Checkpoint{
