@@ -34,10 +34,11 @@ CHANGELOG updated, release notes in
 status section removed), tag `v0.0.3`. Each item adds itself to the release
 notes when it lands.
 
-### 0.0.4 — candidates
+### 0.0.4 through 0.1.0
 
-Multi-project `check`, progress notifications for long jobs, scratch root,
-transient-diagnostic hints, formatter conformance, Java and Ruby formatting.
+Phased in [docs/release-plan-0.1.0.md](docs/release-plan-0.1.0.md): evidence
+(0.0.4), tool surface (0.0.5), environment predictability (0.0.6), the change
+transaction (0.0.7), then 0.1.0. Each phase has an exit gate.
 
 ---
 
@@ -233,7 +234,14 @@ language.
     because importing runs sbt and writes `.bloop/` and `.metals/`.
     Closes the reported gap of ~15 TypeScript/TSX edits returning nothing,
     leaving all checking to `tsc` in the build.
-- [ ] **JSON and YAML syntax checks** after edit — cheap, built in, no server.
+- [x] **JSON and YAML syntax checks** after edit — cheap, built in, no server.
+  - Done 2026-09-13: edits to `.json`, `.yaml` and `.yml` report `checked:
+    json` / `checked: yaml` and the first syntax error with its location.
+    Every JSON value and every YAML document in the file is parsed, so an error
+    after a valid first document is still found. JSON-with-comments files
+    (`tsconfig.json`, `jsconfig.json`, devcontainer and VS Code settings) are
+    not reported as broken. Verified live: a stray comma in `package.json`
+    returned `error package.json:2:19 invalid JSON: …`.
 - [ ] **Stop reporting transient errors from half-done multi-step edits.**
   Imports added before the code that uses them reported
   `"context" imported and not used`; the next call fixed it. `apply` avoids

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### JSON and YAML are checked after an edit
+
+A broken `package.json` or CI workflow used to surface only when something read
+it next — a build, a deploy, a CI run. Edits to `.json`, `.yaml` and `.yml` now
+parse the file with the standard parsers and return the first syntax error with
+its location, named `checked: json` or `checked: yaml`. Multi-document YAML is
+checked document by document. `tsconfig.json` and other JSON-with-comments
+files are not reported as broken. A diagnostic with no column (YAML reports
+only a line) is rendered as `path:line`, not `path:line:0`.
+
 ### Edits report errors in every language with a server
 
 Only Go edits used to come back with diagnostics. Now every language with a

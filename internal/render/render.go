@@ -422,7 +422,7 @@ func edit(r protocol.EditResponse) string {
 	// Diagnostics are why an agent reads an edit response at all, so they
 	// get their own lines rather than being folded into the header.
 	for _, d := range r.Diagnostics {
-		lines = append(lines, fmt.Sprintf("%s %s:%d:%d %s", d.Level, d.Path, d.Line, d.Column, d.Message))
+		lines = append(lines, diagnosticLine(d))
 	}
 	lines = append(lines, uncheckedLines(r.Checks)...)
 	// Job IDs are not rendered. Every edit starts a background typecheck, and
@@ -554,7 +554,7 @@ func contextResponse(r protocol.ContextResponse) string {
 	// Diagnostics before the code: if the symbol is currently broken, that
 	// changes what the agent does with everything below it.
 	for _, d := range r.Diagnostics {
-		lines = append(lines, fmt.Sprintf("%s %s:%d:%d %s", d.Level, d.Path, d.Line, d.Column, d.Message))
+		lines = append(lines, diagnosticLine(d))
 	}
 
 	lines = append(lines, section("callers", r.Callers, r.CallerCount)...)
@@ -626,7 +626,7 @@ func apply(r protocol.ApplyResponse) string {
 	// Diagnostics before the file list: a batch that compiled is routine, a
 	// batch that broke something is the thing the caller must act on.
 	for _, d := range r.Diagnostics {
-		lines = append(lines, fmt.Sprintf("%s %s:%d:%d %s", d.Level, d.Path, d.Line, d.Column, d.Message))
+		lines = append(lines, diagnosticLine(d))
 	}
 	lines = append(lines, uncheckedLines(r.Checks)...)
 	if r.CheckSummary != "" {
@@ -841,4 +841,15 @@ func uncheckedLines(report protocol.CheckReport) []string {
 		lines = append(lines, "not checked: "+entry)
 	}
 	return lines
+}
+
+// diagnosticLine renders one diagnostic as `level path:line:column message`.
+// The column is left out when the checker did not report one — YAML parsers
+// give only a line — because `ci.yml:3:0` reads as a real position.
+func diagnosticLine(d protocol.Diagnostic) string {
+	location := fmt.Sprintf("%s:%d", d.Path, d.Line)
+	if d.Column > 0 {
+		location += fmt.Sprintf(":%d", d.Column)
+	}
+	return fmt.Sprintf("%s %s %s", d.Level, location, d.Message)
 }

@@ -523,3 +523,22 @@ func TestApplyNamesWhatCheckedIt(t *testing.T) {
 		t.Fatalf("expected the checkers in the apply header, got:\n%s", out)
 	}
 }
+
+// YAML parsers report a line but no column. `ci.yml:3:0` reads as a real
+// position; the column is left out instead.
+func TestDiagnosticWithoutAColumnOmitsIt(t *testing.T) {
+	out, _ := Text(protocol.EditResponse{
+		OldRevision: "r1",
+		NewRevision: "r2",
+		Diagnostics: []protocol.Diagnostic{
+			{Level: protocol.DiagnosticError, Path: "ci.yml", Line: 3, Message: "invalid YAML: did not find expected node content"},
+			{Level: protocol.DiagnosticError, Path: "a.json", Line: 2, Column: 19, Message: "invalid JSON"},
+		},
+	})
+	if !strings.Contains(out, "error ci.yml:3 invalid YAML") || strings.Contains(out, "ci.yml:3:0") {
+		t.Fatalf("expected the column omitted when unknown, got:\n%s", out)
+	}
+	if !strings.Contains(out, "error a.json:2:19 invalid JSON") {
+		t.Fatalf("expected a known column kept, got:\n%s", out)
+	}
+}

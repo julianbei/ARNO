@@ -68,9 +68,12 @@ func (s *Service) Check(scope string) Result {
 	}
 
 	var result Result
+	ext := filepath.Ext(path)
 	switch {
-	case strings.EqualFold(filepath.Ext(path), ".go"):
+	case strings.EqualFold(ext, ".go"):
 		result = s.checkGo(path, absolute)
+	case syntaxCheckers[strings.ToLower(ext)] != nil:
+		result, _ = checkSyntax(path, absolute, ext)
 	case s.languageServers != nil:
 		diagnostics, checker, unchecked, handled := s.languageServers(path)
 		if handled {
