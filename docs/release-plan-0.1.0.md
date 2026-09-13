@@ -672,8 +672,10 @@ impact-aware validation comes after the write path it depends on, not before.
 - [ ] **Long-running work without polling** (ROADMAP §4).
  *Progress 2026-09-14:* a
   backgrounded or out-waited declared command is no longer killed at the
-  wait timeout; it runs to the runner's 10-minute bound. Progress
-  notifications still to do. Progress
+  wait timeout; it runs to the runner's 10-minute bound. Calls with a
+  progress token report `notifications/progress` every five seconds. A
+  notification when a backgrounded job completes, and raising the 300-second
+  wait cap, still to do. Progress
   notifications; no 300-second cap on backgrounded jobs.
 - [x] **Stop reporting transient errors mid-edit** (ROADMAP §3). *Done
   2026-09-14:* errors of the in-progress shape point at `apply`.

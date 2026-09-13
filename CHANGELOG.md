@@ -65,6 +65,14 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### Long calls report progress
+
+A host that sends `_meta.progressToken` with a tool call now gets
+`notifications/progress` every five seconds while the call runs —
+`jade.run_tests still running · 25s` — so a check or test run of several
+minutes reads as work in progress rather than a hung server. None is sent
+after the call's response, and a call without a token gets none.
+
 ### A backgrounded command is no longer killed at its wait timeout
 
 `run_command` and `check lint`/`codegen` killed the process when the

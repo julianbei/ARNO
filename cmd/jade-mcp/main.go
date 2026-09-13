@@ -75,6 +75,8 @@ type mcpServer struct {
 	// instructions is sent on initialize: the server's own plus what the
 	// repository's .jade/project.json declares. Empty sends the server's own.
 	instructions string
+	// notify sends a notification to the client; nil before the loop starts.
+	notify func(method string, params interface{})
 }
 
 // version is stamped at build time via -ldflags (see the Makefile). It is
@@ -177,6 +179,10 @@ func (s *mcpServer) loop(in io.Reader, out io.Writer) error {
 	reader := bufio.NewReader(in)
 	writer := bufio.NewWriter(out)
 	defer writer.Flush()
+	locked := &lockedWriter{w: writer}
+	s.notify = func(method string, params interface{}) {
+		_ = locked.write(rpcNotification{JSONRPC: "2.0", Method: method, Params: params})
+	}
 
 	for {
 		payload, err := readMessage(reader)
@@ -198,10 +204,7 @@ func (s *mcpServer) loop(in io.Reader, out io.Writer) error {
 		}
 
 		resp := s.handleRequest(req)
-		if err := writeMessage(writer, resp); err != nil {
-			return err
-		}
-		if err := writer.Flush(); err != nil {
+		if err := locked.write(resp); err != nil {
 			return err
 		}
 	}
@@ -276,6 +279,9 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 	var req struct {
 		Name      string                 `json:"name"`
 		Arguments map[string]interface{} `json:"arguments"`
+		Meta      struct {
+			ProgressToken interface{} `json:"progressToken"`
+		} `json:"_meta"`
 	}
 	if err := json.Unmarshal(raw, &req); err != nil {
 		return mcpToolResult{}, fmt.Errorf("invalid tools/call payload: %w", err)
@@ -300,7 +306,9 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 	}
 
 	started := time.Now()
+	stopProgress := s.reportProgress(req.Meta.ProgressToken, req.Name)
 	result, err := s.dispatchToolCall(req.Name, args)
+	stopProgress()
 
 	// A returned error always wins: it is the stronger signal, and a handler
 	// that errors never produced a typed response to read an outcome from.
