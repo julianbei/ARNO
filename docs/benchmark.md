@@ -12,6 +12,7 @@ a pinned commit:
 | Arm | Built-in tools | Jade MCP server |
 |---|---|---|
 | `shell` | all | no |
+| `shell-lean` | Bash, Read, Edit, Write | no |
 | `jade` | none | yes |
 | `jade+shell` | all | yes |
 
@@ -22,8 +23,13 @@ tools and MCP:
 claude -p "<task prompt>" --output-format json --no-session-persistence \
   --permission-mode bypassPermissions --setting-sources project \
   --strict-mcp-config --max-budget-usd <cap> --model sonnet \
-  --tools default|"" [--mcp-config <jade only>]
+  --tools default|"Bash,Read,Edit,Write"|"" [--mcp-config <jade only>]
 ```
+
+`shell-lean` exists because the tool list is resent on every turn. The pilot
+found that Claude Code's full built-in list is 38k tokens of prompt per turn and
+Jade's core profile 14k, so a comparison against `shell` alone cannot say how
+much of Jade's saving is its tools and how much is a shorter list.
 
 `--strict-mcp-config` keeps the operator's own MCP servers out, and
 `--setting-sources project` keeps user-level hooks and plugins out, so the

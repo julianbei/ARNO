@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Acting on the pilot benchmark
+
+The full pilot suite (36 runs, see `docs/benchmark.md`) found that Jade alone
+solved 12 of 12 tasks with 51% fewer tokens than Claude Code's built-in tools,
+and that most of the saving is the tool list itself: the built-in tools are
+38k tokens of prompt on every turn, Jade's core profile 14k. Given both, the
+agent used Bash for four calls in five and spent 9% more tokens.
+
+- **The README recommends Jade in place of the built-in tools**, with the
+  Claude Code invocation (`--tools ""`), the core-profile server config, the
+  pilot's numbers and the trade-off: no arbitrary shell commands.
+- **`jade-bench agent` has a `shell-lean` arm**: Bash, Read, Edit and Write
+  only. Measured against it, a result says how much of Jade's saving is its
+  tools and how much a shorter tool list.
+- **Edits in languages without a running language server get a syntax
+  check.** No server ran for TypeScript, Python or Rust in the pilot, so every
+  edit there said "not checked" and a broken edit showed up only at the next
+  test run. When the server is not installed or not configured, TypeScript,
+  JavaScript, Python, Rust, Ruby, Java and Scala files are parsed with Jade's
+  tree-sitter grammars and syntax errors are reported with their position; the
+  checker reads `tree-sitter (syntax only; <why the server did not run>)`.
+
 ### Fewer wasted turns for a Jade-only agent
 
 Reading the Jade-only agent's calls, turn by turn, in further cobra runs found

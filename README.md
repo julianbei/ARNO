@@ -162,6 +162,48 @@ Jade works on a non-git directory and on a repository with no commits yet. In
 both cases it says what is degraded — `changes`, `diff`, `history` and
 `checkpoint` need git — and everything else keeps working.
 
+### Let Jade replace the built-in tools
+
+Jade saves tokens when it *replaces* the agent's own tools, not when it is
+added next to them. Every turn resends the whole tool list, and in Claude Code
+the built-in tools are about 38k tokens of it. In Jade's pilot benchmark (12 real
+issues in cobra, ky, requests and ripgrep, one run each):
+
+| Tools | Tasks solved | Tokens per run | Time per run |
+|---|---|---|---|
+| Claude Code's built-in tools | 10 of 12 | 1.38M | 215s |
+| Jade only, core profile | 12 of 12 | 0.68M | 163s |
+| Both | 11 of 12 | 1.50M | 191s |
+
+Given both, the agent used Bash for four calls in five and paid for both lists.
+To run Jade in place of the built-in tools:
+
+```sh
+claude --tools "" --mcp-config jade.json
+```
+
+with `jade.json` passing the core profile, which lists the twelve tools agents
+use and keeps the others callable:
+
+```json
+{
+  "mcpServers": {
+    "jade": {
+      "type": "stdio",
+      "command": "jade-mcp",
+      "args": ["--root", "/absolute/path/to/the/repo", "--tools", "core"],
+      "alwaysLoad": true
+    }
+  }
+}
+```
+
+The trade-off is real: without Bash the agent cannot run arbitrary commands.
+`run_tests`, `check` and repository commands declared with `declare_command`
+cover building and testing; a task that needs git operations, network access
+or ad-hoc scripts needs the shell back. The numbers above are one run per task
+— see `docs/benchmark.md` for the method.
+
 ### Three things that will confuse you once
 
 **Without `"alwaysLoad": true`, Claude Code may never use Jade.** Claude Code

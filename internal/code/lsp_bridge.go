@@ -202,13 +202,23 @@ const diagnosticsWait = 4 * time.Second
 // when nothing checked the file, why not. handled is false for a file with no
 // language at all (Markdown, a Dockerfile), for which saying "not checked" on
 // every edit would be noise rather than information.
+// withSyntaxFallback answers for a file whose language server cannot run: a
+// tree-sitter syntax check when Jade has the grammar, otherwise the reason
+// the file went unchecked.
+func (i *Index) withSyntaxFallback(path string, reason string) ([]protocol.Diagnostic, string, string, bool) {
+	if diagnostics, ok := i.syntaxDiagnostics(path); ok {
+		return diagnostics, syntaxCheckerName(reason), "", true
+	}
+	return nil, "", reason, true
+}
+
 func (i *Index) LanguageServerDiagnostics(path string) (diagnostics []protocol.Diagnostic, checker string, unchecked string, handled bool) {
 	language := lsp.LanguageForPath(path)
 	if language == "" {
 		return nil, "", "", false
 	}
 	if i.servers == nil {
-		return nil, "", "no language servers are configured", true
+		return i.withSyntaxFallback(path, "no language servers are configured")
 	}
 
 	ctx := context.Background()
@@ -218,7 +228,7 @@ func (i *Index) LanguageServerDiagnostics(path string) (diagnostics []protocol.D
 		if reason == "" {
 			reason = "no language server for " + language
 		}
-		return nil, "", reason, true
+		return i.withSyntaxFallback(path, reason)
 	}
 
 	absolute, pathErr := i.resolvePath(path)

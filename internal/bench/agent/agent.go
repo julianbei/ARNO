@@ -34,22 +34,32 @@ type Arm string
 const (
 	// ArmShell is the agent's built-in tools and no MCP server: the baseline.
 	ArmShell Arm = "shell"
+	// ArmShellLean is the four built-in tools a coding task uses — Bash,
+	// Read, Edit, Write — and no MCP server. The full built-in list costs
+	// 38k tokens of prompt on every turn; this arm separates what Jade saves
+	// from what a shorter tool list saves.
+	ArmShellLean Arm = "shell-lean"
 	// ArmJade is Jade's tools and nothing else.
 	ArmJade Arm = "jade"
 	// ArmJadeShell is both. The plan expects this may be the practical winner.
 	ArmJadeShell Arm = "jade+shell"
 )
 
+// UsesJade reports an arm that runs the Jade MCP server.
+func (a Arm) UsesJade() bool {
+	return a == ArmJade || a == ArmJadeShell
+}
+
 // ParseArms reads a comma-separated arm list.
 func ParseArms(list string) ([]Arm, error) {
 	var arms []Arm
 	for _, name := range strings.Split(list, ",") {
 		switch arm := Arm(strings.TrimSpace(name)); arm {
-		case ArmShell, ArmJade, ArmJadeShell:
+		case ArmShell, ArmShellLean, ArmJade, ArmJadeShell:
 			arms = append(arms, arm)
 		case "":
 		default:
-			return nil, fmt.Errorf("unknown arm %q (want shell, jade or jade+shell)", name)
+			return nil, fmt.Errorf("unknown arm %q (want shell, shell-lean, jade or jade+shell)", name)
 		}
 	}
 	if len(arms) == 0 {
@@ -288,7 +298,7 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 	}
 
 	mcpConfig := ""
-	if arm != ArmShell {
+	if arm.UsesJade() {
 		mcpConfig = filepath.Join(parent, "mcp.json")
 		if err := writeMCPConfig(mcpConfig, cfg.JadeMCP, cfg.JadeTools, workspace); err != nil {
 			result.AgentError = err.Error()
@@ -306,7 +316,7 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 	cmd := exec.CommandContext(runCtx, cfg.Claude, AgentArgs(task.Prompt, arm, cfg.Model, capUSD, mcpConfig)...)
 	cmd.Dir = workspace
 	env := append(os.Environ(), cfg.Env...)
-	if arm != ArmShell && cfg.TelemetryDir != "" {
+	if arm.UsesJade() && cfg.TelemetryDir != "" {
 		// jade-mcp inherits the agent's environment, so its telemetry log
 		// lands outside the workspace and survives the run.
 		result.TelemetryDir = filepath.Join(cfg.TelemetryDir, fmt.Sprintf("%s-%s-%s-%d", result.Repository, task.ID, arm, repeat))
@@ -405,6 +415,8 @@ func AgentArgs(prompt string, arm Arm, model string, capUSD float64, mcpConfig s
 	switch arm {
 	case ArmShell:
 		args = append(args, "--tools", "default")
+	case ArmShellLean:
+		args = append(args, "--tools", "Bash,Read,Edit,Write")
 	case ArmJade:
 		args = append(args, "--tools", "", "--mcp-config", mcpConfig)
 	case ArmJadeShell:
