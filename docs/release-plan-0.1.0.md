@@ -394,11 +394,13 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   does not need Jade's versions of them in context — the way Serena disables
   its own overlapping tools inside agent harnesses. The bar for every tool in a
   profile: it keeps Jade preferable to the host's own tool for that job.
-- [ ] **Response budgets with continuation** (ROADMAP § Surface). One `budget`
+- [ ] **Response budgets with continuation** (ROADMAP § Surface). *Design
+  written 2026-09-13* in [tool-contract.md](tool-contract.md#budgets-and-provenance--005-design). One `budget`
   convention and one continuation handle across every tool that can return a
   list or a body — `24 of 87 references shown · continue=…` — replacing
   per-tool limit arguments, which are deprecated.
-- [ ] **Provenance on every answer** (ROADMAP § Trustworthy), moved forward
+- [ ] **Provenance on every answer** (ROADMAP § Trustworthy; *design written
+  2026-09-13* in [tool-contract.md](tool-contract.md#budgets-and-provenance--005-design)), moved forward
   from Phase 4: it and budgets are the same kind of change — a convention on
   every response — and belong in one release. Three parts on one compact line:
   certainty (`exact` / `structural` / `approximate` / `text fallback`), source

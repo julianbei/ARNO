@@ -132,6 +132,77 @@ reading.
 | `jade.telemetry` | — |
 | `jade.workspace_tree` | — |
 
+## Budgets and provenance — 0.0.5 design
+
+*Design, not yet implemented.* Two conventions that every list- or
+body-returning response will share. Both are additive: new optional
+arguments and new response lines, so neither breaks a caller. The per-tool
+size arguments they replace are deprecated in 0.0.5 and removed before 0.1.0.
+
+### Budget and continuation
+
+Today each tool has its own size argument — `limit` on `grep`, `find`,
+`search`, `history` and `events`, `maxLines` on `find` and `read_symbol` —
+and `read_range` cuts silently at 20,000 bytes in the middle of the file.
+The replacement:
+
+- **`budget`**, an optional integer in tokens, on every tool that returns a
+  list or a body: `grep`, `find`, `search`, `retrieve`, `references`,
+  `outline`, `read_range`, `read_symbol`, `workspace_tree`, `repository_map`,
+  `context`, `history`, `events`, `changes`, `diff`, `job_output`. Tokens are
+  counted as bytes / 4, the estimate the benchmark already uses. Each tool
+  keeps today's effective default; a server-wide cap bounds the largest
+  budget.
+- **Cut at whole items**: a match, a declaration, a file entry, a line of a
+  range. Never mid-line, never mid-body without saying so.
+- **One closing line when cut**, with the true total and a handle:
+  `shown 24 of 87 references · continue=c3f9a1`.
+- **`continue`**, an optional string argument on the same tools: the same
+  call's next page, under the same or a new `budget`. Other arguments are
+  ignored when `continue` is given.
+- **Handles are opaque and server-side**, kept per session, least recently
+  used first out. A handle names the revision it was cut at; after the
+  workspace moves, it is refused with both revisions named
+  (`continue=c3f9a1 was cut at r12; the workspace is at r14 — repeat the
+  call`), never answered from a different state.
+- **`limit` and `maxLines` stay accepted** through 0.0.x and are read as a
+  budget in items or lines. `context` on `grep` is not a size argument and
+  stays.
+
+### Provenance
+
+An answer that can come from more than one backend, or be incomplete, says
+which on one compact line — `exact · gopls · complete`. Three parts, each a
+closed set defined by core. A backend reports its class and its limits;
+core renders the words, so no backend chooses its own confidence wording.
+
+| Part | Values |
+|---|---|
+| Certainty | `exact` (a compiler, language server or literal text match), `structural` (a tree-sitter parse), `approximate` (name matching in the text index), `text fallback` (heuristic scan, no grammar) |
+| Source | the backend that answered: `gopls`, `rust-analyzer`, `tree-sitter`, `text index`, … — never a tool name or argument |
+| Completeness | `complete`, `cut` (by the budget; a `continue` handle follows), `may be incomplete` (server still indexing, files skipped), `parse errors`, `stale` |
+
+Where it goes: appended to the first line after ` · `, so the verdict or
+identifier still leads — `12 references to Store · exact · gopls · complete`.
+Tools whose answer has one possible source and cannot be partial — an exact
+`read_range` within budget, `diff`, `checkpoint` — carry no provenance.
+Edit responses keep `checked: <source>`, using the same source names.
+
+In `JADE_JSON=1` output both conventions are new fields — `Provenance`
+(`Certainty`, `Source`, `Completeness`) and `Continue` — added to the
+response structs, not replacing any.
+
+### Order of work
+
+1. Provenance types and rendering in core; `references`, `find`, `outline`
+   and `grep` first, since they already distinguish exact from approximate.
+2. The continuation store and `budget` on `grep`, `find`, `references` and
+   `read_range`, the tools the benchmark agents called most.
+3. The remaining tools; `limit` and `maxLines` marked deprecated in their
+   schema descriptions.
+4. Contract tests: every list-returning tool accepts `budget` and
+   `continue`; every provenance value comes from the closed sets.
+
 ## What is explicitly not frozen
 
 - **Response wording**, as above.
