@@ -34,6 +34,9 @@ type Manager struct {
 	// Kept for reporting: "pyright is not installed" is actionable, and
 	// "semantic features unavailable" is not.
 	failed map[string]error
+	// restarts counts how often each language's server was started again
+	// after dying.
+	restarts map[string]int
 
 	closed bool
 }
@@ -44,6 +47,26 @@ func NewManager(root string) *Manager {
 		clients: make(map[string]*Client),
 		failed:  make(map[string]error),
 	}
+}
+
+// maxRestarts is how often a language's server is started again after it
+// dies. Once turns one bad moment into a working session; more turns a server
+// that crashes on this workspace into a crash per call.
+const maxRestarts = 1
+
+// allowRestart records that language's server died and says whether to start
+// it again: up to maxRestarts times, then the language is marked failed with
+// the reason, which capabilities and references report. Called with m.mu held.
+func (m *Manager) allowRestart(language string) bool {
+	if m.restarts == nil {
+		m.restarts = map[string]int{}
+	}
+	if m.restarts[language] >= maxRestarts {
+		m.failed[language] = errors.New("the " + language + " server exited again after a restart; not restarted this session")
+		return false
+	}
+	m.restarts[language]++
+	return true
 }
 
 // ServerState is what a language's server is doing, telling apart the three
@@ -116,6 +139,10 @@ func (m *Manager) ClientFor(ctx context.Context, language string) (*Client, bool
 		// crashed server that is never retried turns one bad moment into a
 		// permanently degraded session.
 		delete(m.clients, language)
+		if !m.allowRestart(language) {
+			m.mu.Unlock()
+			return nil, false
+		}
 	}
 	if err, ok := m.failed[language]; ok && err != nil {
 		m.mu.Unlock()

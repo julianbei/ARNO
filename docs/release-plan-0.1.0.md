@@ -468,7 +468,7 @@ every list-returning tool honours `budget`.
 
 Theme: answer caution 3. Degrading is fine; degrading silently is not.
 
-- [ ] **Workspace capability report.** One call (and the server instructions,
+- [x] **Workspace capability report.** One call (and the server instructions,
   in brief) listing per language: grammar or text fallback, language server
   present or missing, rename available, formatter active; plus git present,
   declared commands, discovered `check` targets. *Done when* an agent in a
@@ -512,6 +512,9 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   pyrightconfig.json: …`. Startup and first-answer time per server measured
   in conformance, with a budget that fails the suite when a release makes it
   worse. A crashed server restarts once, then degrades with a reason.
+  *Progress 2026-09-14:* restart once, then failed with the reason. Server
+  messages with what to do (`jdtls still initializing (38s)`) and startup
+  timing in conformance still to do.
 - [ ] **Conformance covers the degraded paths.** Each language run once with
   its server and once without, asserting the response says which it got.
   Today conformance proves the happy path.

@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -19,5 +20,20 @@ func TestStatusTellsTheKindsOfMissingApart(t *testing.T) {
 	}
 	if got := manager.Status("ruby"); got.State != "not installed" || got.Detail != "ruby-lsp" {
 		t.Fatalf("a server that is not installed: got %+v", got)
+	}
+}
+func TestADeadServerIsRestartedOnceThenFailed(t *testing.T) {
+	manager := NewManager(t.TempDir())
+	if !manager.allowRestart("python") {
+		t.Fatal("a server's first death should restart it")
+	}
+	if manager.allowRestart("python") {
+		t.Fatal("a second death should not")
+	}
+	if got := manager.Status("python"); got.State != "failed" || !strings.Contains(got.Detail, "exited again after a restart") {
+		t.Fatalf("a server that died twice should read as failed with the reason, got %+v", got)
+	}
+	if !manager.allowRestart("ruby") {
+		t.Fatal("restarts are counted per language")
 	}
 }

@@ -65,6 +65,14 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### A crashing language server is restarted once, then reported
+
+A server that died was started again on every call, so one that crashes on a
+workspace cost a crash and a startup per request. It is now restarted once;
+if it dies again, the language is marked failed for the session with the
+reason — `the python server exited again after a restart` — which
+`capabilities` and an approximate `references` report.
+
 ### `capabilities`: what Jade can do here, in one call
 
 The first 0.0.6 item. An agent in a repository without language servers
