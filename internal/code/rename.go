@@ -12,7 +12,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/julianbei/jade/internal/lsp"
 	"github.com/julianbei/jade/internal/toolchain"
 )
 
@@ -62,44 +61,18 @@ func (i *Index) RenameSymbol(path string, symbolID string, newName string) ([]st
 	// Go at all. The refusal below is still the right answer when no server
 	// is available: applying a rename from name matching would silently
 	// rewrite unrelated identifiers that happen to share a name.
-	changed, lspErr := i.languageServerRename(symbol, line, column, newName)
-	if lspErr == nil {
-		return changed, nil
+	// Providers in order (providers.go): the language server, then the gopls
+	// command. The first that handles the request answers, success or refusal.
+	request := renameRequest{symbolID: symbolID, symbol: symbol, line: line, column: column, newName: newName}
+	for _, provider := range renameProviders() {
+		if changed, handled, err := provider.rename(i, request); handled {
+			return changed, err
+		}
 	}
-	// A running server that declined is not the same as no server at all.
-	// Saying "install a language server" to someone whose server just
-	// answered sends them after the wrong problem entirely.
-	if !errors.Is(lspErr, lsp.ErrNoServer) {
-		return nil, fmt.Errorf("rename refused by the %s language server: %w",
-			lsp.LanguageForPath(symbol.Path), lspErr)
-	}
-
-	if !strings.EqualFold(filepath.Ext(symbol.Path), ".go") {
-		return nil, fmt.Errorf("%w (for %s)", ErrRenameUnavailable, symbol.Path)
-	}
-	if _, ok := toolchain.Gopls(); !ok {
+	if strings.EqualFold(filepath.Ext(symbol.Path), ".go") {
 		return nil, ErrRenameUnavailable
 	}
-
-	position := fmt.Sprintf("%s:%d:%d", symbol.Path, line, column)
-
-	preview, err := i.runGoplsRename("-d", position, newName)
-	if err != nil {
-		return nil, fmt.Errorf("rename rejected by gopls: %w", err)
-	}
-	changed = parseRenameDiffPaths(preview, i.relativePath)
-	if len(changed) == 0 {
-		return nil, fmt.Errorf("gopls reported no edits for %s", symbolID)
-	}
-
-	if _, err := i.runGoplsRename("-w", position, newName); err != nil {
-		return nil, fmt.Errorf("rename failed while applying: %w", err)
-	}
-
-	// The per-file symbol cache is keyed by mtime and size, so every file
-	// gopls just rewrote self-invalidates on the next read. Nothing to
-	// evict here.
-	return changed, nil
+	return nil, fmt.Errorf("%w (for %s)", ErrRenameUnavailable, symbol.Path)
 }
 
 func (i *Index) runGoplsRename(mode string, position string, newName string) (string, error) {

@@ -84,3 +84,8 @@ func TestReferenceProvidersAreAskedStrongestFirst(t *testing.T) {
 		t.Fatalf("the always-answering text index must be last, got %s", last.ID())
 	}
 }
+func TestRenameProvidersHaveNoApproximateFallback(t *testing.T) {
+	if got := strings.Join(RenameProviderIDs(), ", "); got != "language server, gopls" {
+		t.Fatalf("rename registry: got %s — rename must never fall back to name matching", got)
+	}
+}

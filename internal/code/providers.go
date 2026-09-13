@@ -1,11 +1,14 @@
 package code
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 
+	"github.com/julianbei/jade/internal/lsp"
 	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/jade/internal/toolchain"
 )
 
 // Capability providers (release plan 0.0.6, "Providers behind a registry").
@@ -116,4 +119,92 @@ func (textIndexReferences) references(i *Index, request referenceRequest) (proto
 			"%d approximate references to %s (name-matched call graph; %s — duplicate names, dynamic dispatch and cross-file shadowing are not resolved)",
 			len(refs), request.symbol.Name, i.noServerReason(request.symbol.Path)),
 	}, true
+}
+
+// renameRequest is what a rename provider is asked to do.
+type renameRequest struct {
+	symbolID string
+	symbol   Symbol
+	line     int
+	column   int
+	newName  string
+}
+
+// renameProvider renames a symbol across files. Unlike references, a provider
+// that handled the request ends it, success or refusal: a server that declined
+// a rename has answered, and a weaker provider guessing past it would be the
+// approximate edit Jade refuses to make. There is deliberately no text-index
+// provider.
+type renameProvider interface {
+	ID() string
+	rename(index *Index, request renameRequest) (changed []string, handled bool, err error)
+}
+
+// renameProviders is the rename registry, in the order asked.
+func renameProviders() []renameProvider {
+	return []renameProvider{
+		languageServerRename{},
+		goplsCLIRename{},
+	}
+}
+
+// RenameProviderIDs lists the rename providers in the order asked.
+func RenameProviderIDs() []string {
+	providers := renameProviders()
+	ids := make([]string, 0, len(providers))
+	for _, provider := range providers {
+		ids = append(ids, provider.ID())
+	}
+	return ids
+}
+
+// languageServerRename asks the language's server, then its installed
+// alternatives. It declines only when there is no server at all.
+type languageServerRename struct{}
+
+func (languageServerRename) ID() string { return "language server" }
+
+func (languageServerRename) rename(i *Index, request renameRequest) ([]string, bool, error) {
+	changed, err := i.languageServerRename(request.symbol, request.line, request.column, request.newName)
+	if err == nil {
+		return changed, true, nil
+	}
+	// A running server that declined is not the same as no server at all.
+	// Saying "install a language server" to someone whose server just
+	// answered sends them after the wrong problem entirely.
+	if errors.Is(err, lsp.ErrNoServer) {
+		return nil, false, nil
+	}
+	return nil, true, fmt.Errorf("rename refused by the %s language server: %w", lsp.LanguageForPath(request.symbol.Path), err)
+}
+
+// goplsCLIRename runs the gopls command for a Go symbol: a preview first, so
+// the changed files are known, then the write.
+type goplsCLIRename struct{}
+
+func (goplsCLIRename) ID() string { return "gopls" }
+
+func (goplsCLIRename) rename(i *Index, request renameRequest) ([]string, bool, error) {
+	if !strings.EqualFold(filepath.Ext(request.symbol.Path), ".go") {
+		return nil, false, nil
+	}
+	if _, ok := toolchain.Gopls(); !ok {
+		return nil, false, nil
+	}
+
+	position := fmt.Sprintf("%s:%d:%d", request.symbol.Path, request.line, request.column)
+	preview, err := i.runGoplsRename("-d", position, request.newName)
+	if err != nil {
+		return nil, true, fmt.Errorf("rename rejected by gopls: %w", err)
+	}
+	changed := parseRenameDiffPaths(preview, i.relativePath)
+	if len(changed) == 0 {
+		return nil, true, fmt.Errorf("gopls reported no edits for %s", request.symbolID)
+	}
+	if _, err := i.runGoplsRename("-w", position, request.newName); err != nil {
+		return nil, true, fmt.Errorf("rename failed while applying: %w", err)
+	}
+	// The per-file symbol cache is keyed by mtime and size, so every file
+	// gopls just rewrote self-invalidates on the next read.
+	return changed, true, nil
 }

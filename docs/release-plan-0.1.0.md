@@ -499,8 +499,10 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   `internal/code/providers.go` — language server, gopls command, text
   index, strongest first, first answer wins — with no change in behaviour.
   Edit diagnostics too (`internal/diagnostics/check.go`: Go parser and
-  gopls, data-file syntax, language server). Rename, and generating the
-  capability report from the registry, still to do.
+  gopls, data-file syntax, language server), and rename (language server,
+  gopls command; the first that handles a request ends it, and there is no
+  approximate provider). Generating the capability report from the registry
+  still to do.
 - [ ] **Three kinds of missing, told apart.** Not supported (no provider for
   this language), provider present but dependency missing (`rust-analyzer`
   not installed), provider running but degraded (`jdtls still indexing`). The
