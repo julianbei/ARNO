@@ -217,6 +217,22 @@ that the user did not ask for becomes part of the change.
     the header (`r1 · lines 2-3 of 3`). `query` and `path` became optional,
     which the contract allows; the server enforces one of each pair. Bounded
     at 10 names and 20 ranges per call. Verified live against a raw session.
+- [ ] **Create several files in one call.** A TypeScript conversion created 16
+  files with 16 `create_file` calls, one revision each; a batch form would
+  have saved about eight round trips. Likely shape: `create` as an `apply` op,
+  so new files join the atomic batch instead of adding a tool (Phase 3 of the
+  release plan shrinks the catalog).
+- [ ] **Line-addressed edits in one batch, addressed against the original
+  file.** About 50 mechanical call-site edits in one test file went to a
+  Python script, because 50 `replace_text` calls each need a unique anchor
+  and sequential `replace_range` ops shift each other's line numbers. `apply`
+  should accept `replace_range` ops whose lines refer to the file as it was
+  before the batch, applied bottom-up.
+- [ ] **Move or rename a file the way git sees it.** `delete_file` plus
+  `create_file` loses history, so agents used `git mv` and `git rm` instead.
+  A move that keeps the rename visible to git (and updates the index and
+  revision) would replace both shell calls. Weigh against the catalog budget:
+  a `move` op in `apply` before a new tool.
 
 ## 3. Diagnostics everywhere, and say which checker ran
 
