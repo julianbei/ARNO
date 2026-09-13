@@ -1,0 +1,44 @@
+{
+  "repository": {
+    "name": "requests",
+    "language": "python",
+    "url": "https://github.com/psf/requests",
+    "commit": "",
+    "setup": "python3 -m venv .venv && .venv/bin/pip install -q -e . pytest 'pytest-httpbin==2.1.0' 'httpbin~=0.10.0' trustme"
+  },
+  "tasks": [
+    {
+      "id": "preserve-double-slash-path",
+      "commit": "e8d2c015eecda8273612dd4562425e00cd164ba5",
+      "prompt": "Requests modifies URLs whose path begins with a double slash. For example, an S3 presigned URL for a key that starts with '/' looks like https://bucket.s3.amazonaws.com//key_with_leading_slash.txt. When sent, requests collapses the leading '//' in the path to a single '/', so the object key changes, the signature no longer matches and AWS answers 403. Using HTTPAdapter directly: for a request prepared from http://127.0.0.1:10000//v:h, HTTPAdapter.request_url(prepared, {}) returns '/v:h'.\n\nExpected: requests should keep the path exactly as given, so request_url returns '//v:h' and the request line uses the original path with both leading slashes.",
+      "verify": ".venv/bin/pytest -q -p no:cacheprovider tests/test_adapters.py",
+      "timeoutSeconds": 900,
+      "verifyFrom": "fd628095d7b9ddbf3e987d8a4bf0e6062768916f",
+      "verifyPaths": [
+        "tests/test_adapters.py"
+      ]
+    },
+    {
+      "id": "redirect-history-self-reference",
+      "commit": "cbce031327be4f1b4b5fd041ff4dcaa8efa2ce53",
+      "prompt": "After following redirects, the intermediate responses in Response.history have a history that includes themselves. For a request that is redirected several times (e.g. GET /redirect/3 on httpbin), r.history is correct, but r.history[i].history contains r.history[i] itself. Walking the history tree recursively never ends and raises RecursionError.\n\nExpected: the history must not contain cycles. Each intermediate response's .history should hold only the responses that came before it: r.history[i].history == r.history[:i], and no response should appear in its own history.",
+      "verify": ".venv/bin/pytest -q -p no:cacheprovider tests/test_requests.py -k test_redirect_history_no_self_reference",
+      "timeoutSeconds": 900,
+      "verifyFrom": "ef439eb779c1eba7cbdeeeb302b11e1e061b4b7d",
+      "verifyPaths": [
+        "tests/test_requests.py"
+      ]
+    },
+    {
+      "id": "content-type-param-without-value",
+      "commit": "bc7dd0fc4d56e808bcdd85ac2d797b3107c89259",
+      "prompt": "requests.utils.get_encoding_from_headers crashes on a malformed Content-Type header whose charset parameter has no value:\n\n    requests.utils.get_encoding_from_headers({'content-type': 'text/html; charset'})\n    AttributeError: 'bool' object has no attribute 'strip'\n\nWhen parsing Content-Type parameters, a parameter without '=' is currently stored with the value True instead of being ignored. Every RFC requires '=' for a valid parameter.\n\nExpected: parameters without '=' in a Content-Type header should be ignored, not recorded, so the example above behaves as if no charset was given and returns 'ISO-8859-1'.",
+      "verify": ".venv/bin/pytest -q -p no:cacheprovider tests/test_utils.py -k \"parse_content_type_header or get_encoding_from_headers\"",
+      "timeoutSeconds": 900,
+      "verifyFrom": "f0198e6dfc431a2293dc16e1b1e8fcddc910a7f3",
+      "verifyPaths": [
+        "tests/test_utils.py"
+      ]
+    }
+  ]
+}

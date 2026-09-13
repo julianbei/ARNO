@@ -17,9 +17,10 @@ per +5 points of success).
   from cannot be found in `git log`.
 - **The budget cannot be overrun**: a run is charged its cap when it prints
   no result.
-- **Adding a repository is a task file.** The first three are in
-  `bench/tasks/`: cobra, ky and ripgrep, three real fixes each, every one
-  checked to fail before and pass after.
+- **Adding a repository is a task file.** The first four are in
+  `bench/tasks/`: cobra (Go), ky (TypeScript), requests (Python) and ripgrep
+  (Rust), three real fixes each, every one checked to fail before and pass
+  after.
 
 Agents run with permissions bypassed, so the command refuses to run outside a
 sandbox unless `-allow-host` is given. See [docs/benchmark.md](docs/benchmark.md).
