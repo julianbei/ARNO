@@ -65,6 +65,16 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### Five overlapping tools deprecated
+
+`search`, `search_nudge`, `repository_map`, `read_symbol` and `replace_range`
+still work and are removed before 0.1.0. Their descriptions now start with
+`Deprecated, removed before 0.1.0:` and name the replacement — `find`, `grep`,
+`retrieve`, `replace_text` or `apply`. The evidence per tool is in
+[tool-contract.md](docs/tool-contract.md#deprecated-in-005): none was called in
+36 benchmark runs, and `read_symbol`'s eight calls while building Jade all
+answered `not_found`.
+
 ### Where the shell is still the right tool
 
 The README says which work belongs in the shell — git operations, one-off

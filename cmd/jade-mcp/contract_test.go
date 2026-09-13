@@ -179,6 +179,26 @@ func TestPagedToolsOfferBudgetAndContinue(t *testing.T) {
 	}
 }
 
+func TestDeprecatedToolsSaySoFirst(t *testing.T) {
+	served := map[string]string{}
+	for _, tool := range tools() {
+		served[tool.Name] = tool.Description
+	}
+	for name := range deprecatedTools {
+		description, ok := served[name]
+		if !ok {
+			t.Errorf("deprecated tool %q is no longer served: removal belongs before 0.1.0, with a version bump, not silently in 0.0.x", name)
+			continue
+		}
+		if !strings.HasPrefix(description, "Deprecated, removed before 0.1.0: ") {
+			t.Errorf("deprecated tool %q should say so first, got %q", name, description)
+		}
+		if coreProfileTools[name] {
+			t.Errorf("deprecated tool %q must not be in the core profile", name)
+		}
+	}
+}
+
 func requiredArgs(t *testing.T, schema map[string]interface{}) []string {
 	t.Helper()
 	raw, ok := schema["required"].([]string)

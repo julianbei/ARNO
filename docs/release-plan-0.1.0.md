@@ -367,6 +367,10 @@ the confusion report names the tools Phase 3 should look at first.
 Theme: answer caution 2 with the Phase 2 data, not before it.
 
 - [ ] **Merge or cut overlapping tools** the confusion report implicates.
+  *Progress 2026-09-13:* `search`, `search_nudge`, `repository_map`,
+  `read_symbol` and `replace_range` deprecated with evidence in
+  [tool-contract.md](tool-contract.md#deprecated-in-005); removal before
+  0.1.0.
   `find` / `search` / `grep` / `retrieve` / `context` / `repository_map` /
   `read_symbol` / `read_range` / `outline` is the known cluster. A tool stays
   only if its description can say, in one sentence, when to prefer it over

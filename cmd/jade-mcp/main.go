@@ -748,7 +748,30 @@ func catalogNames() []string {
 	return names
 }
 
+// deprecatedTools are served through 0.0.x and removed before 0.1.0
+// (docs/tool-contract.md, "Deprecated in 0.0.5"). Each overlaps a tool that
+// does its job, named in the reason.
+var deprecatedTools = map[string]string{
+	"jade.search":         "use find for a declaration by name, grep for text",
+	"jade.search_nudge":   "a harness hook rather than an agent tool, never called by an agent",
+	"jade.repository_map": "use retrieve for ranked files within a token budget",
+	"jade.read_symbol":    "use find, which returns the declaration and its body",
+	"jade.replace_range":  "use replace_text, or apply with a replace_range edit",
+}
+
+// tools is the served catalog, a deprecated tool saying so before anything
+// else in its description.
 func tools() []mcpTool {
+	catalog := catalogTools()
+	for i := range catalog {
+		if reason, ok := deprecatedTools[catalog[i].Name]; ok {
+			catalog[i].Description = "Deprecated, removed before 0.1.0: " + reason + ". " + catalog[i].Description
+		}
+	}
+	return catalog
+}
+
+func catalogTools() []mcpTool {
 	return []mcpTool{
 		{
 			Name:        "jade.workspace_tree",

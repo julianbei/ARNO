@@ -132,6 +132,27 @@ reading.
 | `jade.telemetry` | — |
 | `jade.workspace_tree` | — |
 
+## Deprecated in 0.0.5
+
+Served, and working, through 0.0.x; removed before 0.1.0 with a note in
+those release notes. Each description now starts with
+`Deprecated, removed before 0.1.0:` and names what replaces it. None is in the
+core profile.
+
+| Tool | Use instead | Evidence |
+|---|---|---|
+| `search` | `find` for a declaration by name, `grep` for text | 0 calls in 36 benchmark runs and 672 calls at home; overlaps both, and cannot find a field or a string |
+| `search_nudge` | — | A harness hook, not an agent tool; never called |
+| `repository_map` | `retrieve` | 0 calls; `retrieve` ranks files and symbols within the same kind of token budget |
+| `read_symbol` | `find` | 8 calls at home, all 8 `not_found`; `find` returns the declaration and its body, now with `budget` |
+| `replace_range` | `replace_text`, or `apply` with a `replace_range` edit | 0 calls; line numbers move under earlier edits, anchors do not |
+
+Kept although rarely called, because they are the change transaction rather
+than an overlap: `checkpoint`, `revert`, `changes`, `diff`, `history`,
+`references`, `rename`, `job_status`, `job_output`, `events`. The benchmark's
+tasks did not need them; that says the tasks were small, not that the tools
+are redundant.
+
 ## Budgets and provenance — 0.0.5 design
 
 *Implemented in 0.0.5 for `grep`, `find`, `references`, `read_range` (and its
