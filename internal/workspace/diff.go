@@ -43,16 +43,7 @@ func (m *Manager) DiffSince(target string, since string) (protocol.DiffResponse,
 	target = strings.TrimSpace(target)
 	since = strings.TrimSpace(since)
 
-	var patch string
-	var err error
-	switch {
-	case since != "":
-		patch, err = m.revisionDiff(since, target)
-	case target == "":
-		patch, err = m.workspaceDiff()
-	default:
-		patch, err = m.targetDiff(target)
-	}
+	patch, err := m.diffPatch(target, since)
 	if err != nil {
 		return protocol.DiffResponse{}, err
 	}
@@ -66,6 +57,29 @@ func (m *Manager) DiffSince(target string, since string) (protocol.DiffResponse,
 		OmittedBytes: omitted,
 		Summary:      diffSummaryLine(target, patch, omitted),
 	}, nil
+}
+
+// DiffPatch returns the whole patch DiffSince would clamp, and its summary
+// line, for a caller that pages it instead of cutting its middle.
+func (m *Manager) DiffPatch(target string, since string) (string, string, error) {
+	target = strings.TrimSpace(target)
+	since = strings.TrimSpace(since)
+	patch, err := m.diffPatch(target, since)
+	if err != nil {
+		return "", "", err
+	}
+	return patch, diffSummaryLine(target, patch, 0), nil
+}
+
+func (m *Manager) diffPatch(target string, since string) (string, error) {
+	switch {
+	case since != "":
+		return m.revisionDiff(since, target)
+	case target == "":
+		return m.workspaceDiff()
+	default:
+		return m.targetDiff(target)
+	}
 }
 
 func (m *Manager) workspaceDiff() (string, error) {

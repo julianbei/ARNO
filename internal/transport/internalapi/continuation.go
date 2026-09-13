@@ -34,6 +34,9 @@ type continuation struct {
 	// path and through are a paged read's file and the last line asked for.
 	path    string
 	through int
+	// text and summary are a paged text answer's lines and its summary line.
+	text    []string
+	summary string
 }
 
 type continuationStore struct {
@@ -283,4 +286,19 @@ func (s *Server) pageReferences(all protocol.ReferencesResponse, offset int, bud
 		page.Summary = fmt.Sprintf("%s, shown %d-%d, the last", all.Summary, offset+1, end)
 	}
 	return page
+}
+
+// linePage returns the end of the page of lines that starts at offset: whole
+// lines, newline included, while they fit maxBytes, and at least one.
+func linePage(lines []string, offset int, maxBytes int) int {
+	end, used := offset, 0
+	for end < len(lines) {
+		cost := len(lines[end]) + 1
+		if end > offset && used+cost > maxBytes {
+			break
+		}
+		used += cost
+		end++
+	}
+	return end
 }

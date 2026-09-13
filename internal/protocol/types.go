@@ -1105,6 +1105,10 @@ type DiffRequest struct {
 	// midway becomes invisible to a working-tree diff even though nothing has
 	// merged.
 	Since string
+	// Budget, in tokens, pages the patch at whole lines; Continue is a handle
+	// from a cut patch.
+	Budget   int
+	Continue string
 }
 
 // DiffResponse carries real hunk content — docs/scope.md §22's diff(target?),
@@ -1116,6 +1120,8 @@ type DiffResponse struct {
 	// it is complete.
 	OmittedBytes int
 	Summary      string
+	// Continue is the handle for the rest of a patch its budget cut.
+	Continue string
 }
 
 // EditResponse is the baseline shape for mutation feedback.

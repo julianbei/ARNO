@@ -629,8 +629,51 @@ func (s *Server) changedSymbols(files []protocol.ChangedFile) []protocol.SymbolC
 	return changes
 }
 
+// defaultDiffBudget is diff's page in tokens when none is asked: the 8,000
+// bytes it used to cut out of the middle of a large patch.
+const defaultDiffBudget = 2000
+
+// Diff returns a patch a page at a time: whole lines up to the budget, and a
+// continue handle for the rest instead of a cut middle.
 func (s *Server) Diff(req protocol.DiffRequest) (protocol.DiffResponse, error) {
-	return s.workspace.DiffSince(req.Target, req.Since)
+	budget := req.Budget
+	if handle := strings.TrimSpace(req.Continue); handle != "" {
+		entry, err := s.resume(handle, "diff")
+		if err != nil {
+			return protocol.DiffResponse{}, err
+		}
+		if budget <= 0 {
+			budget = entry.budget
+		}
+		return s.pageDiff(entry.path, entry.summary, entry.text, entry.shown, budget), nil
+	}
+	if budget <= 0 {
+		budget = defaultDiffBudget
+	}
+	patch, summary, err := s.workspace.DiffPatch(req.Target, req.Since)
+	if err != nil {
+		return protocol.DiffResponse{}, err
+	}
+	return s.pageDiff(strings.TrimSpace(req.Target), summary, strings.Split(patch, "\n"), 0, budget), nil
+}
+
+func (s *Server) pageDiff(target string, summary string, lines []string, offset int, budget int) protocol.DiffResponse {
+	if budget > maxBudgetTokens {
+		budget = maxBudgetTokens
+	}
+	if offset > len(lines) {
+		offset = len(lines)
+	}
+	end := linePage(lines, offset, budget*4)
+	response := protocol.DiffResponse{Target: target, Patch: strings.Join(lines[offset:end], "\n"), Summary: summary}
+	switch {
+	case end < len(lines):
+		response.Continue = s.continuations.put(continuation{tool: "diff", revision: s.workspace.Revision(), budget: budget, path: target, summary: summary, text: lines, shown: end})
+		response.Summary = fmt.Sprintf("%s · patch lines %d-%d of %d · continue=%s", summary, offset+1, end, len(lines), response.Continue)
+	case offset > 0:
+		response.Summary = fmt.Sprintf("%s · patch lines %d-%d of %d, the last", summary, offset+1, end, len(lines))
+	}
+	return response
 }
 
 func (s *Server) Checkpoint(req protocol.CheckpointRequest) protocol.CheckpointResponse {

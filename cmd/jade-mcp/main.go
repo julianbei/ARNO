@@ -689,8 +689,10 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		return jsonResult(res)
 	case "jade.diff":
 		res, err := s.api.Diff(protocol.DiffRequest{
-			Target: stringArg(args, "target"),
-			Since:  stringArg(args, "since"),
+			Target:   stringArg(args, "target"),
+			Since:    stringArg(args, "since"),
+			Budget:   intArg(args, "budget"),
+			Continue: stringArg(args, "continue"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -1171,12 +1173,14 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.diff",
-			Description: "Return the actual patch text for the workspace or one path — the 'what changed' companion to changes()'s 'how much changed'. Includes untracked files. Pass since to diff against another revision (HEAD~3, a branch, a SHA), which is how to see what a branch has done once part of the work is already committed. Large patches are clamped with an explicit omission marker.",
+			Description: "Return the actual patch text for the workspace or one path — the 'what changed' companion to changes()'s 'how much changed'. Includes untracked files. Pass since to diff against another revision (HEAD~3, a branch, a SHA), which is how to see what a branch has done once part of the work is already committed. A large patch comes a page at a time, whole lines, with continue=<handle> for the rest.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"target": map[string]interface{}{"type": "string", "description": "Optional file path. Omit to diff the whole working tree."},
-					"since":  map[string]interface{}{"type": "string", "description": "Optional git revision to diff against, e.g. HEAD~3, main, or a commit SHA. Omit for the working-tree diff against HEAD."},
+					"target":   map[string]interface{}{"type": "string", "description": "Optional file path. Omit to diff the whole working tree."},
+					"since":    map[string]interface{}{"type": "string", "description": "Optional git revision to diff against, e.g. HEAD~3, main, or a commit SHA. Omit for the working-tree diff against HEAD."},
+					"budget":   map[string]interface{}{"type": "integer", "description": "Size of the patch page in tokens (default 2000). Cut at whole lines; the rest is behind continue=<handle>."},
+					"continue": map[string]interface{}{"type": "string", "description": "Handle from a cut patch: its next page."},
 				},
 			},
 		},
