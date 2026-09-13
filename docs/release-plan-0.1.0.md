@@ -285,7 +285,10 @@ later phase uses to decide what to merge, cut or add.
   diff size, enforces the budget and applies the fixed scorecard
   ([benchmark.md](benchmark.md)). Still to do: pick the five pilot
   repositories and write their tasks, a sandbox the agent can authenticate
-  in, and the pilot run itself.
+  in, and the pilot run itself. *Decided:* the pilot runs on the author's
+  machine with `-allow-host`, and without Java (no JDK there) — Go,
+  TypeScript, Python and Rust first; Java remains required before this item
+  is done.
 - [ ] **Competitor arm.** The same tasks with Serena in place of Jade; SymForge
   and code-atlas if their setup allows. A comparison to learn from, not a gate —
   but if Serena wins on the inspect tasks, Phase 3 cuts Jade's inspect surface

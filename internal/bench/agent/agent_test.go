@@ -15,7 +15,9 @@ import (
 // the workspace, and prints a result like `claude -p --output-format json`.
 const fakeClaude = `#!/bin/sh
 { echo "=== run"; for arg in "$@"; do printf '[%s]\n' "$arg"; done; } >> "$FAKE_ARGS_LOG"
+echo "[history $(git rev-list --all --count)]" >> "$FAKE_ARGS_LOG"
 echo solved > answer.txt
+echo tampered > check.txt
 printf '{"type":"result","is_error":false,"num_turns":3,"total_cost_usd":%s,"duration_ms":1200,"usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":1000,"cache_read_input_tokens":2000},"permission_denials":[]}\n' "${FAKE_COST:-0.25}"
 `
 
@@ -92,8 +94,8 @@ func TestRunMeasuresEveryArmAndVerifiesIndependently(t *testing.T) {
 		if result.CostUSD != 0.25 || result.Turns != 3 || result.TotalTokens() != 3150 {
 			t.Errorf("%s: result fields not parsed: %+v", result.Arm, result)
 		}
-		if result.LinesChanged != 1 || len(result.FilesChanged) != 1 || result.FilesChanged[0] != "answer.txt" {
-			t.Errorf("%s: expected the new file counted as the diff, got %d lines %v", result.Arm, result.LinesChanged, result.FilesChanged)
+		if result.LinesChanged != 2 || strings.Join(result.FilesChanged, ",") != "answer.txt,check.txt" {
+			t.Errorf("%s: expected the new files counted as the diff, got %d lines %v", result.Arm, result.LinesChanged, result.FilesChanged)
 		}
 	}
 	if lines := strings.Count(out.String(), "\n"); lines != 3 {
@@ -126,6 +128,56 @@ func TestRunMeasuresEveryArmAndVerifiesIndependently(t *testing.T) {
 				t.Errorf("every arm needs %s:\n%s", shared, invocation)
 			}
 		}
+	}
+}
+
+// The agent must not find the fix in git history, dependency installs must not
+// count as its diff, and the hidden test decides — even over a file of the
+// same name the agent wrote.
+func TestWorkspaceHidesHistoryAndHiddenTestsDecide(t *testing.T) {
+	repo, claude, argsLog := setup(t)
+	base, err := exec.Command("git", "-C", repo, "rev-parse", "HEAD").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(repo, "future.txt"), []byte("the fix\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(t, repo, "git", "add", "-A")
+	run(t, repo, "git", "commit", "-q", "-m", "the fix")
+
+	tasks := taskFile()
+	tasks.Repository.Setup = "echo installed > setup.log"
+	tasks.Tasks[0].Commit = strings.TrimSpace(string(base))
+	tasks.Tasks[0].Verify = "grep -q hidden check.txt && test -f answer.txt && test ! -f future.txt"
+	tasks.Tasks[0].VerifyFiles = map[string]string{"check.txt": "hidden\n"}
+
+	results, err := Run(context.Background(), Config{
+		Repo: repo, Tasks: tasks, Arms: []Arm{ArmShell}, BudgetUSD: 5, PerRunUSD: 1, Claude: claude,
+	})
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	result := results[0]
+	if !result.Success {
+		t.Fatalf("expected the hidden test to pass, got %+v", result)
+	}
+	if strings.Join(result.FilesChanged, ",") != "answer.txt,check.txt" {
+		t.Errorf("expected only the agent's files in the diff, not setup output, got %v", result.FilesChanged)
+	}
+
+	logData, _ := os.ReadFile(argsLog)
+	if !strings.Contains(string(logData), "[history 1]") {
+		t.Errorf("the agent should see exactly one baseline commit, log:\n%s", logData)
+	}
+
+	bad := taskFile()
+	bad.Tasks[0].VerifyFiles = map[string]string{"../escape.txt": "x"}
+	results, _ = Run(context.Background(), Config{
+		Repo: repo, Tasks: bad, Arms: []Arm{ArmShell}, BudgetUSD: 5, PerRunUSD: 1, Claude: claude,
+	})
+	if results[0].Success || !strings.Contains(results[0].VerifyOutput, "outside the workspace") {
+		t.Errorf("a verify file outside the workspace must be refused, got %+v", results[0])
 	}
 }
 

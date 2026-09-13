@@ -24,6 +24,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/julianbei/jade/internal/pathguard"
 )
 
 // Arm is one configuration of the agent's tools.
@@ -70,6 +72,10 @@ type Repository struct {
 	Language string `json:"language"`
 	URL      string `json:"url"`
 	Commit   string `json:"commit"`
+	// Setup runs after checkout and before the agent starts, e.g. installing
+	// dependencies. What it produces joins the baseline, so it never counts
+	// as the agent's diff.
+	Setup string `json:"setup"`
 }
 
 // Task is one piece of work. Verify is a shell command run in the workspace
@@ -79,6 +85,13 @@ type Task struct {
 	Prompt         string `json:"prompt"`
 	Verify         string `json:"verify"`
 	TimeoutSeconds int    `json:"timeoutSeconds"`
+	// Commit overrides the repository's commit for this task: tasks taken
+	// from different fixes start from different parents.
+	Commit string `json:"commit"`
+	// VerifyFiles are the hidden tests, written into the workspace after the
+	// agent stops and before Verify runs. The agent never sees them, and any
+	// file of the same name it wrote is overwritten.
+	VerifyFiles map[string]string `json:"verifyFiles"`
 }
 
 // LoadTaskFile reads and checks a task file.
@@ -211,6 +224,7 @@ func Run(ctx context.Context, cfg Config) ([]RunResult, error) {
 
 const (
 	defaultTaskTimeout = 15 * time.Minute
+	setupTimeout       = 15 * time.Minute
 	verifyTimeout      = 5 * time.Minute
 	maxVerifyOutput    = 2000
 )
@@ -232,7 +246,11 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 	defer os.RemoveAll(parent)
 
 	workspace := filepath.Join(parent, "workspace")
-	if err := checkout(cfg.Repo, cfg.Tasks.Repository.Commit, workspace); err != nil {
+	commit := task.Commit
+	if commit == "" {
+		commit = cfg.Tasks.Repository.Commit
+	}
+	if err := prepareWorkspace(ctx, cfg.Repo, commit, cfg.Tasks.Repository.Setup, workspace); err != nil {
 		result.AgentError = err.Error()
 		return result
 	}
@@ -285,8 +303,14 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 		result.AgentError = strings.TrimSpace(fmt.Sprintf("%v %s", runErr, tail(stderr.String(), 500)))
 	}
 
-	result.Success, result.VerifyOutput = verify(ctx, workspace, task.Verify)
+	// The diff is measured before the hidden tests are written, so it is
+	// exactly what the agent left.
 	result.LinesChanged, result.FilesChanged = diffStats(workspace)
+	if err := writeVerifyFiles(workspace, task.VerifyFiles); err != nil {
+		result.VerifyOutput = err.Error()
+	} else {
+		result.Success, result.VerifyOutput = verify(ctx, workspace, task.Verify)
+	}
 	return result
 }
 
@@ -358,6 +382,58 @@ func checkout(repo string, commit string, dir string) error {
 	if commit != "" {
 		if out, err := exec.Command("git", "-C", dir, "checkout", "--quiet", commit).CombinedOutput(); err != nil {
 			return fmt.Errorf("checkout %s: %v: %s", commit, err, tail(string(out), 300))
+		}
+	}
+	return nil
+}
+
+// prepareWorkspace clones the checkout at commit, runs setup, and replaces the
+// history with one baseline commit.
+//
+// The history goes because the fix a task was taken from is usually in it: an
+// agent running `git log --all` would find the answer. Setup output joins the
+// baseline, so installed dependencies never count as the agent's diff.
+func prepareWorkspace(ctx context.Context, repo string, commit string, setup string, dir string) error {
+	if err := checkout(repo, commit, dir); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(filepath.Join(dir, ".git")); err != nil {
+		return err
+	}
+	if strings.TrimSpace(setup) != "" {
+		setupCtx, cancel := context.WithTimeout(ctx, setupTimeout)
+		defer cancel()
+		cmd := exec.CommandContext(setupCtx, "sh", "-c", setup)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("setup failed: %v: %s", err, tail(string(out), 500))
+		}
+	}
+	for _, args := range [][]string{
+		{"init", "-q"},
+		{"add", "-A"},
+		{"-c", "user.name=jade-bench", "-c", "user.email=bench@localhost", "commit", "-q", "--no-verify", "--allow-empty", "-m", "baseline"},
+	} {
+		if out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
+			return fmt.Errorf("baseline git %v: %v: %s", args, err, tail(string(out), 300))
+		}
+	}
+	return nil
+}
+
+// writeVerifyFiles writes the hidden tests, refusing any path that would land
+// outside the workspace.
+func writeVerifyFiles(dir string, files map[string]string) error {
+	for rel, content := range files {
+		absolute, err := pathguard.Resolve(dir, rel)
+		if err != nil {
+			return fmt.Errorf("verify file: %w", err)
+		}
+		if err := os.MkdirAll(filepath.Dir(absolute), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(absolute, []byte(content), 0o644); err != nil {
+			return err
 		}
 	}
 	return nil

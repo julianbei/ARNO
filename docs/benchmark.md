@@ -33,6 +33,14 @@ long run falls on all of them.
 **Success is the task's verify command**, run after the agent stops: exit 0
 passes. What the agent says about its work is not read.
 
+Each run's workspace is a clone at the task's commit with its **history
+replaced by one baseline commit**: tasks come from real fixes, and an agent
+running `git log --all` would otherwise find the answer. The repository's
+`setup` command (installing dependencies) runs before that baseline commit, so
+its output is never counted as the agent's change. **Hidden tests** — a task's
+`verifyFiles` — are written only after the agent stops and the diff has been
+measured, overwriting any file of the same name.
+
 Recorded per run, one JSON line each: success, verify output, cost, turns,
 input/output/cache tokens, duration, permission denials, lines changed and
 files changed (new files included).
@@ -60,13 +68,16 @@ A task file, no code:
     "name": "cobra",
     "language": "go",
     "url": "https://github.com/spf13/cobra",
-    "commit": "<sha>"
+    "commit": "<sha>",
+    "setup": "go mod download"
   },
   "tasks": [
     {
       "id": "flag-default-in-help",
       "prompt": "The help output omits defaults for duration flags. Fix it and add a test.",
-      "verify": "go test ./...",
+      "commit": "<parent of the fix>",
+      "verify": "go test -run TestDurationDefaultInHelp .",
+      "verifyFiles": { "command_test.go": "<the test file from the fix commit>" },
       "timeoutSeconds": 900
     }
   ]
