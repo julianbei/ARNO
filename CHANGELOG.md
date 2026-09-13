@@ -28,7 +28,10 @@ The full pilot suite (36 runs, see `docs/benchmark.md`) found that Jade alone
 solved 12 of 12 tasks with 51% fewer tokens than Claude Code's built-in tools,
 and that most of the saving is the tool list itself: the built-in tools are
 38k tokens of prompt on every turn, Jade's core profile 14k. Given both, the
-agent used Bash for four calls in five and spent 9% more tokens.
+agent used Bash for four calls in five and spent 9% more tokens. A shell
+trimmed to Bash, Read, Edit and Write, measured afterwards, used 34% fewer
+tokens than the full list; Jade alone used 25% fewer than that, took 24% less
+time and solved the two tasks both shell setups failed.
 
 - **The README recommends Jade in place of the built-in tools**, with the
   Claude Code invocation (`--tools ""`), the core-profile server config, the

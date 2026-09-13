@@ -172,10 +172,14 @@ issues in cobra, ky, requests and ripgrep, one run each):
 | Tools | Tasks solved | Tokens per run | Time per run |
 |---|---|---|---|
 | Claude Code's built-in tools | 10 of 12 | 1.38M | 215s |
+| Built-in tools trimmed to Bash, Read, Edit, Write | 10 of 12 | 0.90M | 213s |
 | Jade only, core profile | 12 of 12 | 0.68M | 163s |
-| Both | 11 of 12 | 1.50M | 191s |
+| Both, all built-in tools and Jade | 11 of 12 | 1.50M | 191s |
 
-Given both, the agent used Bash for four calls in five and paid for both lists.
+Trimming the built-in list is most of the saving on its own. Jade on top of
+that used 25% fewer tokens and 24% less time than the trimmed shell, and solved
+the two tasks both shell setups failed. Given both Jade and every built-in
+tool, the agent used Bash for four calls in five and paid for both lists.
 To run Jade in place of the built-in tools:
 
 ```sh
