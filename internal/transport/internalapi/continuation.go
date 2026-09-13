@@ -172,6 +172,9 @@ func (s *Server) resume(handle string, tool string) (continuation, error) {
 // collects to page through.
 const maxBudgetItems = 500
 
+// maxBudgetBodyLines bounds a budgeted read_symbol body.
+const maxBudgetBodyLines = 100000
+
 // budgetPage returns the end of the page that starts at offset: whole items
 // while they fit budget, and at least one.
 func budgetPage(cost func(int) int, offset int, total int, budget int) int {
@@ -302,4 +305,56 @@ func linePage(lines []string, offset int, maxBytes int) int {
 		end++
 	}
 	return end
+}
+
+// ReadSymbol reads a symbol, its body paged at whole lines when a budget is
+// given or a handle continued.
+func (s *Server) ReadSymbol(req protocol.ReadSymbolRequest) (protocol.InspectResponse, error) {
+	if handle := strings.TrimSpace(req.Continue); handle != "" {
+		entry, err := s.resume(handle, "read_symbol")
+		if err != nil {
+			return protocol.InspectResponse{}, err
+		}
+		budget := req.Budget
+		if budget <= 0 {
+			budget = entry.budget
+		}
+		response := protocol.InspectResponse{
+			Revision: s.workspace.Revision(),
+			Resolve:  protocol.SymbolResolution{Status: protocol.ResolutionExact, SelectedID: entry.summary},
+		}
+		s.pageBody(&response, entry.summary, entry.text, entry.shown, budget)
+		return response, nil
+	}
+	// The index cuts a body at 150 lines when no maxLines is given; a budget
+	// pages the whole body instead.
+	if req.Budget > 0 && req.MaxLines <= 0 {
+		req.MaxLines = maxBudgetBodyLines
+	}
+	response, err := s.readSymbolAll(req)
+	if err != nil || req.Budget <= 0 || response.Source == "" {
+		return response, err
+	}
+	s.pageBody(&response, response.Resolve.SelectedID, strings.Split(response.Source, "\n"), 0, req.Budget)
+	return response, nil
+}
+
+// pageBody puts the page of a symbol's body lines from offset into response,
+// with a handle for the rest.
+func (s *Server) pageBody(response *protocol.InspectResponse, symbolID string, lines []string, offset int, budget int) {
+	if budget > maxBudgetTokens {
+		budget = maxBudgetTokens
+	}
+	if offset > len(lines) {
+		offset = len(lines)
+	}
+	end := linePage(lines, offset, budget*4)
+	response.Source = strings.Join(lines[offset:end], "\n")
+	switch {
+	case end < len(lines):
+		response.Continue = s.continuations.put(continuation{tool: "read_symbol", revision: s.workspace.Revision(), budget: budget, summary: symbolID, text: lines, shown: end})
+		response.Range = fmt.Sprintf("body lines %d-%d of %d", offset+1, end, len(lines))
+	case offset > 0:
+		response.Range = fmt.Sprintf("body lines %d-%d of %d, the last", offset+1, end, len(lines))
+	}
 }

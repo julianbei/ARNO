@@ -33,6 +33,10 @@ type ReadSymbolRequest struct {
 	SymbolName    string
 	MaxLines      int
 	IndexedCommit string
+	// Budget, in tokens, pages the body at whole lines; Continue is a handle
+	// from a cut body.
+	Budget   int
+	Continue string
 }
 
 // ReadRangeRequest reads an arbitrary line range — the read-side escape
@@ -676,6 +680,10 @@ type WorkspaceTreeEntry struct {
 // orientation ("what does this repo look like"), not relevance ranking.
 type WorkspaceTreeRequest struct {
 	MaxEntries int
+	// Budget, in tokens, pages the listing at whole entries; Continue is a
+	// handle from a cut listing.
+	Budget   int
+	Continue string
 }
 
 // WorkspaceTreeResponse returns a bounded, sorted structural listing.
@@ -684,6 +692,10 @@ type WorkspaceTreeResponse struct {
 	Entries   []WorkspaceTreeEntry
 	Truncated bool
 	Summary   string
+	// Page names a paged listing's entries, "entries 1-180 of 900 ·
+	// continue=c4", and Continue is the handle for the rest.
+	Page     string
+	Continue string
 }
 
 // RetrievalRequest asks JADE to choose the most relevant symbols/files under a token budget.

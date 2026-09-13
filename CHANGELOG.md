@@ -31,6 +31,9 @@ The first tools on the 0.0.5 budget convention
   the same size) with `continue=<handle>`. A job keeps up to 1 MB of output
   for paging; `check` and `run_tests` verdicts still read the clamped form. A
   job-output handle survives edits, since a finished log does not change.
+- **`read_symbol`** takes `budget`: a long body comes in whole-line pages
+  (`body lines 1-212 of 900 · continue=c5`) instead of stopping at 150 lines
+  with `// ... truncated`. **`workspace_tree`** pages at whole entries.
 
 ### Answers say how sure they are
 

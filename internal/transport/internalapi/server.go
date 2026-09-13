@@ -137,7 +137,8 @@ func (s *Server) Outline(req protocol.OutlineRequest) (protocol.InspectResponse,
 	}, nil
 }
 
-func (s *Server) ReadSymbol(req protocol.ReadSymbolRequest) (protocol.InspectResponse, error) {
+// readSymbolAll answers read_symbol whole. ReadSymbol pages its body by budget.
+func (s *Server) readSymbolAll(req protocol.ReadSymbolRequest) (protocol.InspectResponse, error) {
 	freshness := s.workspace.Freshness(req.IndexedCommit)
 	base := protocol.InspectResponse{
 		Revision: s.workspace.Revision(),
@@ -350,8 +351,60 @@ func (s *Server) resolveSymbolID(path string, symbolID string, symbolName string
 	return candidates[0].ID, nil
 }
 
+// maxBudgetEntries bounds how many entries a budgeted tree collects to page.
+const maxBudgetEntries = 20000
+
+// WorkspaceTree lists the workspace, paged at whole entries when a budget is
+// given or a handle continued.
 func (s *Server) WorkspaceTree(req protocol.WorkspaceTreeRequest) (protocol.WorkspaceTreeResponse, error) {
-	return s.index.WorkspaceTree(req.MaxEntries)
+	budget := req.Budget
+	var lines []string
+	offset := 0
+	if handle := strings.TrimSpace(req.Continue); handle != "" {
+		entry, err := s.resume(handle, "workspace_tree")
+		if err != nil {
+			return protocol.WorkspaceTreeResponse{}, err
+		}
+		lines, offset = entry.text, entry.shown
+		if budget <= 0 {
+			budget = entry.budget
+		}
+	} else {
+		if budget <= 0 {
+			return s.index.WorkspaceTree(req.MaxEntries)
+		}
+		all, err := s.index.WorkspaceTree(maxBudgetEntries)
+		if err != nil {
+			return all, err
+		}
+		for _, entry := range all.Entries {
+			if entry.IsDir {
+				lines = append(lines, entry.Path+"/")
+			} else {
+				lines = append(lines, entry.Path)
+			}
+		}
+	}
+	if budget > maxBudgetTokens {
+		budget = maxBudgetTokens
+	}
+	if offset > len(lines) {
+		offset = len(lines)
+	}
+
+	end := linePage(lines, offset, budget*4)
+	response := protocol.WorkspaceTreeResponse{}
+	for _, line := range lines[offset:end] {
+		response.Entries = append(response.Entries, protocol.WorkspaceTreeEntry{Path: strings.TrimSuffix(line, "/"), IsDir: strings.HasSuffix(line, "/")})
+	}
+	switch {
+	case end < len(lines):
+		response.Continue = s.continuations.put(continuation{tool: "workspace_tree", revision: s.workspace.Revision(), budget: budget, text: lines, shown: end})
+		response.Page = fmt.Sprintf("entries %d-%d of %d · continue=%s", offset+1, end, len(lines), response.Continue)
+	case offset > 0:
+		response.Page = fmt.Sprintf("entries %d-%d of %d, the last", offset+1, end, len(lines))
+	}
+	return response, nil
 }
 
 func (s *Server) RepositoryMap(req protocol.RepositoryMapRequest) (protocol.RepositoryMapResponse, error) {

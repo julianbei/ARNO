@@ -328,7 +328,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 	switch name {
 	case "jade.workspace_tree":
 		maxEntries := intArg(args, "maxEntries")
-		res, err := s.api.WorkspaceTree(protocol.WorkspaceTreeRequest{MaxEntries: maxEntries})
+		res, err := s.api.WorkspaceTree(protocol.WorkspaceTreeRequest{MaxEntries: maxEntries, Budget: intArg(args, "budget"), Continue: stringArg(args, "continue")})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
@@ -350,6 +350,8 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			SymbolID:   symbolID,
 			SymbolName: symbolName,
 			MaxLines:   maxLines,
+			Budget:     intArg(args, "budget"),
+			Continue:   stringArg(args, "continue"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -752,7 +754,9 @@ func tools() []mcpTool {
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"maxEntries": map[string]interface{}{"type": "integer", "description": "Maximum number of entries to return (default 500)."},
+					"maxEntries": map[string]interface{}{"type": "integer", "description": "Maximum number of entries to return (default 500). Prefer budget."},
+					"budget":     map[string]interface{}{"type": "integer", "description": "Size of the listing in tokens. Cut at whole entries; the rest is behind continue=<handle>."},
+					"continue":   map[string]interface{}{"type": "string", "description": "Handle from a cut listing: its next page."},
 				},
 			},
 		},
@@ -776,7 +780,9 @@ func tools() []mcpTool {
 					"path":       map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
 					"symbolId":   map[string]interface{}{"type": "string", "description": "Exact symbol ID if already known."},
 					"symbolName": map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
-					"maxLines":   map[string]interface{}{"type": "integer", "description": "Maximum number of lines to return from the symbol body."},
+					"maxLines":   map[string]interface{}{"type": "integer", "description": "Maximum number of lines to return from the symbol body. Prefer budget."},
+					"budget":     map[string]interface{}{"type": "integer", "description": "Size of the body in tokens. Cut at whole lines; the rest is behind continue=<handle>."},
+					"continue":   map[string]interface{}{"type": "string", "description": "Handle from a cut body: its next page."},
 				},
 				"required": []string{"path"},
 			},

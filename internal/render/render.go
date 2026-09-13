@@ -424,6 +424,9 @@ func changes(r protocol.ChangesResponse) string {
 
 func workspaceTree(r protocol.WorkspaceTreeResponse) string {
 	lines := make([]string, 0, len(r.Entries)+2)
+	if r.Page != "" {
+		lines = append(lines, r.Page)
+	}
 	for _, entry := range r.Entries {
 		if entry.IsDir {
 			lines = append(lines, entry.Path+"/")

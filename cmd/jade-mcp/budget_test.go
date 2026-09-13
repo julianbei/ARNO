@@ -183,3 +183,68 @@ func TestReadRangePagesALargeFileInsteadOfCuttingItsMiddle(t *testing.T) {
 		t.Fatalf("the last page should carry no handle:\n%.300s", page)
 	}
 }
+func TestWorkspaceTreeBudgetPagesWithContinue(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	for i := 1; i <= 40; i++ {
+		writeWorkspaceFile(t, root, fmt.Sprintf("pkg/file%02d.txt", i), "x\n")
+	}
+
+	page, err := callText(t, server, "jade.workspace_tree", map[string]interface{}{"budget": 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := page
+	for i := 0; i < 60; i++ {
+		m := continueHandle.FindStringSubmatch(page)
+		if m == nil {
+			break
+		}
+		if page, err = callText(t, server, "jade.workspace_tree", map[string]interface{}{"continue": m[1]}); err != nil {
+			t.Fatal(err)
+		}
+		all += "\n" + page
+	}
+	if !strings.Contains(all, "continue=") {
+		t.Fatalf("expected the listing to be cut:\n%s", all)
+	}
+	for i := 1; i <= 40; i++ {
+		if !strings.Contains(all, fmt.Sprintf("pkg/file%02d.txt", i)) {
+			t.Fatalf("file%02d never listed:\n%s", i, all)
+		}
+	}
+}
+
+func TestReadSymbolBudgetPagesALongBody(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	var b strings.Builder
+	b.WriteString("package a\n\nfunc Long() {\n")
+	for i := 1; i <= 300; i++ {
+		fmt.Fprintf(&b, "\t_ = %d // body line %03d\n", i, i)
+	}
+	b.WriteString("}\n")
+	writeWorkspaceFile(t, root, "a.go", b.String())
+
+	page, err := callText(t, server, "jade.read_symbol", map[string]interface{}{"path": "a.go", "symbolName": "Long", "budget": 200})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(page, "body lines 1-") || !strings.Contains(page, "continue=") {
+		t.Fatalf("expected a cut body with a handle, got:\n%.400s", page)
+	}
+	all := page
+	for i := 0; i < 40; i++ {
+		m := continueHandle.FindStringSubmatch(page)
+		if m == nil {
+			break
+		}
+		if page, err = callText(t, server, "jade.read_symbol", map[string]interface{}{"path": "a.go", "continue": m[1]}); err != nil {
+			t.Fatal(err)
+		}
+		all += "\n" + page
+	}
+	for _, want := range []string{"body line 001", "body line 150", "body line 300"} {
+		if !strings.Contains(all, want) {
+			t.Fatalf("%q never read across the pages", want)
+		}
+	}
+}
