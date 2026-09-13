@@ -80,9 +80,11 @@ check is a **verdict, not a fallback** (a red build is jade working, and
 counting it would swamp the signal with ordinary broken code), and an empty
 `grep`/`find` result is a correct answer, not a failure. Both have tests.
 
-Remaining known hole: a waited `check` that times out returns
-`Status: "running"`, indistinguishable from a deliberate `wait=false` call.
-Left unclassified rather than guessed — a wrong guess pollutes the metric.
+~~Remaining known hole: a waited `check` that times out returns
+`Status: "running"`, indistinguishable from a deliberate `wait=false` call.~~
+Closed 2026-09-13 (0.0.3): validation carries a typed outcome, and a waited
+run that ran out of time is `timed out`, classified as `timeout`. A missing
+tool is `unavailable`.
 
 ### ~~2. No whole-file read~~ — **shipped 13.3**
 

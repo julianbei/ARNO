@@ -48,10 +48,11 @@ func (s *Server) RunCommand(req protocol.RunCommandRequest) (protocol.RunCommand
 
 	if !req.Wait {
 		return protocol.RunCommandResponse{
-			Name:   req.Name,
-			Run:    command.Run,
-			JobID:  jobID,
-			Status: "running",
+			Name:    req.Name,
+			Run:     command.Run,
+			JobID:   jobID,
+			Outcome: protocol.OutcomeRunning,
+			Status:  "running",
 		}, nil
 	}
 
@@ -61,16 +62,19 @@ func (s *Server) RunCommand(req protocol.RunCommandRequest) (protocol.RunCommand
 			Name:    req.Name,
 			Run:     command.Run,
 			JobID:   jobID,
+			Outcome: protocol.OutcomeTimedOut,
 			Status:  "running",
-			Summary: fmt.Sprintf("%s still running — poll job_status %s", req.Name, jobID),
+			Summary: fmt.Sprintf("%s did not finish within %s — poll job_status %s", req.Name, checkTimeout(req.TimeoutSeconds), jobID),
 		}, nil
 	}
 
-	passed := jobPassed(output)
+	outcome := finishedOutcome(output)
+	passed := outcome == protocol.OutcomePassed
 	return protocol.RunCommandResponse{
 		Name:    req.Name,
 		Run:     command.Run,
 		JobID:   jobID,
+		Outcome: outcome,
 		Status:  output.Status,
 		Passed:  passed,
 		Summary: verdictSummary(passed, output.Summary, output.Raw),

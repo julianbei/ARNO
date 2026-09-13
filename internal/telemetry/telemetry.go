@@ -423,6 +423,32 @@ func ClassifyResponse(value interface{}) (Outcome, bool) {
 			return OK, true
 		}
 	}
+	switch response := value.(type) {
+	case protocol.CheckResponse:
+		return validationClass(response.Outcome)
+	case protocol.RunTestsResponse:
+		return validationClass(response.Outcome)
+	case protocol.RunCommandResponse:
+		return validationClass(response.Outcome)
+	case protocol.ApplyResponse:
+		return validationClass(response.CheckOutcome)
+	}
+	return OK, false
+}
+
+// validationClass maps a validation outcome onto a telemetry class, using the
+// same closed set. A failed run stays OK for the reason above. A wait that ran
+// out and a tool that is not installed are what send a caller to the shell,
+// and both went uncounted while a timeout read "running".
+func validationClass(outcome protocol.ValidationOutcome) (Outcome, bool) {
+	switch outcome {
+	case protocol.OutcomeTimedOut:
+		return Timeout, true
+	case protocol.OutcomeUnavailable:
+		return Unavailable, true
+	case protocol.OutcomePassed, protocol.OutcomeFailed, protocol.OutcomeRunning:
+		return OK, true
+	}
 	return OK, false
 }
 

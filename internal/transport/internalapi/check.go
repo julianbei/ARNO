@@ -40,6 +40,7 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 		// ecosystem was not identified, so there is nothing to execute.
 		return protocol.CheckResponse{
 			Kind:    kind,
+			Outcome: protocol.OutcomeUnavailable,
 			Status:  "no command",
 			Summary: fmt.Sprintf("no %s command found: no Makefile target, package.json script, Cargo.toml, Maven/Gradle/sbt/Python/Ruby manifest or go.mod at the workspace root — declare one with declare_command and use run_command", kind),
 		}, nil
@@ -52,7 +53,7 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), kind)
 
 	if !req.Wait {
-		return protocol.CheckResponse{JobID: jobID, Kind: kind, Status: "running", Command: command}, nil
+		return protocol.CheckResponse{JobID: jobID, Kind: kind, Outcome: protocol.OutcomeRunning, Status: "running", Command: command}, nil
 	}
 
 	output, finished := s.jobs.Wait(jobID, checkTimeout(req.TimeoutSeconds))
@@ -60,16 +61,19 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 		return protocol.CheckResponse{
 			JobID:   jobID,
 			Kind:    kind,
+			Outcome: protocol.OutcomeTimedOut,
 			Status:  "running",
-			Summary: fmt.Sprintf("%s still running — poll job_status %s", kind, jobID),
+			Summary: fmt.Sprintf("%s did not finish within %s and is still running — poll job_status %s", kind, checkTimeout(req.TimeoutSeconds), jobID),
 			Command: command,
 		}, nil
 	}
 
-	passed := jobPassed(output)
+	outcome := finishedOutcome(output)
+	passed := outcome == protocol.OutcomePassed
 	return protocol.CheckResponse{
 		JobID:   jobID,
 		Kind:    kind,
+		Outcome: outcome,
 		Status:  output.Status,
 		Passed:  passed,
 		Summary: verdictSummary(passed, output.Summary, output.Raw),
@@ -165,6 +169,13 @@ func successSummary(raw string) string {
 // maxVerbatimSuccessLines is how much passing output is worth quoting in full
 // rather than counting.
 const maxVerbatimSuccessLines = 3
+
+// finishedOutcome classifies a job that finished while the caller waited.
+// Every waited validation derives Passed from it, so a missing tool or a
+// killed command can never be reported as passing.
+func finishedOutcome(output jobs.JobOutput) protocol.ValidationOutcome {
+	return jobs.Outcome(output, true)
+}
 
 // jobPassed decides pass/fail for a finished job.
 //

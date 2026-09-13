@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/pathguard"
 	"github.com/julianbei/jade/internal/protocol"
 )
@@ -78,7 +79,9 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 	response.Checks = s.diag.Checks(response.Changed...)
 
 	if kind := strings.TrimSpace(req.Check); kind != "" {
-		response.CheckStatus, response.CheckPassed, response.CheckSummary = s.runCheck(kind)
+		response.CheckOutcome, response.CheckSummary = s.runCheck(kind)
+		response.CheckPassed = response.CheckOutcome == protocol.OutcomePassed
+		response.CheckStatus = string(response.CheckOutcome)
 	}
 
 	response.Summary = applySummary(response, req.Check)
@@ -244,11 +247,11 @@ const applyCheckTimeout = 120 * time.Second
 // runCheck runs one validation for the whole batch instead of one per edit.
 // A batch of six edits previously started six typecheck jobs, five of which
 // were racing against files that were still mid-change.
-func (s *Service) runCheck(kind string) (string, bool, string) {
+func (s *Service) runCheck(kind string) (protocol.ValidationOutcome, string) {
 	switch kind {
 	case "build", "typecheck", "tests":
 	default:
-		return "", false, fmt.Sprintf("unknown check kind %q", kind)
+		return "", fmt.Sprintf("unknown check kind %q", kind)
 	}
 
 	jobID := s.jobs.Start(kind)
@@ -256,9 +259,9 @@ func (s *Service) runCheck(kind string) (string, bool, string) {
 
 	output, finished := s.jobs.Wait(jobID, applyCheckTimeout)
 	if !finished {
-		return "running", false, fmt.Sprintf("%s still running — poll job_status %s", kind, jobID)
+		return protocol.OutcomeTimedOut, fmt.Sprintf("%s did not finish within %s — poll job_status %s", kind, applyCheckTimeout, jobID)
 	}
-	return output.Status, checkOutputPassed(output.Summary, output.Raw), output.Summary
+	return jobs.Outcome(output, true), output.Summary
 }
 
 // checkOutputPassed reads the verdict from the command's own output rather
@@ -318,12 +321,12 @@ func applySummary(r protocol.ApplyResponse, check string) string {
 		parts = append(parts, fmt.Sprintf("%d diagnostics", len(r.Diagnostics)))
 	}
 	if strings.TrimSpace(check) != "" {
-		verdict := "FAIL"
-		if r.CheckPassed {
+		verdict := string(r.CheckOutcome)
+		switch r.CheckOutcome {
+		case protocol.OutcomePassed:
 			verdict = "pass"
-		}
-		if r.CheckStatus != "completed" {
-			verdict = r.CheckStatus
+		case protocol.OutcomeFailed:
+			verdict = "FAIL"
 		}
 		parts = append(parts, verdict+" "+check)
 	}

@@ -455,7 +455,7 @@ func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsRespons
 	s.jobs.RunScopedGoTests(jobID, s.workspace.Root(), scope, s.workspace.Changes())
 
 	if !req.Wait {
-		return protocol.RunTestsResponse{JobID: jobID, Status: "running"}
+		return protocol.RunTestsResponse{JobID: jobID, Outcome: protocol.OutcomeRunning, Status: "running"}
 	}
 
 	// Reuses 12.2's Runner.Wait rather than reimplementing the block, so
@@ -464,14 +464,17 @@ func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsRespons
 	if !finished {
 		return protocol.RunTestsResponse{
 			JobID:   jobID,
+			Outcome: protocol.OutcomeTimedOut,
 			Status:  "running",
-			Summary: fmt.Sprintf("tests still running — poll job_status %s", jobID),
+			Summary: fmt.Sprintf("tests did not finish within %s — poll job_status %s", checkTimeout(req.TimeoutSeconds), jobID),
 		}
 	}
 
-	runPassed := jobPassed(output)
+	outcome := finishedOutcome(output)
+	runPassed := outcome == protocol.OutcomePassed
 	return protocol.RunTestsResponse{
 		JobID:   jobID,
+		Outcome: outcome,
 		Status:  output.Status,
 		Passed:  runPassed,
 		Summary: verdictSummary(runPassed, output.Summary, output.Raw),

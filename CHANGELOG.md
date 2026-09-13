@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Validation says passed, failed, unavailable, running or timed out
+
+`check`, `run_tests`, `run_command` and `apply`'s check reported a free-form
+status beside a `Passed` bool. A waited check that ran out of time read
+`running`, the same as a call that never waited; a declared command whose tool
+was not installed read `FAIL`, sending the caller to fix code nothing had
+checked.
+
+Each now carries one outcome from a closed set — `passed`, `failed`,
+`unavailable`, `running`, `timed out` — and leads its response with it:
+`timed out slow`, `unavailable lint`, `unavailable build` when no command was
+discovered. Only `passed` renders or counts as a pass. A command killed for its
+timeout is `timed out`, exit status 127 or a binary that cannot start is
+`unavailable`, and exit status still decides `failed`. Telemetry uses the same
+set, so timed-out waits and missing tools are now counted — the hole
+[feedback.md](docs/feedback.md) recorded. `Status` and `Passed` remain in JSON
+output.
+
 ### Nothing reads or writes outside the workspace
 
 A path was used as given: an absolute path went wherever it pointed, `..` was

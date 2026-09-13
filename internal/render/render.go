@@ -735,13 +735,11 @@ func runCommand(r protocol.RunCommandResponse) string {
 		return declaredListing(r.Summary, r.Available)
 	}
 
-	verdict := "FAIL"
-	if r.Passed {
-		verdict = "pass"
+	status := r.Status
+	if status == "" {
+		status = "completed"
 	}
-	if r.Status != "completed" && r.Status != "" {
-		verdict = r.Status
-	}
+	verdict := verdictWord(r.Outcome, status, r.Passed)
 
 	head := strings.TrimSpace(verdict + " " + r.Name)
 	if r.Name == "" {
@@ -804,13 +802,7 @@ func declareCommand(r protocol.DeclareCommandResponse) string {
 func check(r protocol.CheckResponse) string {
 	// Verdict first: an agent that reads one line should learn whether the
 	// check passed, not which job ran it.
-	verdict := "FAIL"
-	if r.Passed {
-		verdict = "pass"
-	}
-	if r.Status != "completed" {
-		verdict = r.Status
-	}
+	verdict := verdictWord(r.Outcome, r.Status, r.Passed)
 
 	head := strings.TrimSpace(fmt.Sprintf("%s %s", verdict, r.Kind))
 	if head == "" {
@@ -831,23 +823,42 @@ func check(r protocol.CheckResponse) string {
 }
 
 func runTests(r protocol.RunTestsResponse) string {
-	if r.Status != "completed" {
-		head := fmt.Sprintf("running %s", r.JobID)
-		if r.Summary != "" {
-			return head + "\n" + r.Summary
-		}
-		return head
-	}
-
-	verdict := "FAIL"
-	if r.Passed {
-		verdict = "pass"
+	verdict := verdictWord(r.Outcome, r.Status, r.Passed)
+	if verdict == "" {
+		// A run with no status yet has started and not reported.
+		verdict = "running"
 	}
 	head := verdict + " tests " + r.JobID
+	if verdict != "pass" && verdict != "FAIL" {
+		head = verdict + " " + r.JobID
+	}
 	if r.Summary == "" {
 		return head
 	}
 	return head + "\n" + r.Summary
+}
+
+// verdictWord is the first word of a validation result: pass, FAIL,
+// unavailable, running or timed out. Only a passed outcome reads as pass. A
+// response with no outcome — a dry run, a listing, an older caller building
+// one by hand — falls back to its status.
+func verdictWord(outcome protocol.ValidationOutcome, status string, passed bool) string {
+	switch outcome {
+	case protocol.OutcomePassed:
+		return "pass"
+	case protocol.OutcomeFailed:
+		return "FAIL"
+	case "":
+	default:
+		return string(outcome)
+	}
+	if status != "completed" {
+		return status
+	}
+	if passed {
+		return "pass"
+	}
+	return "FAIL"
 }
 
 // checkedSuffix names what checked an edit, so an edit with no diagnostic

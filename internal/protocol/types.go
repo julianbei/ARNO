@@ -189,6 +189,7 @@ type ApplyResponse struct {
 	Diagnostics  []Diagnostic
 	Checks       CheckReport
 	CheckStatus  string
+	CheckOutcome ValidationOutcome
 	CheckPassed  bool
 	CheckSummary string
 	Summary      string
@@ -231,9 +232,10 @@ type RunTestsRequest struct {
 // how to follow up via job_status/job_output.
 type RunTestsResponse struct {
 	JobID string
-	// Status, Passed and Summary are populated only when the caller waited
-	// and the run finished. A run that timed out keeps Status "running" —
-	// distinct from a completed run, so a timeout can never read as a pass.
+	// Outcome is the verdict from the closed set; Passed is true exactly when
+	// it is OutcomePassed. Status is the job's own state, kept for JSON
+	// readers.
+	Outcome ValidationOutcome
 	Status  string
 	Passed  bool
 	Summary string
@@ -254,11 +256,13 @@ type CheckRequest struct {
 	DryRun bool
 }
 
-// CheckResponse carries the outcome. When the check was not waited for, or
-// timed out, Status is "running" and JobID is how to follow up.
+// CheckResponse carries the outcome. Outcome is running when the check was
+// not waited for, and timed out when the wait ran out; JobID is how to follow
+// up on either. A dry run has no outcome.
 type CheckResponse struct {
 	JobID   string
 	Kind    string
+	Outcome ValidationOutcome
 	Status  string
 	Passed  bool
 	Summary string
@@ -383,6 +387,7 @@ type RunCommandResponse struct {
 	// see what a name resolved to without opening the registry file.
 	Run     string
 	JobID   string
+	Outcome ValidationOutcome
 	Status  string
 	Passed  bool
 	Summary string

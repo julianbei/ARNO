@@ -246,7 +246,8 @@ listed here so the sequence is complete.
   rejects absolute paths outside the root, `..` escapes, and symlinks whose
   target leaves the root, with an error naming the root. Tests for each
   escape, on every tool that takes a path.
-- [ ] **Typed validation outcomes.** `check`, `run_tests` and `run_command`
+- [x] **Typed validation outcomes.** Done 2026-09-13: `protocol.ValidationOutcome`,
+  classified once in `jobs.Outcome`. `check`, `run_tests` and `run_command`
   report one of a closed set — `passed`, `failed`, `unavailable` (no command
   discovered, tool not installed), `running` — plus `timed out` as its own
   state instead of `running`. `unavailable` can never render or count as
