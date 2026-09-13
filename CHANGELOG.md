@@ -75,6 +75,15 @@ it refused and a revert after it that restores an edited file, removes a
 created one and recreates a deleted one, and `changes` listing the checks.
 It runs with the ordinary tests.
 
+### A backgrounded job says when it is done
+
+A check, test run or command started with `wait: false` is announced with
+`notifications/message` when it completes — `job-7 command:build-image
+finished: … — job_output job-7 for the log` — so a host that surfaces it can
+wake the agent instead of the agent polling `job_status`. A job that finished
+before its call returned is announced too. Waited calls are not announced:
+their response already carries the verdict.
+
 ### Long calls report progress
 
 A host that sends `_meta.progressToken` with a tool call now gets

@@ -669,13 +669,14 @@ impact-aware validation comes after the write path it depends on, not before.
   every write. `changes` marks files a session did not edit as outside
   this session; naming which other session made them would need a shared
   ledger. Measuring language servers across sessions still to do.
-- [ ] **Long-running work without polling** (ROADMAP §4).
+- [x] **Long-running work without polling** (ROADMAP §4).
  *Progress 2026-09-14:* a
   backgrounded or out-waited declared command is no longer killed at the
   wait timeout; it runs to the runner's 10-minute bound. Calls with a
-  progress token report `notifications/progress` every five seconds. A
-  notification when a backgrounded job completes, and raising the 300-second
-  wait cap, still to do. Progress
+  progress token report `notifications/progress` every five seconds. *Done
+  2026-09-14:* a job started with `wait: false` is announced with
+  `notifications/message` when it completes. The 300-second cap now bounds
+  only a waited call; a backgrounded job runs to the runner's bound. Progress
   notifications; no 300-second cap on backgrounded jobs.
 - [x] **Stop reporting transient errors mid-edit** (ROADMAP §3). *Done
   2026-09-14:* errors of the in-progress shape point at `apply`.

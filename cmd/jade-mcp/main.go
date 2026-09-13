@@ -77,6 +77,10 @@ type mcpServer struct {
 	instructions string
 	// notify sends a notification to the client; nil before the loop starts.
 	notify func(method string, params interface{})
+	// background and jobEvents announce jobs started with wait: false when
+	// they complete.
+	background backgroundJobs
+	jobEvents  <-chan events.Event
 }
 
 // version is stamped at build time via -ldflags (see the Makefile). It is
@@ -169,7 +173,7 @@ func main() {
 		fatalf("failed to start internal api: %v", err)
 	}
 
-	s := &mcpServer{api: api, telemetry: telemetry.New(root), profile: profile, instructions: projectInstructions(root) + capabilityBrief(ci)}
+	s := &mcpServer{api: api, telemetry: telemetry.New(root), profile: profile, instructions: projectInstructions(root) + capabilityBrief(ci), jobEvents: bus.Subscribe(256)}
 	if err := s.loop(os.Stdin, os.Stdout); err != nil {
 		fatalf("mcp loop failed: %v", err)
 	}
@@ -182,6 +186,11 @@ func (s *mcpServer) loop(in io.Reader, out io.Writer) error {
 	locked := &lockedWriter{w: writer}
 	s.notify = func(method string, params interface{}) {
 		_ = locked.write(rpcNotification{JSONRPC: "2.0", Method: method, Params: params})
+	}
+	// Started here, after notify exists, so the announcer never reads it
+	// before it is set.
+	if s.jobEvents != nil {
+		s.announceBackgroundJobs(s.jobEvents)
 	}
 
 	for {
@@ -309,6 +318,9 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 	stopProgress := s.reportProgress(req.Meta.ProgressToken, req.Name)
 	result, err := s.dispatchToolCall(req.Name, args)
 	stopProgress()
+	if err == nil {
+		s.rememberBackgroundJobs(args, result)
+	}
 
 	// A returned error always wins: it is the stronger signal, and a handler
 	// that errors never produced a typed response to read an outcome from.
