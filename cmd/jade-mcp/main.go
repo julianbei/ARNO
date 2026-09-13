@@ -748,7 +748,7 @@ func tools() []mcpTool {
 		},
 		{
 			Name:        "jade.read_range",
-			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address. An end line past the end of the file reads to the end. Pass ranges to read several files or ranges in one call.",
+			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address. An end line past the end of the file reads to the end. Several ranges — in one file or many — go in ranges, one call: {\"ranges\": [{\"path\": \"a.go\", \"startLine\": 280, \"endLine\": 400}, {\"path\": \"a.go\", \"startLine\": 700, \"endLine\": 760}]}.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

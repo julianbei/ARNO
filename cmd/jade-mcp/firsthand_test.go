@@ -112,19 +112,26 @@ func TestGrepRegexAcceptsGrepStyleAlternation(t *testing.T) {
 	}
 }
 
-// A literal search written like a pattern says why it found nothing.
+// A literal search written like a pattern is answered as the pattern it is,
+// and a miss says both readings were tried.
 func TestLiteralGrepThatLooksLikeARegexSaysSo(t *testing.T) {
 	server, root := newTestMCPServer(t)
 	writeWorkspaceFile(t, root, "flags.go", "package cobra\n\nvar helpFlagName = \"help\"\n")
 
-	for _, query := range []string{`helpFlagName|helpCommand`, `func (c \*Command) ParseFlags`} {
-		out, err := callText(t, server, "jade.grep", map[string]interface{}{"query": query})
-		if err != nil {
-			t.Fatalf("grep %q: %v", query, err)
-		}
-		if !strings.Contains(out, "no matches") || !strings.Contains(out, "regex: true") {
-			t.Errorf("%q: expected a no-match that points at regex mode, got:\n%s", query, out)
-		}
+	found, err := callText(t, server, "jade.grep", map[string]interface{}{"query": `helpFlagName|helpCommand`})
+	if err != nil {
+		t.Fatalf("grep: %v", err)
+	}
+	if !strings.Contains(found, "searched as regex") || !strings.Contains(found, "flags.go:3") {
+		t.Errorf("expected the pattern to be run as regex, got:\n%s", found)
+	}
+
+	missed, err := callText(t, server, "jade.grep", map[string]interface{}{"query": `func (c \*Command) ParseFlags`})
+	if err != nil {
+		t.Fatalf("grep: %v", err)
+	}
+	if !strings.Contains(missed, "no matches") || !strings.Contains(missed, "as literal text and as regex") {
+		t.Errorf("expected a miss that names both readings, got:\n%s", missed)
 	}
 
 	plain, err := callText(t, server, "jade.grep", map[string]interface{}{"query": "notThere"})

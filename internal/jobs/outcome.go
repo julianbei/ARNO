@@ -50,10 +50,20 @@ func notInstalled(text string) bool {
 	return false
 }
 
+// hasFailureMarkers looks for lines that only a failing run prints. Bare
+// "error" or "fail" anywhere is not one: passing test suites log expected
+// errors, and in a benchmark run cobra's green suite (it prints "Error: if any
+// flags in the group ...") was reported as FAIL, so the agent re-ran every test
+// to find out whether its edit was fine.
 func hasFailureMarkers(text string) bool {
-	lower := strings.ToLower(text)
-	for _, marker := range []string{"fail", "error", "cannot find", "undefined:", "panic:"} {
-		if strings.Contains(lower, marker) {
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(line)
+		for _, prefix := range []string{"--- FAIL", "FAIL\t", "FAIL ", "FAIL:", "FAILED", "panic:"} {
+			if strings.HasPrefix(line, prefix) {
+				return true
+			}
+		}
+		if strings.Contains(line, "undefined:") || strings.Contains(line, "cannot find package") {
 			return true
 		}
 	}

@@ -108,6 +108,19 @@ func (i *Index) Grep(req protocol.GrepRequest) (protocol.GrepResponse, error) {
 		return matches[a].Line < matches[b].Line
 	})
 
+	// A literal query written as a pattern (`func.*SetArgs`, `\*Command`) that
+	// finds nothing is run again as a regex. The hint alone cost a benchmark
+	// run a whole turn per miss: the agent read it, then repeated the call with
+	// regex: true.
+	if total == 0 && !req.Regex && looksLikePattern(query) {
+		retry := req
+		retry.Regex = true
+		if regexResponse, err := i.Grep(retry); err == nil && regexResponse.Total > 0 {
+			regexResponse.Summary = "no literal matches, searched as regex: " + regexResponse.Summary
+			return regexResponse, nil
+		}
+	}
+
 	response := protocol.GrepResponse{
 		Query:     query,
 		Matches:   matches,
@@ -279,7 +292,7 @@ func grepSummary(r protocol.GrepResponse, regex bool) string {
 		// literally, got a bare "no matches" four times, and concluded the
 		// code was not there.
 		if !regex && looksLikePattern(r.Query) {
-			return fmt.Sprintf("no matches for %q — searched as literal text; pass regex: true for | alternation or \\ escapes", r.Query)
+			return fmt.Sprintf("no matches for %q, searched as literal text and as regex", r.Query)
 		}
 		return fmt.Sprintf("no matches for %q", r.Query)
 	}
