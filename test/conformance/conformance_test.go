@@ -60,6 +60,12 @@ type languageCase struct {
 	// accurately", which is the behaviour that matters when a server
 	// declines. Empty means rename is expected to work.
 	renameLimitation string
+
+	// answerBudget bounds the time from starting jade to the first exact
+	// references answer: server start, indexing and the answer itself. About
+	// three times the 2026-09-14 container baseline, so noise passes and a
+	// release that makes a server markedly slower to start fails.
+	answerBudget time.Duration
 }
 
 func cases() []languageCase {
@@ -68,26 +74,31 @@ func cases() []languageCase {
 			name: "go", dir: "go", file: "store.go", symbol: "Put",
 			declarations: []string{"Store", "Put", "NewStore"},
 			server:       "gopls", otherFile: "use.go", renamed: "Store2",
+			answerBudget: 10 * time.Second, // baseline 1.6s
 		},
 		{
 			name: "typescript", dir: "typescript", file: "store.ts", symbol: "put",
 			declarations: []string{"Store", "put", "newStore"},
 			server:       "typescript-language-server", otherFile: "use.ts", renamed: "store2",
+			answerBudget: 10 * time.Second, // baseline 1.7s
 		},
 		{
 			name: "javascript", dir: "javascript", file: "store.js", symbol: "put",
 			declarations: []string{"Store", "put", "newStore"},
 			server:       "typescript-language-server", otherFile: "use.js", renamed: "store2",
+			answerBudget: 10 * time.Second, // baseline 1.7s
 		},
 		{
 			name: "python", dir: "python", file: "store.py", symbol: "put",
 			declarations: []string{"Store", "put", "new_store"},
 			server:       "pyright-langserver", otherFile: "use.py", renamed: "store2",
+			answerBudget: 10 * time.Second, // baseline 1.7s
 		},
 		{
 			name: "ruby", dir: "ruby", file: "store.rb", symbol: "put",
 			declarations: []string{"Store", "put", "new_store"},
 			server:       "ruby-lsp", otherFile: "use.rb", renamed: "store2",
+			answerBudget: 45 * time.Second, // baseline 15.6s
 			// ruby-lsp 0.26 renames classes and modules but returns null for
 			// a method, even fully indexed. The image also has solargraph,
 			// which renames methods, so this case proves the fallback: the
@@ -97,16 +108,19 @@ func cases() []languageCase {
 			name: "rust", dir: "rust", file: "src/lib.rs", symbol: "put",
 			declarations: []string{"Store", "put", "use_store"},
 			server:       "rust-analyzer", otherFile: "src/lib.rs", renamed: "store2",
+			answerBudget: 20 * time.Second, // baseline 4.5s
 		},
 		{
 			name: "java", dir: "java", file: "src/main/java/conformance/Store.java", symbol: "put",
 			declarations: []string{"Store", "put"},
 			server:       "jdtls", otherFile: "src/main/java/conformance/UseStore.java", renamed: "store2",
+			answerBudget: 30 * time.Second, // baseline 8.5s
 		},
 		{
 			name: "scala", dir: "scala", file: "src/main/scala/Store.scala", symbol: "put",
 			declarations: []string{"Store", "put", "UseStore"},
 			server:       "metals", otherFile: "src/main/scala/Store.scala", renamed: "store2",
+			answerBudget: 60 * time.Second, // baseline 22.3s
 		},
 	}
 }
@@ -177,7 +191,12 @@ func TestSemantics(t *testing.T) {
 			// Recorded for every run so a release that makes a server slower to
 			// start or to answer shows up; the budget that fails on it follows
 			// from a baseline.
-			t.Logf("%s: first exact references after %s", tc.name, time.Since(started).Round(time.Millisecond))
+			elapsed := time.Since(started)
+			t.Logf("%s: first exact references after %s (budget %s)", tc.name, elapsed.Round(time.Millisecond), tc.answerBudget)
+			if tc.answerBudget > 0 && elapsed > tc.answerBudget {
+				t.Errorf("%s: first exact references took %s, over the %s budget — a server now starts or answers markedly slower",
+					tc.name, elapsed.Round(time.Millisecond), tc.answerBudget)
+			}
 
 			if strings.Contains(references, "approximate") {
 				t.Fatalf("%s: expected the language server to answer, got the name-matched fallback:\n%s",

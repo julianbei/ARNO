@@ -71,8 +71,11 @@ line.
 findable, and asserts that `capabilities` reports the server as not installed
 and that `references` says `approximate · text index` and names the missing
 server. It needs no container, so it runs with the ordinary tests.
-`TestSemantics` logs how long each server took to give its first exact
-answer, the baseline for a startup budget.
+`TestSemantics` fails when a server takes markedly longer than before to give
+its first exact answer. The budget is about three times the container
+baseline: 1.6–1.7s for Go, TypeScript, JavaScript and Python, 4.5s for Rust,
+8.5s for Java, 15.6s for Ruby, 22.3s for Scala. All eight languages pass with
+their servers, and all eight report the missing server without them.
 
 ### `check` in a repository with several projects
 

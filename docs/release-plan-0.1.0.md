@@ -527,10 +527,11 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   exact `references`, a declined `rename` and edit diagnostics from a
   still-indexing server say so and what to do. Elapsed time in the message
   and startup timing in conformance still to do.
-- [ ] **Conformance covers the degraded paths.**
+- [x] **Conformance covers the degraded paths.**
  *Progress 2026-09-14:* `TestDegraded`
   asserts the not-installed report and the approximate answer for all eight
-  languages without the container; `TestSemantics` logs first-answer time.
+  languages without the container, and passes in it; `TestSemantics` fails
+  over a per-language first-answer budget set from the container baseline.
   The failed and indexing kinds are covered by unit tests, not conformance. Each language run once with
   its server and once without, asserting the response says which it got.
   Today conformance proves the happy path.
