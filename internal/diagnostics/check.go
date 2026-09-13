@@ -47,6 +47,57 @@ type checkMemo struct {
 // ask for diagnostics and for the checker name separately, and running gopls
 // or waiting on a language server twice for one unchanged file would double
 // the latency of every edit.
+// diagnosticProvider checks one file for an edit, or declines so the next is
+// asked (release plan 0.0.6, "Providers behind a registry"; references has
+// the same shape in internal/code/providers.go).
+type diagnosticProvider struct {
+	id    string
+	check func(s *Service, path string, absolute string, ext string) (Result, bool)
+}
+
+// diagnosticProviders is the edit-diagnostics registry, asked in order; the
+// first that handles a file answers for it. Go has its own parser and gopls;
+// JSON and YAML have syntax checkers; everything else goes to the language
+// server bridge, which falls back to tree-sitter syntax when no server runs.
+func diagnosticProviders() []diagnosticProvider {
+	return []diagnosticProvider{
+		{id: "go parser and gopls", check: func(s *Service, path string, absolute string, ext string) (Result, bool) {
+			if !strings.EqualFold(ext, ".go") {
+				return Result{}, false
+			}
+			return s.checkGo(path, absolute), true
+		}},
+		{id: "data file syntax", check: func(s *Service, path string, absolute string, ext string) (Result, bool) {
+			if syntaxCheckers[strings.ToLower(ext)] == nil {
+				return Result{}, false
+			}
+			result, _ := checkSyntax(path, absolute, ext)
+			return result, true
+		}},
+		{id: "language server", check: func(s *Service, path string, absolute string, ext string) (Result, bool) {
+			if s.languageServers == nil {
+				return Result{}, false
+			}
+			diagnostics, checker, unchecked, handled := s.languageServers(path)
+			if !handled {
+				return Result{}, false
+			}
+			return Result{Diagnostics: diagnostics, Checker: checker, Unchecked: unchecked}, true
+		}},
+	}
+}
+
+// DiagnosticProviderIDs lists the edit-diagnostics providers in the order
+// they are asked.
+func DiagnosticProviderIDs() []string {
+	providers := diagnosticProviders()
+	ids := make([]string, 0, len(providers))
+	for _, provider := range providers {
+		ids = append(ids, provider.id)
+	}
+	return ids
+}
+
 func (s *Service) Check(scope string) Result {
 	path := scopePath(scope)
 	if path == "" {
@@ -69,15 +120,10 @@ func (s *Service) Check(scope string) Result {
 
 	var result Result
 	ext := filepath.Ext(path)
-	switch {
-	case strings.EqualFold(ext, ".go"):
-		result = s.checkGo(path, absolute)
-	case syntaxCheckers[strings.ToLower(ext)] != nil:
-		result, _ = checkSyntax(path, absolute, ext)
-	case s.languageServers != nil:
-		diagnostics, checker, unchecked, handled := s.languageServers(path)
-		if handled {
-			result = Result{Diagnostics: diagnostics, Checker: checker, Unchecked: unchecked}
+	for _, provider := range diagnosticProviders() {
+		if answered, handled := provider.check(s, path, absolute, ext); handled {
+			result = answered
+			break
 		}
 	}
 

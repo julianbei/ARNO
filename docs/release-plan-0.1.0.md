@@ -498,8 +498,9 @@ Theme: answer caution 3. Degrading is fine; degrading silently is not.
   *Progress 2026-09-14:* references is on a provider registry in
   `internal/code/providers.go` — language server, gopls command, text
   index, strongest first, first answer wins — with no change in behaviour.
-  Rename and diagnostics, and generating the capability report from the
-  registry, still to do.
+  Edit diagnostics too (`internal/diagnostics/check.go`: Go parser and
+  gopls, data-file syntax, language server). Rename, and generating the
+  capability report from the registry, still to do.
 - [ ] **Three kinds of missing, told apart.** Not supported (no provider for
   this language), provider present but dependency missing (`rust-analyzer`
   not installed), provider running but degraded (`jdtls still indexing`). The

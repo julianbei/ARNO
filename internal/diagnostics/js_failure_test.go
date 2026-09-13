@@ -113,3 +113,8 @@ func TestAvaFailureSummaryKeepsTheMessageAfterALongErrorObject(t *testing.T) {
 		t.Errorf("the error message was cut behind the object dump:\n%s", got)
 	}
 }
+func TestDiagnosticProvidersAreAskedInOrder(t *testing.T) {
+	if got := strings.Join(DiagnosticProviderIDs(), ", "); got != "go parser and gopls, data file syntax, language server" {
+		t.Fatalf("diagnostics registry order: got %s", got)
+	}
+}
