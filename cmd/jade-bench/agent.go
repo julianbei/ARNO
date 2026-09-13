@@ -44,15 +44,15 @@ func runAgentReport(args []string) int {
 	fmt.Printf("%d runs across %d repositories\n\n", len(results), len(repositories))
 	fmt.Print(agent.Report(results))
 	fmt.Print(agent.ConfusionText(results))
+	fmt.Print(agent.ToolUseText(results))
 	return 0
 }
 
-// telemetryPath is where Jade-arm telemetry is kept: the flag, or beside the
-// results file.
-func telemetryPath(flagValue string, out string) string {
+// besideOut is the flag's directory, or one named after the results file.
+func besideOut(flagValue string, out string, suffix string) string {
 	path := flagValue
 	if path == "" {
-		path = out + ".telemetry"
+		path = out + suffix
 	}
 	if absolute, err := filepath.Abs(path); err == nil {
 		return absolute
@@ -74,6 +74,7 @@ func runAgent(args []string) int {
 	out := flags.String("out", "bench-results.jsonl", "append one JSON line per run here")
 	allowHost := flags.Bool("allow-host", false, "run agents with permissions bypassed on this machine, outside a sandbox")
 	telemetryDir := flags.String("telemetry-dir", "", "keep each Jade-arm run's telemetry here (default: <out>.telemetry)")
+	transcriptDir := flags.String("transcript-dir", "", "keep every run's agent transcript here (default: <out>.transcripts)")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -134,7 +135,8 @@ func runAgent(args []string) int {
 		JadeMCP:   jadeBinary,
 		Out:       output,
 
-		TelemetryDir: telemetryPath(*telemetryDir, *out),
+		TelemetryDir:  besideOut(*telemetryDir, *out, ".telemetry"),
+		TranscriptDir: besideOut(*transcriptDir, *out, ".transcripts"),
 	})
 	fmt.Printf("%s · %d tasks · %s\n\n", file.Repository.Name, len(file.Tasks), *model)
 	fmt.Print(agent.Report(results))

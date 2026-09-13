@@ -127,7 +127,7 @@ func TestRunMeasuresEveryArmAndVerifiesIndependently(t *testing.T) {
 		t.Errorf("jade+shell arm should have both:\n%s", both)
 	}
 	for _, invocation := range runs {
-		for _, shared := range []string{"[--strict-mcp-config]", "[--model]\n[sonnet]", "[--max-budget-usd]\n[1.00]", "[--setting-sources]\n[project]"} {
+		for _, shared := range []string{"[--output-format]\n[stream-json]\n[--verbose]", "[--strict-mcp-config]", "[--model]\n[sonnet]", "[--max-budget-usd]\n[1.00]", "[--setting-sources]\n[project]"} {
 			if !strings.Contains(invocation, shared) {
 				t.Errorf("every arm needs %s:\n%s", shared, invocation)
 			}

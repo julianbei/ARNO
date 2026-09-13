@@ -152,6 +152,9 @@ type Config struct {
 	// subdirectory per run, so tool confusion can be reported after the
 	// workspace is gone. Empty keeps nothing.
 	TelemetryDir string
+	// TranscriptDir keeps every run's full agent transcript (stream-json),
+	// so a result can be explained call by call. Empty keeps nothing.
+	TranscriptDir string
 	// Out receives one JSON line per run as it finishes, so a benchmark cut
 	// short still leaves its results.
 	Out io.Writer
@@ -188,6 +191,8 @@ type RunResult struct {
 
 	// TelemetryDir is where this run's Jade telemetry was kept, for Jade arms.
 	TelemetryDir string `json:"telemetryDir,omitempty"`
+	// Transcript is the run's saved agent transcript, one JSON event per line.
+	Transcript string `json:"transcript,omitempty"`
 }
 
 // TotalTokens is every token the run consumed, cached or not.
@@ -302,6 +307,13 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 	started := time.Now()
 	runErr := cmd.Run()
 
+	if cfg.TranscriptDir != "" {
+		path := filepath.Join(cfg.TranscriptDir, fmt.Sprintf("%s-%s-%s-%d.jsonl", result.Repository, task.ID, arm, repeat))
+		if os.MkdirAll(cfg.TranscriptDir, 0o755) == nil && os.WriteFile(path, stdout.Bytes(), 0o644) == nil {
+			result.Transcript = path
+		}
+	}
+
 	parsed, parseErr := parseResult(stdout.Bytes())
 	switch {
 	case parseErr == nil:
@@ -365,7 +377,10 @@ func ReadResults(r io.Reader) ([]RunResult, error) {
 func AgentArgs(prompt string, arm Arm, model string, capUSD float64, mcpConfig string) []string {
 	args := []string{
 		"-p", prompt,
-		"--output-format", "json",
+		// stream-json (which needs --verbose) prints every event, not only the
+		// final result, so the transcript shows each tool call. The last line
+		// is the same result object json mode prints.
+		"--output-format", "stream-json", "--verbose",
 		"--no-session-persistence",
 		"--permission-mode", "bypassPermissions",
 		"--setting-sources", "project",
@@ -387,6 +402,7 @@ func AgentArgs(prompt string, arm Arm, model string, capUSD float64, mcpConfig s
 }
 
 type claudeResult struct {
+	Type         string  `json:"type"`
 	IsError      bool    `json:"is_error"`
 	Subtype      string  `json:"subtype"`
 	NumTurns     int     `json:"num_turns"`
@@ -401,7 +417,8 @@ type claudeResult struct {
 	PermissionDenials []json.RawMessage `json:"permission_denials"`
 }
 
-// parseResult reads the last JSON object the agent printed.
+// parseResult reads the last result event the agent printed. In stream-json
+// every line is an event; only the one of type "result" carries cost and usage.
 func parseResult(output []byte) (claudeResult, error) {
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
@@ -410,7 +427,7 @@ func parseResult(output []byte) (claudeResult, error) {
 			continue
 		}
 		var parsed claudeResult
-		if err := json.Unmarshal([]byte(line), &parsed); err == nil {
+		if err := json.Unmarshal([]byte(line), &parsed); err == nil && (parsed.Type == "result" || parsed.Type == "") {
 			return parsed, nil
 		}
 	}
