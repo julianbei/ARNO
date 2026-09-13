@@ -582,7 +582,7 @@ impact-aware validation comes after the write path it depends on, not before.
   digest=abc123`) — but the API is decided in this task, not here. Refusals
   say what changed and who is known to have changed it. Tested by editing a
   file from outside Jade between a read and an edit.
-- [ ] **Checkpoint and revert that restore state.** Part of the edit contract,
+- [x] **Checkpoint and revert that restore state.** Part of the edit contract,
   with a test for each:
   - *Revisions are monotonic.* A revert creates a new revision whose content
     equals the checkpoint's: `r17` checkpoint, `r18`, `r19` edits, `r20`
@@ -592,6 +592,11 @@ impact-aware validation comes after the write path it depends on, not before.
     restored; one deleted since is recreated; one created since is removed.
   - *No silent partial restore.* A restore that cannot write every file fails
     as a whole and says which, instead of discarding errors.
+  *Done 2026-09-14:* the write path records a file's prior state for each
+  checkpoint before its first change; revert restores through
+  `writes.Files` and advances the revision. Changes made outside Jade are
+  captured only for files edited before the checkpoint (see the
+  external-change item).
 - [x] **Revisions against git, enforced.** Landed early, in 0.0.3 (f76ee88):
   each checkpoint records `HEAD`, and `revert` refuses with both commits named
   when one has landed since. What remains is the restore itself, above.

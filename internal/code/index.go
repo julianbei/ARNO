@@ -1340,7 +1340,7 @@ func (i *Index) DeleteFile(path string) (int, error) {
 	}
 	lineCount := len(splitLines(string(data)))
 
-	if err := os.Remove(absolute); err != nil {
+	if err := removeFile(absolute); err != nil {
 		return 0, err
 	}
 

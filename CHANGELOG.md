@@ -65,6 +65,24 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### `revert` restores the state, all of it or none
+
+- **Files first changed after the checkpoint are restored.** A checkpoint
+  captured only files Jade had edited before it, so a file edited for the
+  first time afterwards kept its new contents on revert. The write path now
+  records what a file held before its first change since each checkpoint.
+- **Existence as well as contents.** A file deleted since the checkpoint is
+  recreated; one created since is removed.
+- **No partial restore.** A revert that cannot write every file puts back
+  what it wrote and fails naming the file, where a failed write used to be
+  skipped silently.
+- **A revert is a new revision.** It used to reset the counter to the
+  checkpoint's revision, giving two different states one name: `r17`
+  checkpoint, `r18` and `r19` edits, revert is `r20`.
+
+Changes made outside Jade are still not captured unless Jade had edited the
+file before the checkpoint.
+
 ### Every edit goes through one write path
 
 The first 0.0.7 item. `replace_text`, `insert`, `delete_symbol`, symbol and

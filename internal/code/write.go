@@ -8,6 +8,12 @@ func writeFile(path string, data []byte) error {
 	return writes.File(path, data)
 }
 
+// removeFile deletes a file through the write path, so a checkpoint records
+// what it held first.
+func removeFile(path string) error {
+	return writes.Remove(path)
+}
+
 func writeFiles(paths []string, bodies [][]byte) error {
 	changes := make([]writes.Change, len(paths))
 	for i := range paths {

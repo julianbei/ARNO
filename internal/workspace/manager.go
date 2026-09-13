@@ -16,6 +16,7 @@ import (
 	"github.com/julianbei/jade/internal/events"
 	"github.com/julianbei/jade/internal/pathguard"
 	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/jade/internal/writes"
 )
 
 // Manager tracks in-memory scaffold state. The concrete implementation will
@@ -36,9 +37,19 @@ type checkpointSnapshot struct {
 	revision int
 	changed  map[string]struct{}
 	files    map[string][]byte
+	// prior is what a path held before its first write since the checkpoint,
+	// recorded by the write path: a file first edited, created or deleted
+	// after the checkpoint, which files could not have captured.
+	prior map[string]priorState
 	// head is git's HEAD when the checkpoint was taken, "" without git or
 	// before the first commit. Revert refuses when it has moved.
 	head string
+}
+
+// priorState is a path's contents before a write, or that it did not exist.
+type priorState struct {
+	data    []byte
+	existed bool
 }
 
 // Checkpoint captures workspace state for later restore.
@@ -63,7 +74,7 @@ type Freshness struct {
 }
 
 func NewManager(root string, bus *events.Bus) *Manager {
-	return &Manager{
+	m := &Manager{
 		root:     root,
 		bus:      bus,
 		revision: 1,
@@ -71,6 +82,8 @@ func NewManager(root string, bus *events.Bus) *Manager {
 		ckptSeq:  0,
 		ckpts:    make(map[string]checkpointSnapshot),
 	}
+	writes.Observe(root, m.beforeWrite)
+	return m
 }
 
 // Root returns the workspace's root directory, for callers (such as the
@@ -207,6 +220,36 @@ func (m *Manager) isDirectory(path string) bool {
 	return err == nil && info.IsDir()
 }
 
+// beforeWrite records, for every checkpoint that has not seen path yet, what
+// path held before this first write or removal since the checkpoint. Revert
+// then puts back a file first edited after the checkpoint, recreates one
+// deleted since, and removes one created since.
+func (m *Manager) beforeWrite(absolute string) {
+	rel, err := filepath.Rel(m.root, absolute)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return
+	}
+	rel = filepath.ToSlash(rel)
+	state := priorState{}
+	if data, err := os.ReadFile(absolute); err == nil {
+		state = priorState{data: data, existed: true}
+	} else if !os.IsNotExist(err) {
+		return
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, snapshot := range m.ckpts {
+		if _, captured := snapshot.files[rel]; captured {
+			continue
+		}
+		if _, seen := snapshot.prior[rel]; seen {
+			continue
+		}
+		snapshot.prior[rel] = state
+	}
+}
+
 func (m *Manager) Checkpoint(note string) Checkpoint {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -243,6 +286,7 @@ func (m *Manager) Checkpoint(note string) Checkpoint {
 		revision: m.revision,
 		changed:  copyChanged,
 		files:    files,
+		prior:    make(map[string]priorState),
 		head:     m.headCommit(),
 	}
 	m.ckpts[id] = snapshot
@@ -272,38 +316,66 @@ func (m *Manager) Checkpoint(note string) Checkpoint {
 
 func (m *Manager) RevertCheckpoint(id string) (Checkpoint, error) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	snapshot, ok := m.ckpts[id]
 	if !ok {
+		m.mu.Unlock()
 		return Checkpoint{}, checkpointNotFound(id)
 	}
 	// Checked before anything is written: a refused revert leaves files and
 	// the revision counter exactly as they were.
 	if err := movedPastCheckpoint(id, snapshot.head, m.headCommit()); err != nil {
+		m.mu.Unlock()
 		return Checkpoint{}, err
 	}
 
-	m.revision = snapshot.revision
+	// Everything to put back: contents captured at the checkpoint, and what a
+	// path held before its first write since — including that it did not
+	// exist, so a file created since is removed.
+	changes := make([]writes.Change, 0, len(snapshot.files)+len(snapshot.prior))
+	for path, data := range snapshot.files {
+		absolute, err := pathguard.Resolve(m.root, path)
+		if err != nil {
+			m.mu.Unlock()
+			return Checkpoint{}, fmt.Errorf("revert to %s refused, nothing was written: %s: %w", id, path, err)
+		}
+		changes = append(changes, writes.Change{Path: absolute, Data: data})
+	}
+	for path, state := range snapshot.prior {
+		if _, captured := snapshot.files[path]; captured {
+			continue
+		}
+		absolute, err := pathguard.Resolve(m.root, path)
+		if err != nil {
+			m.mu.Unlock()
+			return Checkpoint{}, fmt.Errorf("revert to %s refused, nothing was written: %s: %w", id, path, err)
+		}
+		changes = append(changes, writes.Change{Path: absolute, Data: state.data, Remove: !state.existed})
+	}
+	m.mu.Unlock()
+	sort.Slice(changes, func(a, b int) bool { return changes[a].Path < changes[b].Path })
+
+	// All or nothing, and outside the lock: the write path tells beforeWrite,
+	// which takes it. A restore that cannot write every file puts back what it
+	// wrote and fails as a whole, naming the file.
+	if err := writes.Files(changes); err != nil {
+		return Checkpoint{}, fmt.Errorf("revert to %s did not complete, nothing was changed: %w", id, err)
+	}
+
+	// A revert is a new state with a new revision. Resetting the counter gave
+	// two different states the same name.
+	m.mu.Lock()
+	m.revision++
 	m.changed = make(map[string]struct{}, len(snapshot.changed))
 	for path := range snapshot.changed {
 		m.changed[path] = struct{}{}
 	}
-
-	// Best-effort restore: a write failure for one path (e.g. permissions)
-	// should not prevent restoring the others.
-	for path, data := range snapshot.files {
-		absolute, err := pathguard.Resolve(m.root, path)
-		if err != nil {
-			continue
-		}
-		_ = os.WriteFile(absolute, data, 0o644)
-	}
+	revision := revisionString(m.revision)
+	m.mu.Unlock()
 
 	checkpoint := Checkpoint{
 		ID:       snapshot.id,
 		Note:     snapshot.note,
-		Revision: revisionString(snapshot.revision),
+		Revision: revision,
 		Paths:    sortedKeys(snapshot.changed),
 		Head:     snapshot.head,
 	}

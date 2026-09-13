@@ -9,18 +9,49 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
-// Change is one file's new contents.
+// Change is one file's new contents, or its removal.
 type Change struct {
-	Path string
-	Data []byte
+	Path   string
+	Data   []byte
+	Remove bool
+}
+
+// observers maps a workspace root to the function told of every write or
+// removal under it, before it happens.
+var observers sync.Map
+
+// Observe registers fn to be told the path of every write or removal under
+// root before it happens. The workspace uses it to record what a file held
+// before the first change since a checkpoint, which no caller could
+// otherwise supply. A later registration for the same root replaces it.
+func Observe(root string, fn func(path string)) {
+	observers.Store(filepath.Clean(root), fn)
+}
+
+func notify(path string) {
+	observers.Range(func(key, value any) bool {
+		root := key.(string)
+		if path == root || strings.HasPrefix(path, root+string(filepath.Separator)) {
+			value.(func(string))(path)
+		}
+		return true
+	})
+}
+
+// Remove deletes path through the write path, so observers see it first.
+func Remove(path string) error {
+	notify(path)
+	return os.Remove(path)
 }
 
 // File writes data to path atomically: a temporary file beside it, then a
 // rename. An existing file keeps its permissions, and a symlink is followed,
 // so the link stays a link and its target changes.
 func File(path string, data []byte) error {
+	notify(path)
 	if resolved, err := filepath.EvalSymlinks(path); err == nil {
 		path = resolved
 	}
@@ -76,7 +107,14 @@ func Files(changes []Change) error {
 	}
 
 	for i, change := range changes {
-		err := File(change.Path, change.Data)
+		var err error
+		if change.Remove {
+			if err = Remove(change.Path); os.IsNotExist(err) {
+				err = nil
+			}
+		} else {
+			err = File(change.Path, change.Data)
+		}
 		if err == nil {
 			continue
 		}

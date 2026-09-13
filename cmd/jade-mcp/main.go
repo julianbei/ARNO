@@ -1245,7 +1245,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.revert",
-			Description: "Restore the files Jade edited to a checkpoint's snapshot and reset the revision counter. Only files Jade touched are restored, and git is never moved. Refuses if a commit has landed since the checkpoint, because restoring would overwrite committed work — use git to move past a commit.",
+			Description: "Restore the files Jade changed to their state at a checkpoint — edited files restored, files deleted since recreated, files created since removed — as one new revision, all or nothing. Only files Jade touched are restored, and git is never moved. Refuses if a commit has landed since the checkpoint, because restoring would overwrite committed work — use git to move past a commit.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

@@ -35,8 +35,10 @@ func TestCheckpointRevertRestoresActualFileBytes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected revert to succeed")
 	}
-	if restored.Revision != checkpoint.Revision {
-		t.Fatalf("expected revision to be restored to %s, got %s", checkpoint.Revision, restored.Revision)
+	// A revert is a new state, not a return to an old revision name: two
+	// different states never share one.
+	if restored.Revision == checkpoint.Revision || restored.Revision != m.Revision() {
+		t.Fatalf("expected revert to create a new revision after %s, got %s (now %s)", checkpoint.Revision, restored.Revision, m.Revision())
 	}
 
 	data, err := os.ReadFile(path)
