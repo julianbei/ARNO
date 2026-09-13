@@ -1130,8 +1130,8 @@ func tools() []mcpTool {
 				"type": "object",
 				"properties": map[string]interface{}{
 					"scope":          map[string]interface{}{"type": "string", "description": "One of: all, file, test, changed. Defaults to all."},
-					"file":           map[string]interface{}{"type": "string", "description": "File whose containing package to test, for scope=file."},
-					"test":           map[string]interface{}{"type": "string", "description": "Exact test name to run across all packages, for scope=test."},
+					"file":           map[string]interface{}{"type": "string", "description": "Test file to run, for scope=file (Go: its package). With scope=test, limits the name filter to this file."},
+					"test":           map[string]interface{}{"type": "string", "description": "Test name, for scope=test: exact in Go, the runner's name filter elsewhere (jest/vitest -t, ava --match, pytest -k, cargo test <name>)."},
 					"wait":           map[string]interface{}{"type": "boolean", "description": "Wait for the result (default true). False returns a job ID to poll."},
 					"timeoutSeconds": map[string]interface{}{"type": "integer", "description": "Bound on the wait (default 90, max 300)."},
 				},

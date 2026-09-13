@@ -143,6 +143,12 @@ func discoverCommand(dir string, kind string) (name string, args []string, ok bo
 		if script, found := npmScriptFor(dir, kind); found {
 			return "npm", []string{"run", script}, true
 		}
+		// A TypeScript project with no typecheck script still has a compiler:
+		// ky's check typecheck answered "unavailable" with tsc installed.
+		tsc := filepath.Join("node_modules", ".bin", "tsc")
+		if kind == "typecheck" && fileExists(filepath.Join(dir, "tsconfig.json")) && fileExists(filepath.Join(dir, tsc)) {
+			return tsc, []string{"--noEmit", "-p", "tsconfig.json"}, true
+		}
 	}
 
 	if fileExists(filepath.Join(dir, "Cargo.toml")) {
@@ -156,7 +162,11 @@ func discoverCommand(dir string, kind string) (name string, args []string, ok bo
 			continue
 		}
 		if ecosystemArgs, found := ecosystem.byKind[kind]; found {
-			return ecosystem.name, ecosystemArgs, true
+			name := ecosystem.name
+			if name == "python3" {
+				name = pythonInterpreter(dir)
+			}
+			return name, ecosystemArgs, true
 		}
 	}
 

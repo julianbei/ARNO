@@ -63,7 +63,13 @@ func rangesArg(args map[string]interface{}) ([]protocol.ReadRangeRequest, error)
 func parseLines(text string) (int, int, error) {
 	text = strings.TrimSpace(text)
 	invalid := fmt.Errorf("invalid lines %q: use 280-400, 280- or 280", text)
-	from, to, isRange := strings.Cut(text, "-")
+	// "55, 125", "55:125" and "55..125" all mean a range; an agent wrote the
+	// first and lost a turn to the error.
+	normalized := strings.NewReplacer("..", "-", ":", "-", ",", "-").Replace(text)
+	if fields := strings.Fields(normalized); len(fields) == 2 && !strings.Contains(normalized, "-") {
+		normalized = fields[0] + "-" + fields[1]
+	}
+	from, to, isRange := strings.Cut(normalized, "-")
 	start, err := strconv.Atoi(strings.TrimSpace(from))
 	if err != nil || start < 1 {
 		return 0, 0, invalid

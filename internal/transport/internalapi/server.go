@@ -462,7 +462,7 @@ func (s *Server) DeleteFile(req protocol.DeleteFileRequest) (protocol.EditRespon
 func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsResponse {
 	jobID := s.jobs.Start("tests")
 	scope := jobs.TestScope{Kind: req.Scope, File: req.File, Test: req.Test}
-	s.jobs.RunScopedGoTests(jobID, s.workspace.Root(), scope, s.workspace.Changes())
+	s.jobs.RunScopedTests(jobID, s.workspace.Root(), scope, s.workspace.Changes())
 
 	if !req.Wait {
 		return protocol.RunTestsResponse{JobID: jobID, Outcome: protocol.OutcomeRunning, Status: "running"}

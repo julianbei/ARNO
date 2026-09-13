@@ -57,6 +57,9 @@ type Index struct {
 
 	cacheMu sync.RWMutex
 	cache   map[string]fileSymbolCache
+
+	// ignore caches what git ignores, for walks to skip.
+	ignore ignoreCache
 }
 
 // fileSymbolCache holds the last-parsed symbols for a file, keyed against
@@ -280,7 +283,7 @@ func (i *Index) WorkspaceTree(maxEntries int) (protocol.WorkspaceTreeResponse, e
 			return nil
 		}
 
-		if shouldSkipPath(path) {
+		if shouldSkipPath(path) || i.gitIgnored(path) {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
@@ -1394,11 +1397,15 @@ func (i *Index) resolvePath(path string) (string, error) {
 	return pathguard.Resolve(i.root, path)
 }
 
-// leavesWorkspace reports a symlinked file whose target lies outside the
-// workspace. Walks skip it: a link into ~/.aws is not repository content, and
-// grep or find must not read through it.
+// leavesWorkspace reports a path that is not repository content: a symlink
+// whose target lies outside the workspace, or an untracked file git ignores.
+// Walks skip both: a link into ~/.aws must not be read through, and build
+// output answers every search a second time.
 func (i *Index) leavesWorkspace(path string, info os.FileInfo) bool {
-	return info.Mode()&os.ModeSymlink != 0 && !pathguard.Contains(i.root, path)
+	if info.Mode()&os.ModeSymlink != 0 && !pathguard.Contains(i.root, path) {
+		return true
+	}
+	return i.gitIgnored(path)
 }
 
 func splitLines(input string) []string {
@@ -1491,6 +1498,8 @@ func shouldSkipPath(path string) bool {
 		".git": true, "node_modules": true, "vendor": true, "dist": true,
 		"build": true, "target": true, ".next": true, ".cache": true,
 		"coverage": true, ".idea": true, ".vscode": true,
+		// Jade's own telemetry directory is never repository content.
+		".jade": true,
 	}
 	for _, segment := range strings.Split(filepath.ToSlash(path), "/") {
 		if skipNames[strings.ToLower(segment)] {

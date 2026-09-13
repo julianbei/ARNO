@@ -50,6 +50,27 @@ specific to cobra or Go.
 - **A passing `apply` check shows only its verdict.** The check summary is
   whatever the suite logged; under `pass tests` cobra's expected
   `Error: if any flags ...` lines still sent the agent to re-run every test.
+- **`run_tests` scopes work outside Go.** `scope: file` and `scope: test` ran
+  `go test` in every repository; in ky (TypeScript) they answered
+  "go mod init ... FAIL" seven times in three tasks, and the agent fell back to
+  the whole `npm run test` — lint, build and browser suites — whose unrelated
+  failures cost it dozens of turns. Scoped runs now use the project's own
+  runner: the JavaScript runner the package depends on
+  (`node_modules/.bin/vitest|jest|ava|mocha`, else `node --test`), pytest, or
+  `cargo test` (`--test <name>` for `tests/<name>.rs`). A dependency that is not
+  installed reads as unavailable, with `npm install` named.
+- **Python checks use the repository's virtual environment.** `.venv/bin/python`
+  or `venv/bin/python` is preferred over the system `python3`, which usually
+  has neither the project nor pytest installed.
+- **`check typecheck` finds TypeScript's compiler.** A project with a
+  `tsconfig.json` and no typecheck script runs `node_modules/.bin/tsc --noEmit`
+  instead of answering unavailable.
+- **Searches skip what git ignores.** `grep`, `find` and `workspace_tree`
+  skipped a fixed list of directory names and nothing else, so ky's gitignored
+  `distribution/` build output answered every search twice: one grep returned
+  123 matches and 19.7 KB, the tree 4.7 KB. Untracked ignored paths are now
+  skipped, as ripgrep does by default. Jade's own `.jade/` is never listed.
+- **`lines` accepts `55, 125`, `55:125` and `55..125`.**
 - **`jade-bench agent-report` counts output tokens correctly.** It read them
   from streamed events, which carry the count at the start of each message,
   and undercounted output about 40 times. Totals were unaffected; output now
