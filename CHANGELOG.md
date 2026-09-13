@@ -65,6 +65,15 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### The core and provider boundary, written down
+
+[scope.md](docs/scope.md) now records what core owns (the catalog, the write
+path, revisions and checkpoints, provenance, budgets, the job runner), what a
+provider may do (answer or decline one capability, report its certainty
+class, propose edits), the two invariants — only core writes to the
+workspace, no provider adds a tool — and the conditions a future plugin
+protocol must meet.
+
 ### Two sessions on one workspace
 
 Tested now: a second session edits a file the first has read; the first

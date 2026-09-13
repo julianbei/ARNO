@@ -1003,6 +1003,60 @@ run_gopls()
 
 ---
 
+## Core and providers: the boundary
+
+Recorded in 0.0.7, once the write path and the provider registry existed, so
+later work on plugins does not reopen the argument.
+
+**Core owns:**
+
+- The tool catalog, its schemas and the contract
+  ([tool-contract.md](tool-contract.md)). Nothing else adds a tool.
+- The one write path (`internal/writes`): every change to the workspace,
+  atomic and all-or-nothing across files, observed by every session's
+  checkpoints.
+- Revisions, content digests, checkpoints and revert.
+- The workspace boundary (`internal/pathguard`).
+- Provenance: the closed certainty and completeness sets, and how they are
+  rendered. Budgets and continuation handles.
+- The validation job runner: timeouts, process groups, output clamping, the
+  exit-status verdict and the failure summary.
+- Telemetry, content-free.
+
+**A provider may:**
+
+- Declare an ID and answer one capability — references, rename, edit
+  diagnostics today — or decline so the next provider is asked. Core orders
+  providers strongest first; the first answer wins (for rename, the first
+  provider that handles a request ends it, success or refusal).
+- Say which certainty class its answer falls in and what limits it. Core
+  words it.
+- Propose edits. A language server's rename returns positioned edits; core
+  preflights them against the workspace and writes them.
+
+**Two invariants:**
+
+1. **Only core writes to the workspace, and only through the write path.** A
+   provider that wrote a file itself would make a change with no revision,
+   no checkpoint record, no formatting and no diagnostics.
+   `TestEditsWriteOnlyThroughThisPackage` holds it for the edit packages.
+2. **No provider adds a tool.** A framework-aware provider makes `references`
+   or `retrieve` better; it never adds `django_models`. That keeps profiles,
+   schemas and the contract predictable.
+
+**What a future plugin protocol must meet** (release plan, *Deferred past
+0.1.0*):
+
+- Subprocesses over stdio JSON-RPC, far smaller than MCP: `initialize` with
+  a protocol version, then one versioned method set per capability.
+- Plugins do not write to the workspace. Third-party plugins get brokered
+  reads (`workspace.read`, `workspace.list` back to core) before they are
+  supported.
+- Authority classes come from the protocol; core renders them.
+- Installation is the user's (`~/.jade/plugins/`); a repository may name a
+  plugin it wants, and Jade never launches a binary found inside a
+  repository.
+
 # 21. Language support strategy
 
 ## Phase 1 languages

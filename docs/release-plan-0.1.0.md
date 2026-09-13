@@ -611,7 +611,7 @@ impact-aware validation comes after the write path it depends on, not before.
   timeout, process group, output clamping, exit-status verdict, typed outcome
   and telemetry. Same shape for declared commands, so `check` has one input
   type.
-- [ ] **Record the boundary** in [scope.md](scope.md): what core owns, what a
+- [x] **Record the boundary** in [scope.md](scope.md) (*done 2026-09-14*, "Core and providers: the boundary"): what core owns, what a
   provider may do, the two invariants, and the conditions a future plugin
   protocol must meet (see *Deferred*). Written now so the refactors above do
   not close the door and the plugin work later does not reopen the argument.
