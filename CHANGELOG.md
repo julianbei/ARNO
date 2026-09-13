@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Answers say how sure they are
+
+The first provenance lines from the 0.0.5 design
+([tool-contract.md](docs/tool-contract.md#budgets-and-provenance--005-design)):
+certainty, source and completeness, from closed sets, on the answer's first
+line.
+
+- **`references`** leads with its summary and
+  `exact · <language server> · complete`, or
+  `approximate · text index · may be incomplete` for name matching. The
+  summary used to come last, after every reference.
+- **`grep`** ends its summary with `exact · text search · complete`, or `cut`
+  when the limit stopped it.
+- **An outline** carries `structural · tree-sitter · complete` for a grammar
+  parse, and `text fallback · text scan · may be incomplete` or
+  `parse errors` otherwise, next to the revision.
+
 ### Found building 0.0.4 with Jade
 
 - **An edit in `apply` accepts `text`.** `insert` on its own takes `text`,

@@ -163,6 +163,10 @@ func (i *Index) grep(req protocol.GrepRequest, retry bool) (protocol.GrepRespons
 		Files:     len(files),
 		Truncated: total > len(matches),
 	}
+	response.Provenance = protocol.Provenance{Certainty: protocol.CertaintyExact, Source: "text search", Completeness: protocol.CompletenessComplete}
+	if response.Truncated {
+		response.Provenance.Completeness = protocol.CompletenessCut
+	}
 	response.Summary = grepSummary(response, req.Regex)
 	return response, nil
 }
@@ -368,6 +372,9 @@ func grepSummary(r protocol.GrepResponse, regex bool) string {
 	summary := fmt.Sprintf("%d matches in %d files", r.Total, r.Files)
 	if r.Truncated {
 		summary += fmt.Sprintf(", showing %d — raise limit or narrow with glob/exclude", len(r.Matches))
+	}
+	if provenance := r.Provenance.String(); provenance != "" {
+		summary += " · " + provenance
 	}
 	return summary
 }

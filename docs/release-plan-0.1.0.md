@@ -412,6 +412,9 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   classes are a closed set defined by core; a provider reports which class its
   answer falls in and what limits it, and core renders the line. No provider
   chooses its own confidence wording.
+  *Progress 2026-09-13:* `Provenance` type and closed sets in core;
+  `references`, `grep` and outlines carry it. `find`, `search`, `retrieve`
+  and the rest still to do.
 - [ ] **Say where the shell is still the right tool.** The review is right that
   Jade will not match shell composability, and should not try. Document the
   boundary — `run_command` and declared commands are the sanctioned escape

@@ -49,6 +49,7 @@ func (i *Index) References(path string, symbolID string) (protocol.ReferencesRes
 			Source:     "lsp",
 			References: refs,
 			Summary:    fmt.Sprintf("%d references to %s (%s)", len(refs), symbol.Name, server),
+			Provenance: protocol.Provenance{Certainty: protocol.CertaintyExact, Source: server, Completeness: protocol.CompletenessComplete},
 		}, nil
 	}
 
@@ -62,6 +63,7 @@ func (i *Index) References(path string, symbolID string) (protocol.ReferencesRes
 				Source:     "lsp",
 				References: refs,
 				Summary:    fmt.Sprintf("%d references to %s (gopls)", len(refs), symbol.Name),
+				Provenance: protocol.Provenance{Certainty: protocol.CertaintyExact, Source: "gopls", Completeness: protocol.CompletenessComplete},
 			}, nil
 		}
 	}
@@ -70,6 +72,7 @@ func (i *Index) References(path string, symbolID string) (protocol.ReferencesRes
 	return protocol.ReferencesResponse{
 		Query:      symbolID,
 		Source:     "approximate",
+		Provenance: protocol.Provenance{Certainty: protocol.CertaintyApproximate, Source: "text index", Completeness: protocol.CompletenessMayBeIncomplete},
 		References: refs,
 		Summary: fmt.Sprintf(
 			"%d approximate references to %s (name-matched call graph; gopls unavailable — duplicate names, dynamic dispatch and cross-file shadowing are not resolved)",

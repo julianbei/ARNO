@@ -373,12 +373,13 @@ type GrepMatch struct {
 // GrepResponse carries the matches. Total is the true number found even when
 // Limit cut the returned set: a cap must cost detail, never accuracy.
 type GrepResponse struct {
-	Query     string
-	Matches   []GrepMatch
-	Total     int
-	Files     int
-	Truncated bool
-	Summary   string
+	Query      string
+	Matches    []GrepMatch
+	Total      int
+	Files      int
+	Truncated  bool
+	Summary    string
+	Provenance Provenance
 }
 
 // GrepBatchResponse answers several grep patterns, in the order asked.
@@ -537,6 +538,77 @@ type ParserInfo struct {
 	// Note explains the limitation in the caller's terms when Complete is
 	// false, and is empty otherwise.
 	Note string
+}
+
+// Provenance says how sure an answer is, what produced it and whether it is
+// whole, rendered by core as one line: `exact · gopls · complete`. Certainty
+// and completeness are closed sets; a backend picks from them and never words
+// its own confidence. See docs/tool-contract.md, "Budgets and provenance".
+type Provenance struct {
+	Certainty    string
+	Source       string
+	Completeness string
+}
+
+// Certainty values.
+const (
+	CertaintyExact        = "exact"
+	CertaintyStructural   = "structural"
+	CertaintyApproximate  = "approximate"
+	CertaintyTextFallback = "text fallback"
+)
+
+// Completeness values.
+const (
+	CompletenessComplete        = "complete"
+	CompletenessCut             = "cut"
+	CompletenessMayBeIncomplete = "may be incomplete"
+	CompletenessParseErrors     = "parse errors"
+	CompletenessStale           = "stale"
+)
+
+// String renders the provenance line, or "" when none was recorded.
+func (p Provenance) String() string {
+	if p.Certainty == "" {
+		return ""
+	}
+	line := p.Certainty
+	if p.Source != "" {
+		line += " · " + p.Source
+	}
+	if p.Completeness != "" {
+		line += " · " + p.Completeness
+	}
+	return line
+}
+
+// ParserProvenance is the provenance of an outline obtained as parser says:
+// a grammar parse is structural and complete, a text scan may miss
+// declarations, and a grammar that did not parse the file points at parse
+// errors.
+func ParserProvenance(parser ParserInfo) Provenance {
+	switch {
+	case parser.Parser == "":
+		return Provenance{}
+	case parser.Complete:
+		return Provenance{Certainty: CertaintyStructural, Source: "tree-sitter", Completeness: CompletenessComplete}
+	case parser.Parser == "heuristic" && parser.Language != "" && parserNoteSaysUnparsed(parser.Note):
+		return Provenance{Certainty: CertaintyTextFallback, Source: "text scan", Completeness: CompletenessParseErrors}
+	default:
+		return Provenance{Certainty: CertaintyTextFallback, Source: "text scan", Completeness: CompletenessMayBeIncomplete}
+	}
+}
+
+// parserNoteSaysUnparsed reports ParserFor's note for a grammar that failed on
+// the file, as opposed to a language with no grammar.
+func parserNoteSaysUnparsed(note string) bool {
+	const marker = "grammar did not parse"
+	for i := 0; i+len(marker) <= len(note); i++ {
+		if note[i:i+len(marker)] == marker {
+			return true
+		}
+	}
+	return false
 }
 
 // InspectResponse returns a scoped code view plus freshness metadata.
@@ -881,6 +953,7 @@ type ReferencesResponse struct {
 	Source     string
 	References []ReferenceLocation
 	Summary    string
+	Provenance Provenance
 }
 
 // RenameRequest renames a symbol across the whole repository.

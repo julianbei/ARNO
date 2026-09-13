@@ -175,6 +175,11 @@ func inspect(r protocol.InspectResponse) string {
 	if r.Range != "" {
 		header = append(header, r.Range)
 	}
+	if len(r.Outline) > 0 {
+		if provenance := protocol.ParserProvenance(r.Parser).String(); provenance != "" {
+			header = append(header, provenance)
+		}
+	}
 	// Freshness appears on a read only when it is broken. A drift count was
 	// printed on every read — `r34 · drifted: 6 files` — and no read can act
 	// on it: the files changed outside Jade (a build, git, another process)
@@ -275,11 +280,24 @@ func search(r protocol.SearchResponse) string {
 }
 
 func references(r protocol.ReferencesResponse) string {
+	provenance := r.Provenance.String()
 	if len(r.References) == 0 {
+		if provenance != "" {
+			return fmt.Sprintf("no references to %s · %s", r.Query, provenance)
+		}
 		return fmt.Sprintf("no references to %s (%s)", r.Query, r.Source)
 	}
 
+	// The summary leads, with how sure it is: a reader stopping at the first
+	// line must know whether the list is compiler-resolved or name-matched.
 	lines := make([]string, 0, len(r.References)+1)
+	if r.Summary != "" {
+		header := r.Summary
+		if provenance != "" {
+			header += " · " + provenance
+		}
+		lines = append(lines, header)
+	}
 	for _, ref := range r.References {
 		line := ref.Path
 		if ref.Line > 0 {
@@ -294,9 +312,6 @@ func references(r protocol.ReferencesResponse) string {
 			line += " (" + ref.Confidence + ")"
 		}
 		lines = append(lines, line)
-	}
-	if r.Summary != "" {
-		lines = append(lines, r.Summary)
 	}
 	return strings.Join(lines, "\n")
 }
