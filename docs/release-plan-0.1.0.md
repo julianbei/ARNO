@@ -624,8 +624,7 @@ impact-aware validation comes after the write path it depends on, not before.
   the declared commands of that kind as a stopping chain; `capabilities`
   lists kinds; runs are jobs in `events`. Not yet in `changes`.
   *Update 2026-09-14:* `changes` lists the last ten finished checks,
-  declared-command runs and apply checks with their revision (`run_tests`
-  not yet).
+  `run_tests`, declared-command runs and apply checks with their revision.
 - [x] **Validation chain through declared commands.** *Done 2026-09-14:*
   README "A validation chain"; `TestDeclaredValidationChainStopsAtTheFirstFailingStep`. Document and test a
   `.jade/commands.json` that runs Semgrep (or any repository rule tool) after
@@ -661,8 +660,9 @@ impact-aware validation comes after the write path it depends on, not before.
   *Progress 2026-09-14:* `TestTwoSessionsOnOneWorkspaceDoNotLoseEachOthersWork`
   — a stale edit is refused by digest, neither session loses the other's
   work, concurrent applies land; the write path now tells every session of
-  every write. `changes` attributing each edit, and measuring language
-  servers across sessions, still to do.
+  every write. `changes` marks files a session did not edit as outside
+  this session; naming which other session made them would need a shared
+  ledger. Measuring language servers across sessions still to do.
 - [ ] **Long-running work without polling** (ROADMAP §4). Progress
   notifications; no 300-second cap on backgrounded jobs.
 - [x] **Stop reporting transient errors mid-edit** (ROADMAP §3). *Done

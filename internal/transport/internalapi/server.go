@@ -620,9 +620,14 @@ func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsRespons
 	}
 
 	outcome := finishedOutcome(output)
+	runKind := "run_tests"
+	if req.Scope != "" {
+		runKind += " " + req.Scope
+	}
 	// A narrowed run that ran nothing exits 0 in cargo and go test, and read
 	// as a pass for a test name that matched no test.
 	if outcome == protocol.OutcomePassed && req.Scope != "" && req.Scope != "all" && jobs.NoTestsRan(output.Raw) {
+		s.workspace.RecordRun(runKind, string(protocol.OutcomeFailed))
 		return protocol.RunTestsResponse{
 			JobID:   jobID,
 			Outcome: protocol.OutcomeFailed,
@@ -631,6 +636,7 @@ func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsRespons
 		}
 	}
 	runPassed := outcome == protocol.OutcomePassed
+	s.workspace.RecordRun(runKind, string(outcome))
 	return protocol.RunTestsResponse{
 		JobID:   jobID,
 		Outcome: outcome,

@@ -72,10 +72,8 @@ line.
   knows what it edited; the rest git sees is someone else's.
 - **Recent validation runs are listed:** `ran: check tests passed at r12 ·
   command validate failed at r14 · apply impact passed at r15` — checks,
-  declared commands and apply's check, the last ten, at the revision they ran
-  against.
-
-`run_tests` runs are not listed yet.
+  `run_tests`, declared commands and apply's check, the last ten, at the
+  revision they ran against.
 
 ### Declared commands as validation steps
 
