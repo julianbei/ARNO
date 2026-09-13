@@ -64,6 +64,21 @@ func TestFilesWritesAllOrNone(t *testing.T) {
 	}
 }
 
+func TestEveryObserverOfARootIsTold(t *testing.T) {
+	root := t.TempDir()
+	var first, second []string
+	Observe(root, func(path string) { first = append(first, path) })
+	Observe(root, func(path string) { second = append(second, path) })
+
+	target := filepath.Join(root, "a.txt")
+	if err := File(target, []byte("a\n")); err != nil {
+		t.Fatal(err)
+	}
+	if len(first) != 1 || len(second) != 1 || first[0] != target || second[0] != target {
+		t.Fatalf("both observers should be told of the write, got %v and %v", first, second)
+	}
+}
+
 // TestEditsWriteOnlyThroughThisPackage keeps the write path single: an edit
 // package that writes a file itself skips atomicity and all-or-nothing.
 func TestEditsWriteOnlyThroughThisPackage(t *testing.T) {

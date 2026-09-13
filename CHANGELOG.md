@@ -65,6 +65,21 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### Two sessions on one workspace
+
+Tested now: a second session edits a file the first has read; the first
+session's edit based on that read is refused by its digest and writes
+nothing; after a fresh read both edits are in the file; concurrent `apply`
+calls from both sessions to different files both land.
+
+Fixed on the way: the write path kept one observer per workspace root, so a
+second session on the same root silently took over checkpoint recording from
+the first. Every session is told of every write now.
+
+Still true: each session counts its own revisions, so only `expectedDigest`
+sees the other session's edits, and `changes` does not say which session
+made an edit.
+
 ### The edit contract, written down and held by tests
 
 [tool-contract.md](docs/tool-contract.md#the-edit-contract) lists what every

@@ -169,6 +169,8 @@ changing with it.
 | The response leads with the revision transition and carries diagnostics | `TestEditLeadsWithRevisionAndSurfacesDiagnostics` |
 | Files an `apply` touched are formatted when the repository declares a formatter | `TestApplyFormatsTouchedFiles` |
 | A continuation handle cut before an edit is refused after it | `TestGrepContinueRefusedAfterAnEdit` |
+| Two sessions on one workspace: an edit based on a read the other session invalidated is refused, neither loses the other's edit, and concurrent applies to different files both land | `TestTwoSessionsOnOneWorkspaceDoNotLoseEachOthersWork` |
+| Every session's checkpoints see every write to the workspace | `TestEveryObserverOfARootIsTold` |
 
 ### Checkpoint and revert
 
@@ -181,9 +183,9 @@ changing with it.
 | An unknown checkpoint is reported as not found | `TestRevertToAnUnknownCheckpointIsNotFound` |
 
 Not guaranteed yet: that the revision also moves for changes made outside
-Jade (the digest precondition covers the edit, not the counter), and that
-two sessions on one workspace never lose each other's work (release plan,
-concurrent-agent test).
+Jade or by another session — each session counts its own edits, and only the
+digest precondition sees the rest — and that `changes` attributes an edit to
+the session that made it.
 
 ## Deprecated in 0.0.5
 

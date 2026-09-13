@@ -646,6 +646,11 @@ impact-aware validation comes after the write path it depends on, not before.
   servers across sessions (codescout does) moves up — otherwise it waits. No
   daemon without profiling; but check that nothing in the LSP client assumes
   one process owns its server, so sharing stays possible later.
+  *Progress 2026-09-14:* `TestTwoSessionsOnOneWorkspaceDoNotLoseEachOthersWork`
+  — a stale edit is refused by digest, neither session loses the other's
+  work, concurrent applies land; the write path now tells every session of
+  every write. `changes` attributing each edit, and measuring language
+  servers across sessions, still to do.
 - [ ] **Long-running work without polling** (ROADMAP §4). Progress
   notifications; no 300-second cap on backgrounded jobs.
 - [ ] **Stop reporting transient errors mid-edit** (ROADMAP §3).

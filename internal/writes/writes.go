@@ -29,26 +29,38 @@ type Change struct {
 	Remove bool
 }
 
-// observers maps a workspace root to the function told of every write or
+// observers maps a workspace root to the functions told of every write or
 // removal under it, before it happens.
-var observers sync.Map
+var (
+	observersMu sync.Mutex
+	observers   = map[string][]func(string){}
+)
 
 // Observe registers fn to be told the path of every write or removal under
 // root before it happens. The workspace uses it to record what a file held
 // before the first change since a checkpoint, which no caller could
-// otherwise supply. A later registration for the same root replaces it.
+// otherwise supply. Several may observe one root: two sessions on one
+// workspace each keep their own checkpoints. A single observer per root let
+// the second session silently replace the first's.
 func Observe(root string, fn func(path string)) {
-	observers.Store(filepath.Clean(root), fn)
+	observersMu.Lock()
+	defer observersMu.Unlock()
+	root = filepath.Clean(root)
+	observers[root] = append(observers[root], fn)
 }
 
 func notify(path string) {
-	observers.Range(func(key, value any) bool {
-		root := key.(string)
+	observersMu.Lock()
+	var matched []func(string)
+	for root, fns := range observers {
 		if path == root || strings.HasPrefix(path, root+string(filepath.Separator)) {
-			value.(func(string))(path)
+			matched = append(matched, fns...)
 		}
-		return true
-	})
+	}
+	observersMu.Unlock()
+	for _, fn := range matched {
+		fn(path)
+	}
 }
 
 // Remove deletes path through the write path, so observers see it first.
