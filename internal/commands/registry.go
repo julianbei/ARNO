@@ -35,6 +35,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/julianbei/jade/internal/writes"
 )
 
 // Dir and File name the registry's location inside the workspace. It is a
@@ -221,7 +223,9 @@ func (r *Registry) save() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(r.root, RelPath), append(data, '\n'), 0o644)
+	// Through the write path like any edit: atomic, and seen by checkpoints,
+	// so reverting past a declare_command restores the registry too.
+	return writes.File(filepath.Join(r.root, RelPath), append(data, '\n'))
 }
 
 // ValidateName rejects names that cannot be typed or printed unambiguously.

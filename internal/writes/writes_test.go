@@ -82,7 +82,9 @@ func TestEveryObserverOfARootIsTold(t *testing.T) {
 // TestEditsWriteOnlyThroughThisPackage keeps the write path single: an edit
 // package that writes a file itself skips atomicity and all-or-nothing.
 func TestEditsWriteOnlyThroughThisPackage(t *testing.T) {
-	for _, dir := range []string{"../code", "../edit"} {
+	// Every package that changes workspace files: edits, the command registry
+	// (.jade/commands.json), checkpoint restore and the API layer.
+	for _, dir := range []string{"../code", "../edit", "../commands", "../workspace", "../transport/internalapi"} {
 		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil || info.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
 				return err

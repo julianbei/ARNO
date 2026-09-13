@@ -552,7 +552,7 @@ revert — is dependable end to end, including in long and concurrent sessions.
 Ordered so the transaction is correct before anything is built on top of it:
 impact-aware validation comes after the write path it depends on, not before.
 
-- [ ] **One write path.** Every change to the workspace — `replace_text`,
+- [x] **One write path.** Every change to the workspace — `replace_text`,
   `insert`, `delete_symbol`, symbol replacement, formatter output, LSP rename
   and checkpoint restore — goes through a single transaction step that checks
   preconditions, writes, updates the index and advances the revision.
@@ -562,8 +562,12 @@ impact-aware validation comes after the write path it depends on, not before.
   *Progress 2026-09-14:* `internal/writes` — atomic single writes and
   all-or-nothing multi-file writes — carries every edit in `internal/code`
   and `internal/edit` and the LSP rename; a test guards both packages.
-  Revisions and the index are still updated by each caller, and checkpoint
-  restore still writes on its own.
+  *Done 2026-09-14:* checkpoint restore and the command registry write
+  through it too; the guard test covers code, edit, commands, workspace and
+  the API layer. Every writing edit advances the revision, and the index
+  invalidates on the written file's mtime and size. Formatters are
+  external processes that rewrite a file after Jade's write, which the
+  checkpoint has already recorded.
 - [x] **Write the edit contract down, and test it.** *Done 2026-09-14:*
   tool-contract.md "The edit contract", 21 guarantees each naming its test,
   guarded by `TestEditContractNamesOnlyTestsThatExist`. For every write tool, in

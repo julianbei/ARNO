@@ -65,6 +65,14 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### `.jade/commands.json` goes through the write path
+
+`declare_command` wrote the registry directly, so a checkpoint did not
+record it and a revert left a declared command in place. It now writes
+atomically through `internal/writes`, like every edit. The test that guards
+the write path covers the command registry, the workspace and the API layer
+as well as the edit packages.
+
 ### Discovery returns plans, and one runner executes them
 
 Internal, no change in behaviour. Ecosystem discovery, `.jade/project.json`,
