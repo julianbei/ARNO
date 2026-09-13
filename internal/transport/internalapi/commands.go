@@ -3,6 +3,7 @@ package internalapi
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"github.com/julianbei/jade/internal/commands"
 	"github.com/julianbei/jade/internal/protocol"
@@ -109,6 +110,7 @@ func (s *Server) DeclareCommand(req protocol.DeclareCommandRequest) (protocol.De
 	replaced, err := registry.Declare(req.Name, commands.Command{
 		Run:         req.Run,
 		Description: req.Description,
+		Kind:        strings.TrimSpace(strings.ToLower(req.Kind)),
 	})
 	if err != nil {
 		return protocol.DeclareCommandResponse{}, err
@@ -130,6 +132,50 @@ func (s *Server) DeclareCommand(req protocol.DeclareCommandRequest) (protocol.De
 	}, nil
 }
 
+// checkDeclared runs every declared command of kind, in name order, as one
+// chain: the first to fail fails the check and the ones after it do not run.
+// ran is false when the repository declares none of that kind.
+func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol.CheckResponse, bool) {
+	registry, err := commands.Load(s.workspace.Root())
+	if err != nil {
+		return protocol.CheckResponse{Kind: kind, Outcome: protocol.OutcomeUnavailable, Status: "no command", Summary: err.Error()}, true
+	}
+	var names, runs []string
+	for _, entry := range registry.All() {
+		if entry.Kind == kind {
+			names = append(names, entry.Name)
+			runs = append(runs, "("+entry.Run+")")
+		}
+	}
+	if len(names) == 0 {
+		return protocol.CheckResponse{}, false
+	}
+
+	command := "declared " + strings.Join(names, ", ")
+	if req.DryRun {
+		return protocol.CheckResponse{Kind: kind, Status: "dry run", Command: command}, true
+	}
+	jobID := s.jobs.Start("check:" + kind)
+	s.jobs.RunCommandWithTimeout(jobID, s.workspace.Root(), checkTimeout(req.TimeoutSeconds), shell(), "-c", strings.Join(runs, " && "))
+	if !req.Wait {
+		return protocol.CheckResponse{JobID: jobID, Kind: kind, Outcome: protocol.OutcomeRunning, Status: "running", Command: command}, true
+	}
+	output, finished := s.jobs.Wait(jobID, checkTimeout(req.TimeoutSeconds))
+	if !finished {
+		return protocol.CheckResponse{
+			JobID: jobID, Kind: kind, Outcome: protocol.OutcomeTimedOut, Status: "running", Command: command,
+			Summary: fmt.Sprintf("%s did not finish within %s and is still running — poll job_status %s", kind, checkTimeout(req.TimeoutSeconds), jobID),
+		}, true
+	}
+	outcome := finishedOutcome(output)
+	passed := outcome == protocol.OutcomePassed
+	return protocol.CheckResponse{
+		JobID: jobID, Kind: kind, Outcome: outcome, Status: output.Status, Passed: passed,
+		Summary: verdictSummary(passed, output.Summary, output.Raw),
+		Command: command,
+	}, true
+}
+
 func declaredList(registry *commands.Registry) []protocol.DeclaredCommand {
 	all := registry.All()
 	out := make([]protocol.DeclaredCommand, 0, len(all))
@@ -138,6 +184,7 @@ func declaredList(registry *commands.Registry) []protocol.DeclaredCommand {
 			Name:        entry.Name,
 			Run:         entry.Run,
 			Description: entry.Description,
+			Kind:        entry.Kind,
 		})
 	}
 	return out

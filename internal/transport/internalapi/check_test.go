@@ -15,7 +15,11 @@ func TestNormalizeCheckKindAcceptsSynonyms(t *testing.T) {
 		"build":     "build",
 		"typecheck": "typecheck",
 		"vet":       "typecheck",
-		"lint":      "typecheck",
+		// lint is its own kind now: Check runs the declared lint commands,
+		// and falls back to typecheck only when none are declared.
+		"lint":      "lint",
+		"codegen":   "codegen",
+		"generate":  "codegen",
 		"tests":     "tests",
 		"test":      "tests",
 		"  Build  ": "build",

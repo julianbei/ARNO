@@ -620,6 +620,9 @@ impact-aware validation comes after the write path it depends on, not before.
   them as validation steps by kind (`lint`, `codegen`), and their runs appear
   in `changes` and `events` alongside edits, so the whole transaction is in
   one record.
+  *Progress 2026-09-14:* commands carry a `kind`; `check lint|codegen` runs
+  the declared commands of that kind as a stopping chain; `capabilities`
+  lists kinds; runs are jobs in `events`. Not yet in `changes`.
 - [x] **Validation chain through declared commands.** *Done 2026-09-14:*
   README "A validation chain"; `TestDeclaredValidationChainStopsAtTheFirstFailingStep`. Document and test a
   `.jade/commands.json` that runs Semgrep (or any repository rule tool) after

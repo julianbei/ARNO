@@ -445,6 +445,7 @@ type DeclaredCommand struct {
 	Name        string
 	Run         string
 	Description string
+	Kind        string
 }
 
 // RunCommandResponse carries a command's outcome, or — when the request named
@@ -473,6 +474,8 @@ type DeclareCommandRequest struct {
 	Name        string
 	Run         string
 	Description string
+	// Kind makes the command a validation step check runs by kind.
+	Kind string
 	// Remove deletes the named command instead of declaring it.
 	Remove bool
 }

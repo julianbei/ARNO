@@ -673,6 +673,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			Name:        stringArg(args, "name"),
 			Run:         stringArg(args, "run"),
 			Description: stringArg(args, "description"),
+			Kind:        stringArg(args, "kind"),
 			Remove:      boolArg(args, "remove"),
 		})
 		if err != nil {
@@ -1129,7 +1130,7 @@ func catalogTools() []mcpTool {
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"kind":           map[string]interface{}{"type": "string", "description": "build (default), typecheck, or tests."},
+					"kind":           map[string]interface{}{"type": "string", "description": "build (default), typecheck, tests, lint or codegen. lint and codegen run the declared commands of that kind; lint with none declared runs typecheck."},
 					"wait":           map[string]interface{}{"type": "boolean", "description": "Wait for the result (default true). False returns a job ID to poll."},
 					"timeoutSeconds": map[string]interface{}{"type": "integer", "description": "Bound on the wait (default 90, max 300)."},
 					"dryRun":         map[string]interface{}{"type": "boolean", "description": "Name the command that would run, without running it."},
@@ -1202,6 +1203,7 @@ func catalogTools() []mcpTool {
 					"run":         map[string]interface{}{"type": "string", "description": "Shell command to run from the workspace root."},
 					"description": map[string]interface{}{"type": "string", "description": "Optional note on what the command is for."},
 					"remove":      map[string]interface{}{"type": "boolean", "description": "Delete the named command instead of declaring it."},
+					"kind":        map[string]interface{}{"type": "string", "description": "Optional. lint or codegen makes the command a validation step: check with that kind runs every declared command of it."},
 				},
 				"required": []string{"name"},
 			},

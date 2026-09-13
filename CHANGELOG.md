@@ -65,6 +65,16 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### Declared commands as validation steps
+
+`declare_command` takes a `kind`. `check kind: "lint"` or `"codegen"` runs
+every declared command of that kind, in name order, as one chain — the first
+failure fails the check and the rest do not run — and names what ran
+(`declared golangci, semgrep`). With no lint declared, `lint` runs the
+typecheck as before; with no codegen declared, `codegen` answers
+unavailable and says how to declare one. `capabilities` lists each
+command's kind, and every run is a job in `events`.
+
 ### A validation chain through a declared command
 
 The README shows how to put repository rules into validation without a

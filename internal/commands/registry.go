@@ -71,6 +71,9 @@ type Command struct {
 	// Description is optional and exists for the agent that did not declare
 	// the command: "test" is obvious, "seed" is not.
 	Description string `json:"description,omitempty"`
+	// Kind makes the command a validation step: lint, codegen, build,
+	// typecheck or tests. check runs the lint and codegen commands of its kind.
+	Kind string `json:"kind,omitempty"`
 }
 
 // Registry is a workspace's declared commands, loaded from disk.

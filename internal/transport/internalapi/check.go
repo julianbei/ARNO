@@ -36,6 +36,25 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 		return protocol.CheckResponse{}, err
 	}
 
+	// Lint and codegen have no discovery: the repository's declared commands
+	// of that kind are the answer.
+	if kind == "lint" || kind == "codegen" {
+		if response, ran := s.checkDeclared(req, kind); ran {
+			return response, nil
+		}
+		if kind == "codegen" {
+			return protocol.CheckResponse{
+				Kind:    kind,
+				Outcome: protocol.OutcomeUnavailable,
+				Status:  "no command",
+				Summary: "no codegen command declared — declare one with declare_command(name, run, kind: \"codegen\")",
+			}, nil
+		}
+		// No declared lint: a typecheck is the closest check discovery has,
+		// which is what lint meant before commands had kinds.
+		kind = "typecheck"
+	}
+
 	dir := s.workspace.Root()
 	target := strings.TrimSpace(req.Target)
 	if target != "" {
@@ -129,12 +148,16 @@ func normalizeCheckKind(kind string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(kind)) {
 	case "", "build":
 		return "build", nil
-	case "typecheck", "vet", "lint":
+	case "typecheck", "vet":
 		return "typecheck", nil
+	case "lint":
+		return "lint", nil
+	case "codegen", "generate":
+		return "codegen", nil
 	case "tests", "test":
 		return "tests", nil
 	default:
-		return "", fmt.Errorf("unknown check kind %q (want build, typecheck or tests)", kind)
+		return "", fmt.Errorf("unknown check kind %q (want build, typecheck, tests, lint or codegen)", kind)
 	}
 }
 

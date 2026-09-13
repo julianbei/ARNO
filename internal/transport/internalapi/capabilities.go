@@ -111,7 +111,13 @@ func (s *Server) Capabilities() (protocol.CapabilitiesResponse, error) {
 		response.Git = true
 	}
 	if registry, err := commands.Load(root); err == nil {
-		response.Commands = registry.Names()
+		for _, entry := range registry.All() {
+			name := entry.Name
+			if entry.Kind != "" {
+				name += " (" + entry.Kind + ")"
+			}
+			response.Commands = append(response.Commands, name)
+		}
 	}
 	for _, kind := range []string{"build", "typecheck", "tests"} {
 		if command, ok := jobs.DescribeValidationCommand(root, kind); ok {
