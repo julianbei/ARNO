@@ -42,8 +42,12 @@ func DraftProjectArea(dir string) project.Area {
 		area.TestName = "go test -run {name} ./..."
 		return area
 	}
-	if name, args, err := scopedTestCommand(dir, TestScope{Kind: "file", File: "{file}"}, nil); err == nil && name != "" {
-		area.TestFile = shellJoin(name, args)
+	// A Rust file's package depends on where the file is, which a fixed
+	// command cannot say; discovery keeps choosing -p per file.
+	if area.Language != "rust" {
+		if name, args, err := scopedTestCommand(dir, TestScope{Kind: "file", File: "{file}"}, nil); err == nil && name != "" {
+			area.TestFile = shellJoin(name, args)
+		}
 	}
 	if name, args, err := scopedTestCommand(dir, TestScope{Kind: "test", Test: "{name}"}, nil); err == nil && name != "" {
 		area.TestName = shellJoin(name, args)

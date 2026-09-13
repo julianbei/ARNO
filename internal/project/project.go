@@ -58,7 +58,7 @@ type Env struct {
 // Config is a parsed .jade/project.json.
 type Config struct {
 	Areas []Area `json:"areas"`
-	Env   Env    `json:"env,omitempty"`
+	Env   Env    `json:"env,omitzero"`
 	// Generated lists paths searches skip: build output, generated code.
 	Generated []string `json:"generated,omitempty"`
 	// Notes is short guidance for the agent, sent when a session starts.

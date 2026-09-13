@@ -22,6 +22,9 @@ func TestInitDraftsProjectConfigOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if strings.Contains(string(data), `"env"`) {
+		t.Errorf("a draft with no environment must not write an empty env:\n%s", data)
+	}
 	if !strings.Contains(string(data), `"build": "go build ./..."`) || !strings.Contains(out.String(), "Review it and commit it") {
 		t.Errorf("unexpected draft:\n%s\n%s", data, out.String())
 	}
