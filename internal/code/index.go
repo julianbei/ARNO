@@ -1098,6 +1098,10 @@ type RangeRead struct {
 	End        int
 	Total      int
 	ClampedEnd bool
+	// NextLine is the first line a paged read left out, or 0 when it reached
+	// Through, the end of the range that was asked for.
+	NextLine int
+	Through  int
 }
 
 // ReadRangeInfo reads a line range and reports the bounds it used.
@@ -1108,25 +1112,63 @@ type RangeRead struct {
 // reported so the caller knows it got less than it named. A start past the end
 // is still an error — there is nothing there to read.
 func (i *Index) ReadRangeInfo(path string, start int, end int) (RangeRead, error) {
+	read, lines, err := i.rangeLines(path, start, end)
+	if err != nil || len(lines) == 0 {
+		return read, err
+	}
+	text := strings.Join(lines[read.Start-1:read.End], "\n")
+	read.Source, _ = textutil.Clamp(text, maxReadRangeBytes, "request a narrower line range")
+	return read, nil
+}
+
+// ReadRangePage reads start..end like ReadRangeInfo, but whole lines up to
+// maxBytes, at least one, instead of cutting out the middle: a caller can ask
+// for the rest from NextLine rather than lose it.
+func (i *Index) ReadRangePage(path string, start int, end int, maxBytes int) (RangeRead, error) {
+	read, lines, err := i.rangeLines(path, start, end)
+	if err != nil || len(lines) == 0 {
+		return read, err
+	}
+	read.Through = read.End
+	size, last := 0, read.Start
+	for n := read.Start; n <= read.End; n++ {
+		cost := len(lines[n-1]) + 1
+		if n > read.Start && size+cost > maxBytes {
+			break
+		}
+		size += cost
+		last = n
+	}
+	if last < read.End {
+		read.NextLine = last + 1
+		read.End = last
+	}
+	read.Source = strings.Join(lines[read.Start-1:read.End], "\n")
+	return read, nil
+}
+
+// rangeLines resolves a range against path's lines: the bounds, the file's
+// length and whether the end was clamped.
+func (i *Index) rangeLines(path string, start int, end int) (RangeRead, []string, error) {
 	absolute, err := i.resolvePath(path)
 	if err != nil {
-		return RangeRead{}, err
+		return RangeRead{}, nil, err
 	}
 	data, err := os.ReadFile(absolute)
 	if err != nil {
-		return RangeRead{}, err
+		return RangeRead{}, nil, err
 	}
 
 	lines := splitLines(string(data))
 	if len(lines) == 0 {
-		return RangeRead{}, nil
+		return RangeRead{}, nil, nil
 	}
 
 	// A negative bound is a caller mistake and is reported, but zero is not:
 	// an omitted integer arrives over JSON-RPC as zero, so zero has to mean
 	// "unset" for omission to be expressible at all.
 	if start < 0 || end < 0 {
-		return RangeRead{}, fmt.Errorf("line numbers cannot be negative (got %d-%d for %s)", start, end, path)
+		return RangeRead{}, nil, fmt.Errorf("line numbers cannot be negative (got %d-%d for %s)", start, end, path)
 	}
 
 	if start == 0 {
@@ -1142,12 +1184,10 @@ func (i *Index) ReadRangeInfo(path string, start int, end int) (RangeRead, error
 	}
 
 	if start > len(lines) || start > end {
-		return RangeRead{}, fmt.Errorf("range %d-%d is invalid for %s (%d lines)", start, end, path, len(lines))
+		return RangeRead{}, nil, fmt.Errorf("range %d-%d is invalid for %s (%d lines)", start, end, path, len(lines))
 	}
 
-	text := strings.Join(lines[start-1:end], "\n")
-	clamped, _ := textutil.Clamp(text, maxReadRangeBytes, "request a narrower line range")
-	return RangeRead{Source: clamped, Start: start, End: end, Total: len(lines), ClampedEnd: clampedEnd}, nil
+	return RangeRead{Start: start, End: end, Total: len(lines), ClampedEnd: clampedEnd}, lines, nil
 }
 
 // ReplaceSymbolSource resolves symbolID to its defining file, splices newCode

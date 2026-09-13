@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-### `grep`, `find` and `references` page by budget
+### `grep`, `find`, `references` and `read_range` page by budget
 
 The first tools on the 0.0.5 budget convention
 ([tool-contract.md](docs/tool-contract.md#budgets-and-provenance--005-design)).
@@ -20,6 +20,11 @@ The first tools on the 0.0.5 budget convention
 - **`find`** cuts at whole declarations, bodies included, and pages through
   its first 500; **`references`** cuts at whole references. A handle answers
   only the tool that cut it.
+- **`read_range` no longer cuts the middle out of a large file.** A read past
+  20,000 bytes dropped everything between its head and tail with
+  `… bytes omitted …`. It now reads whole lines up to its budget (default
+  5,000 tokens, the same size) and says `lines 1-612 of 3000 · continue=c7`
+  for the rest. Reads in `ranges` keep the old bound.
 
 ### Answers say how sure they are
 

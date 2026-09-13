@@ -44,6 +44,10 @@ type ReadRangeRequest struct {
 	StartLine     int
 	EndLine       int
 	IndexedCommit string
+	// Budget, in tokens, pages the read at whole lines; Continue is a handle
+	// from a cut read.
+	Budget   int
+	Continue string
 }
 
 // SymbolResolutionStatus communicates how symbol selection was resolved.
@@ -630,8 +634,11 @@ type InspectResponse struct {
 	// response carries no outline (a plain range read, say).
 	Parser ParserInfo
 	// Range describes a read whose end line was past the end of the file and
-	// was clamped, e.g. "lines 190-312 of 312". Empty otherwise.
+	// was clamped, e.g. "lines 190-312 of 312", or a paged read's page. Empty
+	// otherwise.
 	Range string
+	// Continue is the handle for the rest of a read its budget cut.
+	Continue string
 }
 
 // RepositoryMapRequest asks JADE to rank the most relevant files and symbols

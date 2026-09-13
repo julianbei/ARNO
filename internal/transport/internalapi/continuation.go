@@ -31,6 +31,9 @@ type continuation struct {
 	grep     protocol.GrepResponse
 	find     *protocol.FindResponse
 	refs     *protocol.ReferencesResponse
+	// path and through are a paged read's file and the last line asked for.
+	path    string
+	through int
 }
 
 type continuationStore struct {

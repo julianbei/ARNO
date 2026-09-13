@@ -367,8 +367,8 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			}
 			return jsonResult(res)
 		}
-		if blank(stringArg(args, "path")) {
-			return mcpToolResult{}, fmt.Errorf("read_range needs path, or ranges for several reads")
+		if blank(stringArg(args, "path")) && blank(stringArg(args, "continue")) {
+			return mcpToolResult{}, fmt.Errorf("read_range needs path, ranges for several reads, or continue for the rest of a read")
 		}
 		path := stringArg(args, "path")
 		startLine := intArg(args, "startLine")
@@ -383,6 +383,8 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			Path:      path,
 			StartLine: startLine,
 			EndLine:   endLine,
+			Budget:    intArg(args, "budget"),
+			Continue:  stringArg(args, "continue"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -783,8 +785,10 @@ func tools() []mcpTool {
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"path":  map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
-					"lines": map[string]interface{}{"type": "string", "description": "Line range: \"280-400\", \"280-\" to the end, or \"280\". Omit to read the whole file."},
+					"path":     map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
+					"lines":    map[string]interface{}{"type": "string", "description": "Line range: \"280-400\", \"280-\" to the end, or \"280\". Omit to read the whole file."},
+					"budget":   map[string]interface{}{"type": "integer", "description": "Size of the read in tokens (default 5000). Cut at whole lines; the rest is behind continue=<handle>."},
+					"continue": map[string]interface{}{"type": "string", "description": "Handle from a cut read: the rest of it."},
 					"ranges": map[string]interface{}{
 						"type":        "array",
 						"description": "Several reads in one call, instead of path. A range that fails reports its error without failing the others.",

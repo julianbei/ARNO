@@ -175,6 +175,9 @@ func inspect(r protocol.InspectResponse) string {
 	if r.Range != "" {
 		header = append(header, r.Range)
 	}
+	if r.Continue != "" {
+		header = append(header, "continue="+r.Continue)
+	}
 	if len(r.Outline) > 0 {
 		if provenance := protocol.ParserProvenance(r.Parser).String(); provenance != "" {
 			header = append(header, provenance)

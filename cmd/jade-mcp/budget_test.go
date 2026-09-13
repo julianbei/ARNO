@@ -148,3 +148,38 @@ func TestReferencesBudgetPagesWithContinue(t *testing.T) {
 		t.Fatalf("expected all 12 references across the pages, got %d:\n%s", count, all)
 	}
 }
+func TestReadRangePagesALargeFileInsteadOfCuttingItsMiddle(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	var b strings.Builder
+	for i := 1; i <= 3000; i++ {
+		fmt.Fprintf(&b, "line %04d padding padding padding\n", i)
+	}
+	writeWorkspaceFile(t, root, "big.txt", b.String())
+
+	page, err := callText(t, server, "jade.read_range", map[string]interface{}{"path": "big.txt"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(page, "bytes omitted") || !strings.Contains(page, "lines 1-") || !strings.Contains(page, "continue=") {
+		t.Fatalf("a large file should be paged at whole lines with a handle, got the head:\n%.300s", page)
+	}
+	all := page
+	for i := 0; i < 20; i++ {
+		m := continueHandle.FindStringSubmatch(page)
+		if m == nil {
+			break
+		}
+		if page, err = callText(t, server, "jade.read_range", map[string]interface{}{"continue": m[1]}); err != nil {
+			t.Fatal(err)
+		}
+		all += "\n" + page
+	}
+	for _, want := range []string{"line 0001 ", "line 1500 ", "line 3000 "} {
+		if !strings.Contains(all, want) {
+			t.Fatalf("%q never read across the pages", want)
+		}
+	}
+	if continueHandle.MatchString(page) {
+		t.Fatalf("the last page should carry no handle:\n%.300s", page)
+	}
+}

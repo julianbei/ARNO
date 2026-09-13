@@ -245,21 +245,52 @@ func (s *Server) ReadSymbol(req protocol.ReadSymbolRequest) (protocol.InspectRes
 	}, nil
 }
 
+// defaultReadBudget is read_range's page in tokens when none is asked: the
+// 20,000 bytes it used to cut out of the middle of a large file.
+const defaultReadBudget = 5000
+
+// ReadRange reads a line range a page at a time: whole lines up to the budget,
+// and a continue handle for the rest instead of a silent cut.
 func (s *Server) ReadRange(req protocol.ReadRangeRequest) (protocol.InspectResponse, error) {
+	budget := req.Budget
+	if handle := strings.TrimSpace(req.Continue); handle != "" {
+		entry, err := s.resume(handle, "read_range")
+		if err != nil {
+			return protocol.InspectResponse{}, err
+		}
+		req.Path, req.StartLine, req.EndLine = entry.path, entry.shown, entry.through
+		if budget <= 0 {
+			budget = entry.budget
+		}
+	}
+	if budget <= 0 {
+		budget = defaultReadBudget
+	}
+	if budget > maxBudgetTokens {
+		budget = maxBudgetTokens
+	}
+
 	freshness := s.workspace.Freshness(req.IndexedCommit)
 	index, path, err := s.indexFor(req.Path)
 	if err != nil {
 		return protocol.InspectResponse{}, err
 	}
-	read, err := index.ReadRangeInfo(path, req.StartLine, req.EndLine)
+	read, err := index.ReadRangePage(path, req.StartLine, req.EndLine, budget*4)
 	if err != nil {
 		return protocol.InspectResponse{}, withDependencyHint(req.Path, err)
 	}
 
+	continueHandle, rangeNote := "", clampNote(read.Start, read.End, read.Total, read.ClampedEnd)
+	if read.NextLine > 0 {
+		continueHandle = s.continuations.put(continuation{tool: "read_range", revision: s.workspace.Revision(), budget: budget, path: req.Path, shown: read.NextLine, through: read.Through})
+		rangeNote = fmt.Sprintf("lines %d-%d of %d", read.Start, read.End, read.Total)
+	}
+
 	return protocol.InspectResponse{
+		Continue: continueHandle,
 		Revision: s.workspace.Revision(),
 		Source:   read.Source,
-		Range:    clampNote(read.Start, read.End, read.Total, read.ClampedEnd),
+		Range:    rangeNote,
 		Freshness: protocol.Freshness{
 			IndexedCommit: freshness.IndexedCommit,
 			HeadCommit:    freshness.HeadCommit,
