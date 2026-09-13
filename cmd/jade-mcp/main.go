@@ -419,6 +419,8 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			Path:       path,
 			SymbolID:   symbolID,
 			SymbolName: symbolName,
+			Budget:     intArg(args, "budget"),
+			Continue:   stringArg(args, "continue"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -452,8 +454,8 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			}
 			return jsonResult(res)
 		}
-		if blank(stringArg(args, "query")) {
-			return mcpToolResult{}, fmt.Errorf("find needs query (one name) or queries (several names)")
+		if blank(stringArg(args, "query")) && blank(stringArg(args, "continue")) {
+			return mcpToolResult{}, fmt.Errorf("find needs query (one name), queries (several names) or continue (the next page)")
 		}
 		res, err := s.api.Find(protocol.FindRequest{
 			Dependency: stringArg(args, "dependency"),
@@ -461,6 +463,8 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			Kind:       stringArg(args, "kind"),
 			Limit:      intArg(args, "limit"),
 			MaxLines:   intArg(args, "maxLines"),
+			Budget:     intArg(args, "budget"),
+			Continue:   stringArg(args, "continue"),
 		})
 		if err != nil {
 			return mcpToolResult{}, err
@@ -835,6 +839,8 @@ func tools() []mcpTool {
 					"path":       map[string]interface{}{"type": "string", "description": "File containing the symbol's declaration."},
 					"symbolId":   map[string]interface{}{"type": "string", "description": "Exact symbol ID if already known."},
 					"symbolName": map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
+					"budget":     map[string]interface{}{"type": "integer", "description": "Size of the answer in tokens. Cut at whole references; the rest is behind continue=<handle>."},
+					"continue":   map[string]interface{}{"type": "string", "description": "Handle from a cut answer: its next page."},
 				},
 				"required": []string{"path"},
 			},
@@ -875,7 +881,9 @@ func tools() []mcpTool {
 					"query":      map[string]interface{}{"type": "string", "description": "Symbol name, exact or partial."},
 					"queries":    map[string]interface{}{"type": "array", "items": map[string]interface{}{"type": "string"}, "description": "Several symbol names in one call, instead of query. Each is answered as query would be."},
 					"kind":       map[string]interface{}{"type": "string", "description": "Narrow by kind. func/function, type/struct/class/interface, method, const, var — spellings within a family are equivalent. Empty matches any."},
-					"limit":      map[string]interface{}{"type": "integer", "description": "Maximum declarations to return (default 5)."},
+					"limit":      map[string]interface{}{"type": "integer", "description": "Maximum declarations to return (default 5). Prefer budget."},
+					"budget":     map[string]interface{}{"type": "integer", "description": "Size of the answer in tokens. Cut at whole declarations; the rest is behind continue=<handle>."},
+					"continue":   map[string]interface{}{"type": "string", "description": "Handle from a cut answer: its next page."},
 					"maxLines":   map[string]interface{}{"type": "integer", "description": "Maximum lines of each body (default 40)."},
 					"dependency": map[string]interface{}{"type": "string", "description": "Look in this dependency's source instead of the workspace, read-only: a crate, Go module, npm or Python package name."},
 				},

@@ -23,10 +23,14 @@ const (
 )
 
 type continuation struct {
+	// tool is the tool whose answer this continues; a handle answers only it.
+	tool     string
 	revision string
 	budget   int
-	grep     protocol.GrepResponse
 	shown    int
+	grep     protocol.GrepResponse
+	find     *protocol.FindResponse
+	refs     *protocol.ReferencesResponse
 }
 
 type continuationStore struct {
@@ -65,12 +69,9 @@ func (c *continuationStore) get(handle string) (continuation, bool) {
 // it is refused with both revisions named.
 func (s *Server) Grep(req protocol.GrepRequest) (protocol.GrepResponse, error) {
 	if handle := strings.TrimSpace(req.Continue); handle != "" {
-		entry, ok := s.continuations.get(handle)
-		if !ok {
-			return protocol.GrepResponse{}, fmt.Errorf("continue=%s is unknown or expired — repeat the call", handle)
-		}
-		if revision := s.workspace.Revision(); revision != entry.revision {
-			return protocol.GrepResponse{}, fmt.Errorf("continue=%s was cut at %s; the workspace is at %s — repeat the call", handle, entry.revision, revision)
+		entry, err := s.resume(handle, "grep")
+		if err != nil {
+			return protocol.GrepResponse{}, err
 		}
 		budget := req.Budget
 		if budget <= 0 {
@@ -115,7 +116,7 @@ func (s *Server) pageGrep(all protocol.GrepResponse, offset int, budget int) pro
 	page.Continue = ""
 	switch {
 	case end < len(all.Matches):
-		page.Continue = s.continuations.put(continuation{revision: s.workspace.Revision(), budget: budget, grep: all, shown: end})
+		page.Continue = s.continuations.put(continuation{tool: "grep", revision: s.workspace.Revision(), budget: budget, grep: all, shown: end})
 		page.Truncated = true
 		page.Provenance.Completeness = protocol.CompletenessCut
 		page.Summary = fmt.Sprintf("%d matches in %d files, shown %d-%d · continue=%s · %s",
@@ -142,4 +143,141 @@ func grepMatchTokens(match protocol.GrepMatch) int {
 		size += len(after) + 5
 	}
 	return size/4 + 1
+}
+
+// resume returns the continuation behind handle for tool, refusing one that is
+// unknown, belongs to another tool, or was cut at another revision.
+func (s *Server) resume(handle string, tool string) (continuation, error) {
+	entry, ok := s.continuations.get(handle)
+	if !ok {
+		return continuation{}, fmt.Errorf("continue=%s is unknown or expired — repeat the call", handle)
+	}
+	if entry.tool != tool {
+		return continuation{}, fmt.Errorf("continue=%s continues %s, not %s", handle, entry.tool, tool)
+	}
+	if revision := s.workspace.Revision(); revision != entry.revision {
+		return continuation{}, fmt.Errorf("continue=%s was cut at %s; the workspace is at %s — repeat the call", handle, entry.revision, revision)
+	}
+	return entry, nil
+}
+
+// maxBudgetItems bounds how many declarations or references a budgeted call
+// collects to page through.
+const maxBudgetItems = 500
+
+// budgetPage returns the end of the page that starts at offset: whole items
+// while they fit budget, and at least one.
+func budgetPage(cost func(int) int, offset int, total int, budget int) int {
+	if budget > maxBudgetTokens {
+		budget = maxBudgetTokens
+	}
+	end, used := offset, 0
+	for end < total {
+		item := cost(end)
+		if end > offset && used+item > budget {
+			break
+		}
+		used += item
+		end++
+	}
+	return end
+}
+
+// Find answers a find, paged when a budget is given or a handle continued.
+func (s *Server) Find(req protocol.FindRequest) (protocol.FindResponse, error) {
+	if handle := strings.TrimSpace(req.Continue); handle != "" {
+		entry, err := s.resume(handle, "find")
+		if err != nil {
+			return protocol.FindResponse{}, err
+		}
+		budget := req.Budget
+		if budget <= 0 {
+			budget = entry.budget
+		}
+		return s.pageFind(*entry.find, entry.shown, budget), nil
+	}
+	if req.Budget <= 0 {
+		return s.findAll(req)
+	}
+	req.Limit = maxBudgetItems
+	all, err := s.findAll(req)
+	if err != nil {
+		return all, err
+	}
+	return s.pageFind(all, 0, req.Budget), nil
+}
+
+// pageFind returns the declarations from offset that fit budget, whole
+// declarations with their bodies, and keeps the rest behind a handle. The
+// summary carries no provenance: the renderer appends it.
+func (s *Server) pageFind(all protocol.FindResponse, offset int, budget int) protocol.FindResponse {
+	if offset > len(all.Results) {
+		offset = len(all.Results)
+	}
+	end := budgetPage(func(i int) int {
+		result := all.Results[i]
+		return (len(result.Path)+len(result.Symbol)+len(result.Kind)+len(result.Body)+24)/4 + 1
+	}, offset, len(all.Results), budget)
+
+	page := all
+	page.Results = all.Results[offset:end]
+	page.Continue = ""
+	switch {
+	case end < len(all.Results):
+		page.Continue = s.continuations.put(continuation{tool: "find", revision: s.workspace.Revision(), budget: budget, find: &all, shown: end})
+		page.Provenance.Completeness = protocol.CompletenessCut
+		page.Summary = fmt.Sprintf("%d matches for %q, shown %d-%d · continue=%s", all.Total, all.Query, offset+1, end, page.Continue)
+	case all.Total > len(all.Results):
+		page.Provenance.Completeness = protocol.CompletenessCut
+		page.Summary = fmt.Sprintf("%d matches for %q, shown %d-%d; only the first %d can be paged — narrow with kind", all.Total, all.Query, offset+1, end, len(all.Results))
+	case offset > 0:
+		page.Summary = fmt.Sprintf("%d matches for %q, shown %d-%d, the last", all.Total, all.Query, offset+1, end)
+	}
+	return page
+}
+
+// References answers references, paged when a budget is given or a handle
+// continued.
+func (s *Server) References(req protocol.ReferencesRequest) (protocol.ReferencesResponse, error) {
+	if handle := strings.TrimSpace(req.Continue); handle != "" {
+		entry, err := s.resume(handle, "references")
+		if err != nil {
+			return protocol.ReferencesResponse{}, err
+		}
+		budget := req.Budget
+		if budget <= 0 {
+			budget = entry.budget
+		}
+		return s.pageReferences(*entry.refs, entry.shown, budget), nil
+	}
+	all, err := s.referencesAll(req)
+	if err != nil || req.Budget <= 0 {
+		return all, err
+	}
+	return s.pageReferences(all, 0, req.Budget), nil
+}
+
+// pageReferences returns the references from offset that fit budget and keeps
+// the rest behind a handle. The renderer appends provenance to the summary.
+func (s *Server) pageReferences(all protocol.ReferencesResponse, offset int, budget int) protocol.ReferencesResponse {
+	if offset > len(all.References) {
+		offset = len(all.References)
+	}
+	end := budgetPage(func(i int) int {
+		ref := all.References[i]
+		return (len(ref.Path)+len(ref.Symbol)+len(ref.Confidence)+20)/4 + 1
+	}, offset, len(all.References), budget)
+
+	page := all
+	page.References = all.References[offset:end]
+	page.Continue = ""
+	switch {
+	case end < len(all.References):
+		page.Continue = s.continuations.put(continuation{tool: "references", revision: s.workspace.Revision(), budget: budget, refs: &all, shown: end})
+		page.Provenance.Completeness = protocol.CompletenessCut
+		page.Summary = fmt.Sprintf("%s, shown %d-%d · continue=%s", all.Summary, offset+1, end, page.Continue)
+	case offset > 0:
+		page.Summary = fmt.Sprintf("%s, shown %d-%d, the last", all.Summary, offset+1, end)
+	}
+	return page
 }

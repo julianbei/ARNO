@@ -74,3 +74,77 @@ func TestGrepContinueRefusedAfterAnEdit(t *testing.T) {
 		t.Fatalf("a handle cut before an edit must be refused, got %v", err)
 	}
 }
+func TestFindBudgetPagesWithContinue(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	var b strings.Builder
+	b.WriteString("package a\n\n")
+	for i := 1; i <= 20; i++ {
+		fmt.Fprintf(&b, "func Needle%02d() {\n\t_ = %d\n}\n\n", i, i)
+	}
+	writeWorkspaceFile(t, root, "a.go", b.String())
+
+	page, err := callText(t, server, "jade.find", map[string]interface{}{"query": "Needle", "budget": 60})
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := page
+	for i := 0; i < 40; i++ {
+		m := continueHandle.FindStringSubmatch(page)
+		if m == nil {
+			break
+		}
+		if page, err = callText(t, server, "jade.find", map[string]interface{}{"continue": m[1]}); err != nil {
+			t.Fatal(err)
+		}
+		all += "\n" + page
+	}
+	if !strings.Contains(all, "continue=") {
+		t.Fatalf("expected the first page to be cut:\n%s", all)
+	}
+	for i := 1; i <= 20; i++ {
+		if !strings.Contains(all, fmt.Sprintf("Needle%02d", i)) {
+			t.Fatalf("Needle%02d was never shown:\n%s", i, all)
+		}
+	}
+	if !strings.Contains(page, "the last") {
+		t.Fatalf("the last page should say so, got:\n%s", page)
+	}
+}
+
+func TestReferencesBudgetPagesWithContinue(t *testing.T) {
+	server, root := newTestMCPServer(t)
+	var b strings.Builder
+	b.WriteString("package a\n\nfunc Target() {}\n\n")
+	for i := 1; i <= 12; i++ {
+		fmt.Fprintf(&b, "func Caller%02d() {\n\tTarget()\n}\n\n", i)
+	}
+	writeWorkspaceFile(t, root, "a.go", b.String())
+
+	page, err := callText(t, server, "jade.references", map[string]interface{}{"path": "a.go", "symbolName": "Target", "budget": 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	all := page
+	for i := 0; i < 40; i++ {
+		m := continueHandle.FindStringSubmatch(page)
+		if m == nil {
+			break
+		}
+		if page, err = callText(t, server, "jade.references", map[string]interface{}{"continue": m[1]}); err != nil {
+			t.Fatal(err)
+		}
+		all += "\n" + page
+	}
+	if !strings.Contains(all, "continue=") {
+		t.Fatalf("expected the first page to be cut:\n%s", all)
+	}
+	count := 0
+	for _, line := range strings.Split(all, "\n") {
+		if strings.HasPrefix(line, "a.go") {
+			count++
+		}
+	}
+	if count < 12 {
+		t.Fatalf("expected all 12 references across the pages, got %d:\n%s", count, all)
+	}
+}

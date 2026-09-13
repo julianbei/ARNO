@@ -696,6 +696,10 @@ type FindRequest struct {
 	Kind     string
 	Limit    int
 	MaxLines int
+	// Budget, in tokens, pages the answer at whole declarations; Continue is
+	// a handle from a cut answer.
+	Budget   int
+	Continue string
 }
 
 // FindResult is one matching declaration, with its source.
@@ -720,6 +724,8 @@ type FindResponse struct {
 	Total      int
 	Summary    string
 	Provenance Provenance
+	// Continue is the handle for the next page when a budget cut the answer.
+	Continue string
 }
 
 // SearchRequest asks JADE to rank likely symbols/files for a query.
@@ -952,6 +958,10 @@ type ReferencesRequest struct {
 	Path       string
 	SymbolID   string
 	SymbolName string
+	// Budget, in tokens, pages the answer; Continue is a handle from a cut
+	// answer.
+	Budget   int
+	Continue string
 }
 
 // ReferencesResponse carries the reference set plus, critically, which
@@ -964,6 +974,8 @@ type ReferencesResponse struct {
 	References []ReferenceLocation
 	Summary    string
 	Provenance Provenance
+	// Continue is the handle for the next page when a budget cut the answer.
+	Continue string
 }
 
 // RenameRequest renames a symbol across the whole repository.

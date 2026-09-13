@@ -2,9 +2,9 @@
 
 ## Unreleased
 
-### `grep` pages by budget
+### `grep`, `find` and `references` page by budget
 
-The first tool on the 0.0.5 budget convention
+The first tools on the 0.0.5 budget convention
 ([tool-contract.md](docs/tool-contract.md#budgets-and-provenance--005-design)).
 
 - **`budget`** sizes the answer in tokens (four bytes each). It is cut at whole
@@ -17,6 +17,9 @@ The first tool on the 0.0.5 budget convention
   workspace is at r14 — repeat the call`.
 - `limit` still works and is marked as the older form. A budgeted grep pages
   through its first 2,000 matches; the total still counts past them.
+- **`find`** cuts at whole declarations, bodies included, and pages through
+  its first 500; **`references`** cuts at whole references. A handle answers
+  only the tool that cut it.
 
 ### Answers say how sure they are
 

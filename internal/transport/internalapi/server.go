@@ -271,7 +271,8 @@ func (s *Server) ReadRange(req protocol.ReadRangeRequest) (protocol.InspectRespo
 	}, nil
 }
 
-func (s *Server) References(req protocol.ReferencesRequest) (protocol.ReferencesResponse, error) {
+// referencesAll answers references whole. References pages it by budget.
+func (s *Server) referencesAll(req protocol.ReferencesRequest) (protocol.ReferencesResponse, error) {
 	symbolID, err := s.resolveSymbolID(req.Path, req.SymbolID, req.SymbolName)
 	if err != nil {
 		return protocol.ReferencesResponse{}, err
@@ -326,7 +327,8 @@ func (s *Server) RepositoryMap(req protocol.RepositoryMapRequest) (protocol.Repo
 	return s.index.RepositoryMap(req.Query, req.MaxTokens)
 }
 
-func (s *Server) Find(req protocol.FindRequest) (protocol.FindResponse, error) {
+// findAll answers a find whole, up to its limit. Find pages it by budget.
+func (s *Server) findAll(req protocol.FindRequest) (protocol.FindResponse, error) {
 	if strings.TrimSpace(req.Dependency) == "" {
 		return s.index.FindSymbols(req.Query, req.Kind, req.Limit, req.MaxLines)
 	}
