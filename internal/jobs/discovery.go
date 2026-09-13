@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -173,6 +174,21 @@ func discoverCommand(dir string, kind string) (name string, args []string, ok bo
 		return "", nil, false
 	}
 	return "go", commandArgs, true
+}
+
+// DescribeValidationCommand names the command a check of kind would run in
+// dir, without running it. ok is false when no command fits.
+//
+// A green result on the wrong target is worse than none: in a Go module with
+// several Node packages and no Makefile, a caller could not predict what
+// "check build" would execute, and so did not trust it. Discovery is
+// read-only apart from `make -n`, which prints commands without running them.
+func DescribeValidationCommand(dir string, kind string) (string, bool) {
+	name, args, ok := discoverCommand(dir, kind)
+	if !ok {
+		return "", false
+	}
+	return strings.Join(append([]string{name}, args...), " "), true
 }
 
 func fileExists(path string) bool {

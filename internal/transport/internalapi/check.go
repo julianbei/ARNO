@@ -34,11 +34,25 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 		return protocol.CheckResponse{}, err
 	}
 
+	command, found := jobs.DescribeValidationCommand(s.workspace.Root(), kind)
+	if !found {
+		// Said up front rather than discovered from a failed run: the
+		// ecosystem was not identified, so there is nothing to execute.
+		return protocol.CheckResponse{
+			Kind:    kind,
+			Status:  "no command",
+			Summary: fmt.Sprintf("no %s command found: no Makefile target, package.json script, Cargo.toml, Maven/Gradle/sbt/Python/Ruby manifest or go.mod at the workspace root — declare one with declare_command and use run_command", kind),
+		}, nil
+	}
+	if req.DryRun {
+		return protocol.CheckResponse{Kind: kind, Status: "dry run", Command: command}, nil
+	}
+
 	jobID := s.jobs.Start(kind)
 	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), kind)
 
 	if !req.Wait {
-		return protocol.CheckResponse{JobID: jobID, Kind: kind, Status: "running"}, nil
+		return protocol.CheckResponse{JobID: jobID, Kind: kind, Status: "running", Command: command}, nil
 	}
 
 	output, finished := s.jobs.Wait(jobID, checkTimeout(req.TimeoutSeconds))
@@ -48,6 +62,7 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 			Kind:    kind,
 			Status:  "running",
 			Summary: fmt.Sprintf("%s still running — poll job_status %s", kind, jobID),
+			Command: command,
 		}, nil
 	}
 
@@ -58,6 +73,7 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 		Status:  output.Status,
 		Passed:  passed,
 		Summary: verdictSummary(passed, output.Summary, output.Raw),
+		Command: command,
 	}, nil
 }
 

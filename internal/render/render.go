@@ -807,6 +807,14 @@ func check(r protocol.CheckResponse) string {
 	if head == "" {
 		head = "(no check)"
 	}
+	// The command is part of the verdict: a pass on the wrong target is worse
+	// than no check, and the caller can only tell which target ran from here.
+	switch {
+	case r.Command != "" && r.Status == "dry run":
+		head += " · would run: " + r.Command
+	case r.Command != "":
+		head += " · ran: " + r.Command
+	}
 	if r.Summary == "" {
 		return head
 	}

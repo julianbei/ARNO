@@ -261,7 +261,7 @@ a stale edit fail loudly instead of silently clobbering a concurrent change.
 
 | Tool | What it does |
 |---|---|
-| `check` | Build, typecheck or tests — discovering the repository's own command rather than assuming one: Makefile target, then npm script, cargo, Maven, Gradle, sbt, pytest/mypy or bundler, by manifest. A project it cannot identify is reported as such rather than run with the wrong toolchain. |
+| `check` | Build, typecheck or tests — discovering the repository's own command rather than assuming one: Makefile target, then npm script, cargo, Maven, Gradle, sbt, pytest/mypy or bundler, by manifest. A project it cannot identify is reported as such rather than run with the wrong toolchain. Every result names the command that ran; `dryRun` names it without running. |
 | `run_tests` | Tests scoped to a file, a test name, or the changed files. |
 | `run_command` | Run one of the repository's declared commands by name. |
 | `declare_command` | Add or remove a declared command. |

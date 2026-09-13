@@ -250,6 +250,8 @@ type CheckRequest struct {
 	Wait bool
 	// TimeoutSeconds bounds the wait. Ignored when Wait is false.
 	TimeoutSeconds int
+	// DryRun names the command that would run, without running it.
+	DryRun bool
 }
 
 // CheckResponse carries the outcome. When the check was not waited for, or
@@ -260,6 +262,9 @@ type CheckResponse struct {
 	Status  string
 	Passed  bool
 	Summary string
+	// Command is what ran, or would run for a dry run, e.g. "go vet ./...".
+	// Empty when no validation command fits the workspace.
+	Command string
 }
 
 // TelemetryRequest asks for the recorded tool-usage summary.

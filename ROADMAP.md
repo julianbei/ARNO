@@ -262,11 +262,18 @@ language.
 
 Agents bypassed `check` for four reasons, each fixable:
 
-- [ ] **Say what will run before running it.** A Go module with three Node
+- [x] **Say what will run before running it.** A Go module with three Node
   packages and no Makefile gave no way to predict what `check kind=build`
   would execute, and a green result on the wrong target is worse than none.
   Add a dry-run that lists the discovered command per target, and report the
   command and directory in every result.
+  - Done 2026-09-13: every `check` result names its command in the first line
+    (`pass build · ran: go build ./...`); `dryRun` answers
+    `would run: make test` without running anything; a workspace with no
+    recognisable manifest says so up front and points at `declare_command`
+    instead of starting a job that can only fail. Commands run at the
+    workspace root, so the directory is not repeated; per-package targets are
+    the multi-project item below.
 - [ ] **Multi-project repositories.** Discover each package (Go module, every
   `package.json`, …) and let `check` take a target, instead of picking one.
 - [ ] **Long-running work without polling.** `check` caps its wait at 300

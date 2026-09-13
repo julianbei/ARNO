@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### `check` says what it runs
+
+In a Go module with several Node packages and no Makefile, a caller could not
+tell what `check kind=build` would execute — and a green result on the wrong
+target is worse than none, so it was not used. Every `check` result now names
+its command in the first line (`pass build · ran: go build ./...`), `dryRun`
+names it without running anything, and a workspace with no recognisable
+manifest is told so before any job starts.
+
 ### Fewer calls to read what you need
 
 - **`find` takes `queries`** — several names in one call, answered in the
