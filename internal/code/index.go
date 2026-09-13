@@ -404,6 +404,16 @@ func (i *Index) RepositoryMap(query string, maxTokens int) (protocol.RepositoryM
 	}, nil
 }
 
+// rankedProvenance is the provenance of a ranked answer from the text index:
+// names and terms matched, with a fixed vocabulary expansion, never resolved.
+func rankedProvenance(cut bool) protocol.Provenance {
+	provenance := protocol.Provenance{Certainty: protocol.CertaintyApproximate, Source: "text index", Completeness: protocol.CompletenessMayBeIncomplete}
+	if cut {
+		provenance.Completeness = protocol.CompletenessCut
+	}
+	return provenance
+}
+
 func (i *Index) Search(query string, mode string, limit int) (protocol.SearchResponse, error) {
 	if limit <= 0 {
 		limit = 10
@@ -544,7 +554,7 @@ func (i *Index) Search(query string, mode string, limit int) (protocol.SearchRes
 	if len(hits) > limit {
 		hits = hits[:limit]
 	}
-	return protocol.SearchResponse{Query: query, Mode: mode, Hits: hits}, nil
+	return protocol.SearchResponse{Query: query, Mode: mode, Hits: hits, Provenance: rankedProvenance(len(hits) >= limit)}, nil
 }
 
 func (i *Index) Retrieve(query string, maxTokens int) (protocol.RetrievalResponse, error) {
@@ -614,6 +624,7 @@ func (i *Index) Retrieve(query string, maxTokens int) (protocol.RetrievalRespons
 			Candidates:     candidates,
 			Summary:        summary,
 			BudgetExceeded: exceeded,
+			Provenance:     rankedProvenance(exceeded),
 		}, nil
 	}
 
@@ -656,6 +667,7 @@ func (i *Index) Retrieve(query string, maxTokens int) (protocol.RetrievalRespons
 		Candidates:     chosen,
 		Summary:        summary,
 		BudgetExceeded: exceeded,
+		Provenance:     rankedProvenance(exceeded),
 	}, nil
 }
 

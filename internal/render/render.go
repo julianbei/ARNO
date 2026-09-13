@@ -232,16 +232,26 @@ func outlineLines(items []protocol.OutlineItem) []string {
 // that is the output shape this replaces and the one callers already read
 // fluently.
 func find(r protocol.FindResponse) string {
+	provenance := r.Provenance.String()
 	if len(r.Results) == 0 {
-		if r.Summary != "" {
-			return r.Summary
+		summary := r.Summary
+		if summary == "" {
+			summary = "no matches"
 		}
-		return "no matches"
+		if provenance != "" {
+			summary += " · " + provenance
+		}
+		return summary
 	}
 
 	lines := make([]string, 0, len(r.Results)*4)
-	if r.Total > len(r.Results) {
-		lines = append(lines, r.Summary)
+	cut := r.Total > len(r.Results)
+	if cut {
+		summary := r.Summary
+		if provenance != "" {
+			summary += " · " + provenance
+		}
+		lines = append(lines, summary)
 	}
 	for index, result := range r.Results {
 		if index > 0 {
@@ -251,17 +261,28 @@ func find(r protocol.FindResponse) string {
 		if result.Truncated {
 			header += " (truncated)"
 		}
+		// Without a summary line, provenance rides on the first line there is.
+		if index == 0 && !cut && provenance != "" {
+			header += " · " + provenance
+		}
 		lines = append(lines, header, result.Body)
 	}
 	return strings.Join(lines, "\n")
 }
 
 func search(r protocol.SearchResponse) string {
+	provenance := r.Provenance.String()
 	if len(r.Hits) == 0 {
+		if provenance != "" {
+			return fmt.Sprintf("no hits for %q · %s", r.Query, provenance)
+		}
 		return fmt.Sprintf("no hits for %q", r.Query)
 	}
 
-	lines := make([]string, 0, len(r.Hits))
+	lines := make([]string, 0, len(r.Hits)+1)
+	if provenance != "" {
+		lines = append(lines, fmt.Sprintf("%d hits for %q · %s", len(r.Hits), r.Query, provenance))
+	}
 	for _, hit := range r.Hits {
 		location := hit.Path
 		if hit.StartLine > 0 {
@@ -513,6 +534,9 @@ func retrieval(r protocol.RetrievalResponse) string {
 	head := fmt.Sprintf("%d/%d tokens", r.UsedTokens, r.MaxTokens)
 	if r.BudgetExceeded {
 		head += " · BUDGET EXCEEDED"
+	}
+	if provenance := r.Provenance.String(); provenance != "" {
+		head += " · " + provenance
 	}
 	lines = append(lines, head)
 	for _, candidate := range r.Candidates {

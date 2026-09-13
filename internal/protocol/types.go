@@ -708,10 +708,11 @@ type FindResult struct {
 // FindResponse returns the matches. Total is the true count even when
 // Results was capped by Limit.
 type FindResponse struct {
-	Query   string
-	Results []FindResult
-	Total   int
-	Summary string
+	Query      string
+	Results    []FindResult
+	Total      int
+	Summary    string
+	Provenance Provenance
 }
 
 // SearchRequest asks JADE to rank likely symbols/files for a query.
@@ -735,9 +736,10 @@ type SearchHit struct {
 
 // SearchResponse returns exact/symbol/semantic ranked hits for a query.
 type SearchResponse struct {
-	Query string
-	Mode  string
-	Hits  []SearchHit
+	Query      string
+	Mode       string
+	Hits       []SearchHit
+	Provenance Provenance
 }
 
 // SearchNudgeRequest asks jade whether a shell search-style command (a raw
@@ -781,6 +783,7 @@ type RetrievalResponse struct {
 	Candidates     []RetrievalCandidate
 	Summary        string
 	BudgetExceeded bool
+	Provenance     Provenance
 }
 
 // RetrievalDocument captures tokenized content for one file or symbol in the retrieval index.

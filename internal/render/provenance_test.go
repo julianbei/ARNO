@@ -45,3 +45,28 @@ func TestOutlineHeaderCarriesParserProvenance(t *testing.T) {
 		t.Fatalf("got first line %q in:\n%s", first, out)
 	}
 }
+func TestFindFirstLineCarriesProvenance(t *testing.T) {
+	provenance := protocol.Provenance{Certainty: protocol.CertaintyStructural, Source: "tree-sitter", Completeness: protocol.CompletenessComplete}
+	out := find(protocol.FindResponse{Query: "A", Total: 1, Provenance: provenance, Results: []protocol.FindResult{
+		{Path: "a.go", StartLine: 3, EndLine: 5, Kind: "function", Symbol: "A", Body: "func A() {}"},
+	}})
+	if first := strings.SplitN(out, "\n", 2)[0]; first != "a.go:3-5 function A · structural · tree-sitter · complete" {
+		t.Fatalf("got first line %q in:\n%s", first, out)
+	}
+	none := find(protocol.FindResponse{Query: "B", Summary: `no declarations matching "B"`, Provenance: provenance})
+	if none != `no declarations matching "B" · structural · tree-sitter · complete` {
+		t.Fatalf("got %q", none)
+	}
+}
+
+func TestSearchAndRetrievalCarryProvenance(t *testing.T) {
+	provenance := protocol.Provenance{Certainty: protocol.CertaintyApproximate, Source: "text index", Completeness: protocol.CompletenessMayBeIncomplete}
+	out := search(protocol.SearchResponse{Query: "auth", Provenance: provenance, Hits: []protocol.SearchHit{{Path: "a.go"}}})
+	if first := strings.SplitN(out, "\n", 2)[0]; first != `1 hits for "auth" · approximate · text index · may be incomplete` {
+		t.Fatalf("got first line %q", first)
+	}
+	head := strings.SplitN(retrieval(protocol.RetrievalResponse{UsedTokens: 10, MaxTokens: 100, Provenance: provenance}), "\n", 2)[0]
+	if head != "10/100 tokens · approximate · text index · may be incomplete" {
+		t.Fatalf("got %q", head)
+	}
+}

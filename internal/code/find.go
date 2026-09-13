@@ -45,7 +45,7 @@ func (i *Index) FindSymbols(query string, kind string, limit int, maxLines int) 
 		}
 	}
 
-	exact, partial, err := i.collectMatches(query, kind)
+	exact, partial, textScan, err := i.collectMatches(query, kind)
 	if err != nil {
 		return protocol.FindResponse{}, err
 	}
@@ -68,10 +68,11 @@ func (i *Index) FindSymbols(query string, kind string, limit int, maxLines int) 
 	}
 
 	return protocol.FindResponse{
-		Query:   query,
-		Results: results,
-		Total:   total,
-		Summary: findSummary(query, total, len(results)),
+		Query:      query,
+		Results:    results,
+		Total:      total,
+		Summary:    findSummary(query, total, len(results)),
+		Provenance: findProvenance(textScan, total, len(results)),
 	}, nil
 }
 
@@ -81,10 +82,13 @@ type findMatch struct {
 	lines  []string
 }
 
-func (i *Index) collectMatches(query string, kind string) ([]findMatch, []findMatch, error) {
+func (i *Index) collectMatches(query string, kind string) ([]findMatch, []findMatch, bool, error) {
 	lowered := strings.ToLower(query)
 	exact := make([]findMatch, 0, 4)
 	partial := make([]findMatch, 0, 8)
+	// textScan records a code file whose grammar was missing or failed: its
+	// declarations came from a text scan, so an absence there is not proof.
+	textScan := false
 
 	err := filepath.Walk(i.root, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil || info == nil || info.IsDir() {
@@ -104,7 +108,10 @@ func (i *Index) collectMatches(query string, kind string) ([]findMatch, []findMa
 			return nil
 		}
 		lines := splitLines(string(data))
-		symbols, _ := i.symbolsForPath(path, rel, data, lines)
+		symbols, mode := i.symbolsForPath(path, rel, data, lines)
+		if parser := ParserFor(path, mode); !parser.Complete && parser.Language != "" {
+			textScan = true
+		}
 
 		for _, symbol := range symbols {
 			if !kindMatches(symbol.Kind, kind) {
@@ -122,12 +129,12 @@ func (i *Index) collectMatches(query string, kind string) ([]findMatch, []findMa
 		return nil
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, false, err
 	}
 
 	sortMatches(exact)
 	sortMatches(partial)
-	return exact, partial, nil
+	return exact, partial, textScan, nil
 }
 
 // kindMatches compares a requested kind against jade's internal vocabulary,
@@ -216,6 +223,20 @@ func (i *Index) buildFindResult(match findMatch, maxLines int) protocol.FindResu
 		Body:      body,
 		Truncated: truncated,
 	}
+}
+
+// findProvenance says how find's declarations were obtained. Grammars give a
+// structural answer; one code file read by a text scan makes the whole answer
+// a text fallback, since that file may hold a declaration the scan missed.
+func findProvenance(textScan bool, total int, shown int) protocol.Provenance {
+	provenance := protocol.Provenance{Certainty: protocol.CertaintyStructural, Source: "tree-sitter", Completeness: protocol.CompletenessComplete}
+	if textScan {
+		provenance = protocol.Provenance{Certainty: protocol.CertaintyTextFallback, Source: "tree-sitter, text scan", Completeness: protocol.CompletenessMayBeIncomplete}
+	}
+	if shown < total {
+		provenance.Completeness = protocol.CompletenessCut
+	}
+	return provenance
 }
 
 func findSummary(query string, total int, shown int) string {

@@ -24,3 +24,19 @@ func TestGrepSummaryCarriesProvenance(t *testing.T) {
 		t.Fatalf("a truncated grep should say cut, got %q", cut)
 	}
 }
+func TestFindProvenance(t *testing.T) {
+	cases := []struct {
+		textScan     bool
+		total, shown int
+		want         string
+	}{
+		{false, 2, 2, "structural · tree-sitter · complete"},
+		{true, 2, 2, "text fallback · tree-sitter, text scan · may be incomplete"},
+		{false, 9, 5, "structural · tree-sitter · cut"},
+	}
+	for _, c := range cases {
+		if got := findProvenance(c.textScan, c.total, c.shown).String(); got != c.want {
+			t.Errorf("findProvenance(%v, %d, %d) = %q, want %q", c.textScan, c.total, c.shown, got, c.want)
+		}
+	}
+}

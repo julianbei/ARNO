@@ -18,6 +18,12 @@ line.
 - **An outline** carries `structural · tree-sitter · complete` for a grammar
   parse, and `text fallback · text scan · may be incomplete` or
   `parse errors` otherwise, next to the revision.
+- **`find`** says `structural · tree-sitter` when every code file it read had a
+  grammar, and `text fallback · tree-sitter, text scan · may be incomplete`
+  when one was read by a text scan — a declaration there may have been
+  missed. `cut` when the limit stopped it.
+- **`search`** and **`retrieve`** say `approximate · text index`: ranked name
+  and term matches, never resolved.
 
 ### Found building 0.0.4 with Jade
 
