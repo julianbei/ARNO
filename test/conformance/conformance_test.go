@@ -151,6 +151,7 @@ func TestSemantics(t *testing.T) {
 			root := fixtureCopy(t, tc.dir)
 			session := newSession(t, binary, root)
 			defer session.close()
+			started := time.Now()
 
 			// A server indexes before it can answer, so retry rather than
 			// sleeping a guessed amount. The failure being guarded against is
@@ -172,6 +173,11 @@ func TestSemantics(t *testing.T) {
 				}
 				break
 			}
+
+			// Recorded for every run so a release that makes a server slower to
+			// start or to answer shows up; the budget that fails on it follows
+			// from a baseline.
+			t.Logf("%s: first exact references after %s", tc.name, time.Since(started).Round(time.Millisecond))
 
 			if strings.Contains(references, "approximate") {
 				t.Fatalf("%s: expected the language server to answer, got the name-matched fallback:\n%s",
@@ -211,6 +217,42 @@ func TestSemantics(t *testing.T) {
 					t.Errorf("%s: %s does not contain the new name %q after rename:\n%s",
 						tc.name, path, tc.renamed, data)
 				}
+			}
+		})
+	}
+}
+
+// TestDegraded is every language again with its language server hidden: an
+// empty PATH and home, so neither PATH nor the toolchain directories jade
+// searches can find one. It runs without the container. What it proves is
+// that a missing server is reported as missing — by the capability report
+// and in the fallback answer itself — rather than silently answered by name
+// matching.
+func TestDegraded(t *testing.T) {
+	binary := jadeBinary(t)
+	empty := t.TempDir()
+	env := []string{
+		"PATH=" + empty, "HOME=" + empty, "GOPATH=" + empty, "GOBIN=",
+		"CARGO_HOME=" + empty, "XDG_CONFIG_HOME=" + empty, "JADE_TELEMETRY=0",
+	}
+
+	for _, tc := range cases() {
+		t.Run(tc.name, func(t *testing.T) {
+			root := fixtureCopy(t, tc.dir)
+			session := newSessionWithEnv(t, binary, root, env)
+			defer session.close()
+
+			capabilities := session.call(t, "jade.capabilities", map[string]any{})
+			if !strings.Contains(capabilities, "no server ("+tc.server+" not installed)") {
+				t.Fatalf("%s: capabilities should report %s as not installed, got:\n%s", tc.name, tc.server, capabilities)
+			}
+
+			references := session.call(t, "jade.references", map[string]any{"path": tc.file, "symbolName": tc.symbol})
+			if !strings.Contains(references, "approximate · text index") {
+				t.Fatalf("%s: references without a server should say it is approximate, got:\n%s", tc.name, references)
+			}
+			if !strings.Contains(references, tc.server+" is not installed") {
+				t.Fatalf("%s: the fallback should name the missing server, got:\n%s", tc.name, references)
 			}
 		})
 	}
@@ -281,9 +323,19 @@ type session struct {
 
 func newSession(t *testing.T, binary string, root string) *session {
 	t.Helper()
+	return newSessionWithEnv(t, binary, root, nil)
+}
+
+// newSessionWithEnv starts jade with env as its whole environment, or the
+// test's own when env is nil.
+func newSessionWithEnv(t *testing.T, binary string, root string, env []string) *session {
+	t.Helper()
 
 	cmd := exec.Command(binary, "--root", root)
 	cmd.Dir = root
+	if env != nil {
+		cmd.Env = env
+	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		t.Fatal(err)

@@ -65,6 +65,15 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### Conformance covers the missing-server path
+
+`TestDegraded` runs every language's fixture again with no language server
+findable, and asserts that `capabilities` reports the server as not installed
+and that `references` says `approximate · text index` and names the missing
+server. It needs no container, so it runs with the ordinary tests.
+`TestSemantics` logs how long each server took to give its first exact
+answer, the baseline for a startup budget.
+
 ### `check` in a repository with several projects
 
 A monorepo has no build command at its root, so `check` answered "no build
