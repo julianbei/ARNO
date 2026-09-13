@@ -54,7 +54,7 @@ func (i *Index) ReplaceTextSource(path string, oldText string, newText string) (
 	}
 
 	updated := strings.Replace(source, oldText, newText, 1)
-	if err := os.WriteFile(absolute, []byte(updated), 0o644); err != nil {
+	if err := writeFile(absolute, []byte(updated)); err != nil {
 		return 0, err
 	}
 

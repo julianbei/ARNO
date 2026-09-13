@@ -559,6 +559,11 @@ impact-aware validation comes after the write path it depends on, not before.
   Providers return proposed edits; they never call `os.WriteFile`. Fixes a
   real bug on the way: a rename across files becomes all-or-nothing instead of
   stopping part-way. A test fails if `os.WriteFile` appears outside that step.
+  *Progress 2026-09-14:* `internal/writes` — atomic single writes and
+  all-or-nothing multi-file writes — carries every edit in `internal/code`
+  and `internal/edit` and the LSP rename; a test guards both packages.
+  Revisions and the index are still updated by each caller, and checkpoint
+  restore still writes on its own.
 - [ ] **Write the edit contract down, and test it.** For every write tool, in
   [tool-contract.md](tool-contract.md): preconditions (expected revision,
   unique target, target unchanged since read, path inside the workspace),

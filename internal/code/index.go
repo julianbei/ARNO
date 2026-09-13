@@ -1284,7 +1284,7 @@ func (i *Index) CreateFile(path string, content string) error {
 	if content != "" && !strings.HasSuffix(content, "\n") {
 		content += "\n"
 	}
-	return os.WriteFile(absolute, []byte(content), 0o644)
+	return writeFile(absolute, []byte(content))
 }
 
 // ReplaceFileSource overwrites an existing file wholesale and returns the line
@@ -1319,7 +1319,7 @@ func (i *Index) ReplaceFileSource(path string, content string) (int, error) {
 	if content != "" && !strings.HasSuffix(content, "\n") {
 		content += "\n"
 	}
-	if err := os.WriteFile(absolute, []byte(content), 0o644); err != nil {
+	if err := writeFile(absolute, []byte(content)); err != nil {
 		return 0, err
 	}
 
@@ -1363,7 +1363,7 @@ func spliceAndWrite(absolute string, lines []string, from int, to int, newCode s
 	updated = append(updated, newLines...)
 	updated = append(updated, lines[to:]...)
 
-	if err := os.WriteFile(absolute, []byte(strings.Join(updated, "\n")+"\n"), 0o644); err != nil {
+	if err := writeFile(absolute, []byte(strings.Join(updated, "\n")+"\n")); err != nil {
 		return nil, err
 	}
 	return oldLines, nil

@@ -317,7 +317,7 @@ func snapshotFiles(root string, edits []protocol.EditOp) (map[string][]byte, err
 // changes() anyway.
 func restoreFiles(root string, snapshots map[string][]byte) {
 	for path, data := range snapshots {
-		_ = os.WriteFile(filepath.Join(root, path), data, 0o644)
+		_ = writeFile(filepath.Join(root, path), data)
 	}
 }
 

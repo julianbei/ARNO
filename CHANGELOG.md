@@ -65,6 +65,24 @@ line.
   `callers exact · gopls · complete` or `callers approximate · text index ·
   may be incomplete`.
 
+### Every edit goes through one write path
+
+The first 0.0.7 item. `replace_text`, `insert`, `delete_symbol`, symbol and
+range replacement, `create_file`, `replace_file`, `apply`'s rollback and a
+language server's rename now write through `internal/writes`:
+
+- **Atomic.** Each file is written to a temporary file beside it and renamed
+  into place, so a crash or a concurrent reader never sees half a file.
+  Permissions are kept, and a symlink stays a link.
+- **All or nothing across files.** A rename that failed writing its fourth
+  file left the first three renamed. It now restores them — removing files
+  it created — and says which write failed.
+- A test fails if `internal/code` or `internal/edit` writes a file any other
+  way.
+
+Checkpoint restore still writes on its own; making it all-or-nothing is the
+checkpoint item.
+
 ### Conformance covers the missing-server path
 
 `TestDegraded` runs every language's fixture again with no language server

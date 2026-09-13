@@ -50,7 +50,7 @@ func (i *Index) InsertSource(path string, anchor string, position string, text s
 	if err != nil {
 		return 0, fmt.Errorf("%w in %s", err, path)
 	}
-	if err := os.WriteFile(absolute, []byte(updated), 0o644); err != nil {
+	if err := writeFile(absolute, []byte(updated)); err != nil {
 		return 0, err
 	}
 

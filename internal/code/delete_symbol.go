@@ -47,7 +47,7 @@ func (i *Index) DeleteSymbolSource(path string, symbolID string) (Symbol, []stri
 		updated += "\n"
 	}
 
-	if err := os.WriteFile(absolute, []byte(updated), 0o644); err != nil {
+	if err := writeFile(absolute, []byte(updated)); err != nil {
 		return Symbol{}, nil, err
 	}
 

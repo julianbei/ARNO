@@ -185,12 +185,18 @@ func (i *Index) languageServerRename(symbol Symbol, line int, column int, newNam
 	}
 
 	changed := make([]string, 0, len(fileEdits))
+	paths := make([]string, 0, len(fileEdits))
+	bodies := make([][]byte, 0, len(fileEdits))
 	for _, fileEdit := range fileEdits {
-		body := strings.Join(contents[fileEdit.Path], "\n") + "\n"
-		if err := os.WriteFile(fileEdit.Path, []byte(body), 0o644); err != nil {
-			return nil, err
-		}
+		paths = append(paths, fileEdit.Path)
+		bodies = append(bodies, []byte(strings.Join(contents[fileEdit.Path], "\n")+"\n"))
 		changed = append(changed, i.relativePath(fileEdit.Path))
+	}
+	// Every file or none. The preflight above catches edits that do not fit;
+	// this catches a write that fails part-way, which used to leave the rename
+	// in some files and not others.
+	if err := writeFiles(paths, bodies); err != nil {
+		return nil, err
 	}
 	return changed, nil
 }
