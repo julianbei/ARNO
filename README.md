@@ -229,6 +229,35 @@ or ad-hoc scripts needs the shell back. The numbers above are one run per task
 — see [docs/benchmark-results.md](docs/benchmark-results.md) for the results,
 a rerun after the pilot's fixes, and the caveats.
 
+### Other hosts
+
+Verified with a live session — find a declaration, insert beside it, run
+`check` — using only Jade's tools:
+
+**Codex CLI** (0.154), in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.jade]
+command = "jade-mcp"
+args = ["--root", "/absolute/path/to/the/repo", "--tools", "core"]
+```
+
+Codex asks before every MCP tool call. With `approval_policy = "never"` it
+refuses them outright; run `codex exec --approve-for-me` or approve Jade's
+tools interactively.
+
+**goose** (1.50), for one run:
+
+```sh
+goose run --with-extension "jade:jade-mcp --root /absolute/path/to/the/repo --tools core" -t "…"
+```
+
+or permanently with `goose configure` → *Add Extension* → *Command-line
+Extension*, command `jade-mcp --root /absolute/path/to/the/repo --tools core`.
+Verified through goose's `claude-code` provider.
+
+OpenCode, Cline and Gemini CLI are not verified yet.
+
 ### Three things that will confuse you once
 
 **Without `"alwaysLoad": true`, Claude Code may never use Jade.** Claude Code

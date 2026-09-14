@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Verified in Codex CLI and goose
+
+A live session in each — find a declaration, insert beside it, run `check`
+— used only Jade's tools and passed. The README has the configuration for
+both and the one thing to know about Codex: its approval policy must let MCP
+tool calls through (`codex exec --approve-for-me`, or interactive approval).
+OpenCode is installed on the benchmark machine but not verified: its only
+provider credential had no API credits.
+
 ## 0.0.7
 
 ### An exact answer names its server again

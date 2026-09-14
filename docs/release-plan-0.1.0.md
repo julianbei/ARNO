@@ -446,12 +446,12 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   (Cline's checkpoints and diff review, for instance) so Jade's instructions do
   not duplicate or fight it. goose first among equals if its ACP passthrough
   really gives Claude Code and Codex Jade through one config.
-  *Blocked 2026-09-13:* on the benchmark machine only Codex CLI is installed
-  (0.42.0). Jade started as its MCP server from `-c mcp_servers.jade.*`
-  overrides, but no session ran: the account's model needs a newer Codex CLI,
-  and older models are refused for a ChatGPT account. OpenCode, goose, Cline
-  and Gemini CLI are not installed. Verifying needs a Codex upgrade and those
-  installs — the user's call.
+  *Progress 2026-09-14:* **Codex CLI 0.154 verified** (find, insert, check
+  through Jade; needs `--approve-for-me` or interactive approval of MCP
+  calls) and **goose 1.50 verified** (stdio extension, `claude-code`
+  provider); README "Other hosts" has both. OpenCode 1.18 is installed but
+  unverified: the machine's only provider credential, an OpenAI key, has no
+  credits. Cline and Gemini CLI not installed.
 
 - [ ] **Carried from 0.0.4.** A Java repository and a fifth pilot repository
   (needs a JDK on the benchmark machine), the Serena competitor arm, and the
