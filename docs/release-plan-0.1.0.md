@@ -659,7 +659,7 @@ impact-aware validation comes after the write path it depends on, not before.
   (`impact: 2 declarations · 6 callers in 3 files · 2 likely tests · pass
   impact`); repeating it on the `checked:` line would cost tokens and say
   nothing new, so it is not.
-- [ ] **Concurrent-agent test.** Two sessions against one workspace: stale
+- [x] **Concurrent-agent test.** Two sessions against one workspace: stale
   edits rejected, neither loses the other's work, `changes` attributes each.
   The review singles this out as where revisions earn their keep; it is not
   tested today. Measure what each session's language servers cost; if two
@@ -672,7 +672,14 @@ impact-aware validation comes after the write path it depends on, not before.
   work, concurrent applies land; the write path now tells every session of
   every write. `changes` marks files a session did not edit as outside
   this session; naming which other session made them would need a shared
-  ledger. Measuring language servers across sessions still to do.
+  ledger. *Measured 2026-09-14:* two sessions on Jade's own repository,
+  started together, each boot their own gopls — 177 MB each — and both give
+  the first exact `references` in 1.63 s, the same as one session. Jade's
+  client keeps no lock files, ports or data directories, so nothing assumes
+  one process owns a server. Sharing servers across sessions waits: the cost
+  is memory, not time, for gopls. Servers that write per-workspace state
+  (metals' `.bloop/`, jdtls' data directory) are the case to measure before
+  0.1.0's benchmark.
 - [x] **Long-running work without polling** (ROADMAP §4).
  *Progress 2026-09-14:* a
   backgrounded or out-waited declared command is no longer killed at the

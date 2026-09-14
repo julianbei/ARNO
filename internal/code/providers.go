@@ -56,6 +56,19 @@ func ReferenceProviderIDs() []string {
 	return ids
 }
 
+// serverCommand names the language server that answers for language: the
+// installed alternative when that is what runs, else the primary.
+func serverCommand(language string) string {
+	spec, ok := lsp.SpecFor(language)
+	if !ok {
+		return language
+	}
+	if resolved, found := spec.Resolve(); found {
+		return resolved.Command
+	}
+	return spec.Command
+}
+
 // languageServerReferences asks the language's running server. It is what
 // makes references exact outside Go.
 type languageServerReferences struct{}
@@ -67,12 +80,15 @@ func (languageServerReferences) references(i *Index, request referenceRequest) (
 	if !ok {
 		return protocol.ReferencesResponse{}, false
 	}
+	// languageServerReferences names the language; provenance names the
+	// backend that answered, which is the server.
+	command := serverCommand(server)
 	response := protocol.ReferencesResponse{
 		Query:      request.symbolID,
 		Source:     "lsp",
 		References: refs,
-		Summary:    fmt.Sprintf("%d references to %s (%s)", len(refs), request.symbol.Name, server),
-		Provenance: protocol.Provenance{Certainty: protocol.CertaintyExact, Source: server, Completeness: protocol.CompletenessComplete},
+		Summary:    fmt.Sprintf("%d references to %s (%s)", len(refs), request.symbol.Name, command),
+		Provenance: protocol.Provenance{Certainty: protocol.CertaintyExact, Source: command, Completeness: protocol.CompletenessComplete},
 	}
 	i.noteIndexing(&response, server)
 	return response, true

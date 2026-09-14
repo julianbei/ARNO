@@ -89,3 +89,13 @@ func TestRenameProvidersHaveNoApproximateFallback(t *testing.T) {
 		t.Fatalf("rename registry: got %s — rename must never fall back to name matching", got)
 	}
 }
+func TestProvenanceNamesTheServerNotTheLanguage(t *testing.T) {
+	// Measured live: an exact answer read "exact · go · complete" after
+	// references moved onto the registry.
+	if got := serverCommand("go"); got != "gopls" {
+		t.Fatalf("go's server is gopls, got %q", got)
+	}
+	if got := serverCommand("kotlin"); got != "kotlin" {
+		t.Fatalf("a language with no known server keeps its name, got %q", got)
+	}
+}

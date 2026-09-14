@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### An exact answer names its server again
+
+After `references` moved onto the provider registry, an exact answer read
+`110 references to NewIndex (go) · exact · go · complete` — the language
+where the server belongs. It reads `(gopls) · exact · gopls · complete`
+again. Found by measuring two sessions side by side.
+
 ### What a sandbox covers, written down
 
 The README's "not hardened for untrusted input" now says what Jade itself
