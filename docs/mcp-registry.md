@@ -42,5 +42,7 @@ worth updating when the description or install steps change:
   the listing to edit it.
 - [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) —
   one line under Developer Tools.
-- [mcp.so](https://mcp.so) and [PulseMCP](https://www.pulsemcp.com) — submit
-  forms.
+- [PulseMCP](https://www.pulsemcp.com) — manual submissions are paused; it
+  reads the official registry, so the listing arrives from there.
+
+Directories that charge for a listing (mcp.so, for one) are skipped.
