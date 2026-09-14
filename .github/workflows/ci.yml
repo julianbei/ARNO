@@ -39,3 +39,59 @@ jobs:
 
       - name: Test
         run: go test ./...
+
+  # TDQS grades tool definitions the way Glama's registry does
+  # (https://tdqs.dev). lint is deterministic and needs no key; it fails on
+  # errors only, because its shadowing warning is a cost heuristic the spec
+  # itself says only the scored evaluation can confirm. score runs the full
+  # rubric through tdqs.dev when the TDQS_API_KEY secret is set (keys are free
+  # with a GitHub login there), on main only, and fails below tier B.
+  tdqs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build
+        run: |
+          CGO_ENABLED=1 go build -o "$RUNNER_TEMP/jade-mcp" ./cmd/jade-mcp
+          npm install --global mcp-tdqs@0.2.0
+
+      - name: Lint tool definitions
+        env:
+          JADE_UPDATE_CHECK: '0'
+          JADE_TELEMETRY: '0'
+        run: |
+          status=0
+          for profile in core all; do
+            tdqs lint --command "$RUNNER_TEMP/jade-mcp --root $GITHUB_WORKSPACE --tools $profile" \
+              --fail-on error --format markdown --output "tdqs-lint-$profile.md" || status=$?
+            { echo "## TDQS lint: --tools $profile"; cat "tdqs-lint-$profile.md"; } >> "$GITHUB_STEP_SUMMARY"
+          done
+          exit $status
+
+      - name: Score tool definitions
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          TDQS_API_KEY: ${{ secrets.TDQS_API_KEY }}
+          JADE_UPDATE_CHECK: '0'
+          JADE_TELEMETRY: '0'
+        run: |
+          if [ -z "$TDQS_API_KEY" ]; then
+            echo "TDQS_API_KEY is not set; skipping the scored run." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          status=0
+          tdqs score --hosted https://tdqs.dev \
+            --command "$RUNNER_TEMP/jade-mcp --root $GITHUB_WORKSPACE --tools core" \
+            --fail-under B --format markdown --output tdqs-score.md || status=$?
+          { echo "## TDQS score: --tools core"; cat tdqs-score.md; } >> "$GITHUB_STEP_SUMMARY"
+          exit $status

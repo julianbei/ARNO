@@ -53,18 +53,61 @@ type mcpTool struct {
 	Annotations *toolAnnotations       `json:"annotations,omitempty"`
 }
 
-// toolAnnotations are MCP's behaviour hints. Unannotated tools are taken to
-// be writes that may destroy, which is right for most of Jade's; only the
-// read-only tools and delete_file say anything.
+// toolAnnotations are MCP's behaviour hints. Pointers, because an explicit
+// false (insert destroys nothing) says something an absent hint does not:
+// MCP reads a missing destructiveHint as true.
 type toolAnnotations struct {
-	ReadOnlyHint    bool `json:"readOnlyHint,omitempty"`
-	DestructiveHint bool `json:"destructiveHint,omitempty"`
+	ReadOnlyHint    *bool `json:"readOnlyHint,omitempty"`
+	DestructiveHint *bool `json:"destructiveHint,omitempty"`
 }
 
+func hint(value bool) *bool { return &value }
+
 var (
-	readOnlyTool    = &toolAnnotations{ReadOnlyHint: true}
-	destructiveTool = &toolAnnotations{DestructiveHint: true}
+	readOnlyTool    = toolAnnotations{ReadOnlyHint: hint(true)}
+	additiveTool    = toolAnnotations{DestructiveHint: hint(false)}
+	destructiveTool = toolAnnotations{DestructiveHint: hint(true)}
 )
+
+// toolAnnotationsByName gives every tool its hints in one place, so a new
+// tool without an entry fails TestEveryToolIsAnnotated rather than shipping
+// unannotated. Destructive means it can overwrite or remove what was there:
+// edits, deletions, revert, and run_command's arbitrary shell. check and
+// run_tests run the project's own commands, which write build output but are
+// not meant to change source.
+var toolAnnotationsByName = map[string]toolAnnotations{
+	"jade.capabilities":    readOnlyTool,
+	"jade.workspace_tree":  readOnlyTool,
+	"jade.outline":         readOnlyTool,
+	"jade.read_range":      readOnlyTool,
+	"jade.history":         readOnlyTool,
+	"jade.context":         readOnlyTool,
+	"jade.references":      readOnlyTool,
+	"jade.find":            readOnlyTool,
+	"jade.retrieve":        readOnlyTool,
+	"jade.grep":            readOnlyTool,
+	"jade.telemetry":       readOnlyTool,
+	"jade.changes":         readOnlyTool,
+	"jade.diff":            readOnlyTool,
+	"jade.job_status":      readOnlyTool,
+	"jade.job_output":      readOnlyTool,
+	"jade.events":          readOnlyTool,
+	"jade.insert":          additiveTool,
+	"jade.create_file":     additiveTool,
+	"jade.checkpoint":      additiveTool,
+	"jade.check":           additiveTool,
+	"jade.run_tests":       additiveTool,
+	"jade.replace_symbol":  destructiveTool,
+	"jade.replace_text":    destructiveTool,
+	"jade.replace_file":    destructiveTool,
+	"jade.apply":           destructiveTool,
+	"jade.delete_symbol":   destructiveTool,
+	"jade.delete_file":     destructiveTool,
+	"jade.rename":          destructiveTool,
+	"jade.revert":          destructiveTool,
+	"jade.run_command":     destructiveTool,
+	"jade.declare_command": destructiveTool,
+}
 
 type mcpTextContent struct {
 	Type string `json:"type"`
@@ -766,6 +809,9 @@ var deprecatedTools = map[string]string{}
 func tools() []mcpTool {
 	catalog := catalogTools()
 	for i := range catalog {
+		if hints, ok := toolAnnotationsByName[catalog[i].Name]; ok {
+			catalog[i].Annotations = &hints
+		}
 		if reason, ok := deprecatedTools[catalog[i].Name]; ok {
 			catalog[i].Description = "Deprecated, removed before 0.1.0: " + reason + ". " + catalog[i].Description
 		}
@@ -808,7 +854,6 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.read_range",
-			Annotations: readOnlyTool,
 			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address. An end line past the end of the file reads to the end. A dependency's source reads as dep:<name>/<path>, read-only. Several ranges, in one file or many, go in one call: {\"ranges\": [{\"path\": \"a.go\", \"lines\": \"280-400\"}, {\"path\": \"b.go\", \"lines\": \"700-760\"}]}.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
@@ -896,7 +941,6 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.find",
-			Annotations: readOnlyTool,
 			Description: "Locate declarations by name AND return their source in one call — the fused search-and-read that replaces `grep -n 'func X' -A 30`. Exact name matches win over substring ones. Use this instead of outline and read_range when you have not located the symbol yet. Pass queries to find several names in one call.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
@@ -1033,7 +1077,6 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.delete_file",
-			Annotations: destructiveTool,
 			Description: "Delete a file, not a directory; fails if it does not exist. Reverting to an earlier checkpoint recreates it. To edit content use replace_text or apply.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
@@ -1081,7 +1124,6 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.grep",
-			Annotations: readOnlyTool,
 			Description: "Literal or regex text search across the workspace, returning path:line matches with optional trailing context — the replacement for `grep -rn`. Use this for anything that is not a declaration name: struct fields, string literals, error messages, config keys, or any search needing a path filter. Use find instead when you want a declaration and its body. Pass queries to search several patterns in one call.",
 			InputSchema: map[string]interface{}{
 				"type": "object",

@@ -34,9 +34,10 @@ func TestCoreProfileListsOnlyRealToolsAndIsSmaller(t *testing.T) {
 }
 
 // maxCoreCatalogBytes is the core profile's tools/list size ceiling. It was
-// 13000 until the MCP annotations (read-only and destructive hints) and
-// delete_file's undo note added about 200 bytes that hosts and agents act on.
-const maxCoreCatalogBytes = 13300
+// 13000 until every tool gained MCP annotations (read-only and destructive
+// hints, about 35 bytes each) and delete_file its undo note: metadata hosts
+// act on, and what TDQS grades descriptions against.
+const maxCoreCatalogBytes = 13700
 
 func TestToolsFlag(t *testing.T) {
 	cases := []struct {

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Every tool annotated, and TDQS in CI
+
+All 31 tools carry MCP annotations from one table: 16 read-only, 5 that
+destroy nothing (`insert`, `create_file`, `checkpoint`, `check`, `run_tests`)
+and 10 that can overwrite or remove (the edits, deletions, `rename`, `revert`,
+`run_command` and `declare_command`). A test fails when a tool has no entry.
+
+CI runs `tdqs lint` from [TDQS](https://tdqs.dev), the scoring Glama's
+registry uses, on the core and full tool sets and fails on errors; the report
+lands in the job summary. With a `TDQS_API_KEY` secret, pushes to main also
+run the full scored rubric through tdqs.dev and fail below tier B.
+
 ## 0.0.11
 
 ### MCP bundle for Claude Desktop
