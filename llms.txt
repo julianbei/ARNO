@@ -1,0 +1,37 @@
+# Jade
+
+> Jade is an MCP server that gives coding agents a change transaction: read code by symbol, edit against a known revision with compiler diagnostics in the response, validate with the repository's own build and test commands, see what changed, and revert to a checkpoint. It runs as a local stdio process (`jade-mcp`) on macOS and Linux, and on Windows inside WSL 2.
+
+Jade works in any repository. Structure (outline, find, grep, edit by symbol) comes from built-in tree-sitter grammars for Go, Java, Scala, TypeScript/JavaScript, Python, Rust and Ruby. Exact references, cross-file rename and type errors on edit need that language's server (gopls, jdtls, metals, typescript-language-server, pyright, rust-analyzer, ruby-lsp); without one, Jade still answers and labels the answer approximate. Kotlin has no support yet. Telemetry is local only and never transmitted. Current release: v0.0.9.
+
+## Install (for an agent)
+
+No terminal is needed; nothing below asks a question.
+
+1. Install Jade, optionally with language servers: `curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | JADE_SERVERS=go,java JADE_ADD_TO_PATH=1 sh` — `JADE_SERVERS` takes `go,java,scala,typescript,python,rust,ruby` or `all`; leave it out to install only Jade. Running the same command again updates Jade in place.
+2. The script prints the absolute path of `jade-mcp`. Use that path as `command` in the MCP client config, because editors often do not inherit the shell's `PATH`.
+3. Check server state: `jade-mcp install --list --json` gives each language server's `key`, `installed`, `path`, the `command` that would install it, and `manual` steps. Preview with `jade-mcp install --servers java --dry-run`, then run without `--dry-run`. Show install commands to the user before running them: they install packages globally (`brew`, `npm -g`, `gem`, `cs`, `go install`, `rustup`).
+4. Configure the client. For Claude Code, `.mcp.json` in the repository root: `{"mcpServers":{"jade":{"type":"stdio","command":"/absolute/path/to/jade-mcp","args":["--root","/absolute/path/to/the/repo","--tools","core"],"alwaysLoad":true}}}`. `--tools core` lists the twelve tools agents use; the rest stay callable by name.
+5. Reconnect or restart the MCP client, then call `jade.capabilities`. Its first line is the running version; it lists each language, whether its server runs, the build and test commands Jade found, and for a missing server the `jade-mcp install --servers <language>` command that adds it.
+
+## Docs
+
+- [README](https://github.com/julianbei/jade/blob/main/README.md): what Jade is, install, configuration for Claude Code, Codex CLI, goose and OpenCode, all tools, language support, telemetry
+- [Tester guide](https://github.com/julianbei/jade#trying-jade-a-guide-for-testers): setup for Go, Java and Scala, what to try in the first sessions, which report to file
+- [Install script](https://github.com/julianbei/jade/blob/main/install.sh): the script itself, with every environment variable it reads
+- [Other hosts](https://github.com/julianbei/jade#other-hosts): verified configuration for Codex CLI, goose and OpenCode
+- [Tool contract](https://github.com/julianbei/jade/blob/main/docs/tool-contract.md): every tool, its arguments, and the guarantees an edit makes
+- [When the shell is still the right tool](https://github.com/julianbei/jade#when-the-shell-is-still-the-right-tool): what Jade does not replace
+
+## Feedback
+
+- [Feedback](https://github.com/julianbei/jade/issues/new?template=feedback.yml): how it went after real use, or why it was turned off
+- [Friction](https://github.com/julianbei/jade/issues/new?template=friction.yml): the agent used the shell although a Jade tool existed
+- [Bug](https://github.com/julianbei/jade/issues/new?template=bug.yml): a tool gave a wrong answer or failed; include `jade.capabilities` output
+- [Feature wish](https://github.com/julianbei/jade/issues/new?template=feature.yml): something Jade should do
+
+## Optional
+
+- [Benchmark results](https://github.com/julianbei/jade/blob/main/docs/benchmark-results.md): Claude Code with and without Jade on real closed issues, with caveats
+- [Changelog](https://github.com/julianbei/jade/blob/main/CHANGELOG.md)
+- [Release plan to 0.1.0](https://github.com/julianbei/jade/blob/main/docs/release-plan-0.1.0.md)
