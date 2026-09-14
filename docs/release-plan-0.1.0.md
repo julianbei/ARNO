@@ -752,7 +752,8 @@ Deliberately not on this path because none of the six claims needs them:
 SCIP backend, ast-grep structural search and rewrite, git signals in ranking,
 shared language servers across sessions (unless Phase 5 measures otherwise),
 native Semgrep or SWE-ReX integration, scratch root, Java and Ruby formatting,
-ruby-lsp method rename.
+ruby-lsp method rename, native Windows (a cgo tree-sitter build in the release
+workflow and six `sh -c` call sites; WSL 2 works today).
 
 Also after 0.1.0, with conditions attached now so they do not drift:
 
@@ -778,10 +779,10 @@ Also after 0.1.0, with conditions attached now so they do not drift:
     supported.
   - Authority classes come from the protocol; core renders them.
   - Installation is the user's: `~/.jade/plugins/` and `jade plugin
-    install|list|remove|doctor`. `install.sh` (added 2026-09-14) is the
-    natural front door: the same script can offer options and a plugin
-    picker at install time, calling those commands rather than placing
-    binaries itself. A repository's `.jade/config.json` may *name*
+    install|list|remove|doctor`. `jade-mcp install` (added 2026-09-14, opened by
+    `install.sh` after a first install) is the front door: its menu lists
+    language servers today, and plugins join it as a second kind of component,
+    installed through the same commands. A repository's `.jade/config.json` may *name*
     a plugin it wants; Jade never launches a binary found inside a
     repository.
   - No plugin adds MCP tools.

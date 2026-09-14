@@ -117,6 +117,12 @@ func main() {
 		}
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "install" {
+		if err := runInstall(os.Args[2:], os.Stdin, os.Stdout); err != nil {
+			fatalf("%v", err)
+		}
+		return
+	}
 	// Answered before anything else is constructed, so `--version` works even
 	// when the workspace root is wrong or missing — which is exactly when
 	// someone is trying to find out what they are running.

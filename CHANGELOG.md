@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.0.9
 
 ### Install script
 
@@ -17,6 +17,20 @@ release laid out on disk, including a tampered archive it must refuse.
 Run again, it updates: a `jade-mcp` already on `PATH` is replaced in its own
 directory, one already at the release is left alone without downloading, and
 a directory it cannot write is named with what to do.
+
+### `jade-mcp install`: language servers from a menu
+
+`jade-mcp install` lists the language servers Jade can use — gopls, jdtls,
+metals, typescript-language-server, pyright, rust-analyzer, ruby-lsp — with
+whether each is installed and the exact command that would install it, asks
+which to install, confirms, and runs them. A server with no installer on the
+machine gets instructions for installing it by hand. `--list`, `--servers
+go,java,scala` and `--all` do the same without questions. The install script
+opens the menu after a first install when a terminal is attached. Plugins are
+meant to join the menu as a second kind of component.
+
+Windows: the install instructions now say to use WSL 2; there is no native
+Windows build.
 
 ### Update notice that stays out of the way
 

@@ -110,4 +110,22 @@ case ":$PATH:" in
 *":$install_dir:"*) ;;
 *) say "$install_dir is not on PATH; add it: export PATH=\"$install_dir:\$PATH\"" ;;
 esac
+
+# has_setup reports whether a release has `jade-mcp install`, added after
+# v0.0.8. An older binary would take the word for a server start and wait on
+# the terminal for protocol messages.
+has_setup() {
+	printf '%s\n' "$1" | awk -F'[v.-]' '{ exit !($2 > 0 || $3 > 0 || $4 >= 9) }'
+}
+
+# After a first install, offer the language-server menu when someone is at a
+# terminal to answer it; curl | sh keeps stdin for the script, so the menu
+# reads the terminal directly.
+if [ -z "$current" ] && [ -z "${JADE_SKIP_SETUP:-}" ] && has_setup "$installed" && [ -t 1 ] && { : </dev/tty; } 2>/dev/null; then
+	"$install_dir/jade-mcp" install </dev/tty || say "language server setup did not finish; run jade-mcp install any time"
+elif has_setup "$installed"; then
+	say "add language servers any time: jade-mcp install"
+else
+	say "language servers: https://github.com/$repo#trying-jade-a-guide-for-testers"
+fi
 say "next: https://github.com/$repo#trying-jade-a-guide-for-testers"

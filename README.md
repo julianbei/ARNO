@@ -67,20 +67,29 @@ two of your normal work with it switched on, and then telling us how it went —
 
 ### 1. Install Jade and your language servers
 
+**macOS and Linux:**
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh
-jade-mcp --version
 ```
+
+**Windows:** Jade runs inside [WSL 2](https://learn.microsoft.com/windows/wsl/install).
+Open your WSL terminal (Ubuntu, for instance), run the same command there, and
+work on repositories inside WSL. There is no native Windows build yet.
 
 The script picks the build for your OS and CPU, checks it against the
 release's checksums and installs it to `/usr/local/bin`, or `~/.local/bin`
 when that is not writable — no sudo, no Go toolchain. It tells you if the
-directory still needs to go on `PATH`. **Run the same command again to
+directory still needs to go on `PATH`. On a first install it then opens
+`jade-mcp install`, a menu that installs the language servers you pick, or
+shows how to install them by hand; Enter skips it, and you can run it again
+any time. **Run the same command again to
 update** — Jade tells you when a new release is out (see
 [Update check](#update-check)). (Prefer Go? `go install
-github.com/julianbei/jade/cmd/jade-mcp@v0.0.8` works too.) Jade reads
+github.com/julianbei/jade/cmd/jade-mcp@v0.0.9` works too.) Jade reads
 structure in every language with nothing else installed; exact references,
-cross-file rename and type errors on edit need the language's server:
+cross-file rename and type errors on edit need the language's server —
+`jade-mcp install` installs these for you, or by hand:
 
 | Language | Install | Notes |
 |---|---|---|
@@ -205,15 +214,35 @@ Downloads the latest [release binary](#from-a-release-binary) for your OS and
 CPU, verifies it against `checksums.txt`, and installs it without sudo to
 `/usr/local/bin` or `~/.local/bin`. Run it again to update: a `jade-mcp`
 already on `PATH` is replaced where it is, and nothing is downloaded when it
-is already current. `JADE_VERSION=v0.0.8` pins a release;
+is already current. `JADE_VERSION=v0.0.9` pins a release;
 `JADE_INSTALL_DIR` picks the directory. Read it first if you like:
 [install.sh](install.sh).
+
+On **Windows**, run it inside [WSL 2](https://learn.microsoft.com/windows/wsl/install);
+Jade has no native Windows build yet.
+
+### Language servers: `jade-mcp install`
+
+```bash
+jade-mcp install                           # menu: pick what to install
+jade-mcp install --list                    # what is installed, and how the rest would be
+jade-mcp install --servers go,java,scala   # install these, no questions
+jade-mcp install --all                     # every missing server this machine can install
+```
+
+The menu lists each language server Jade can use, whether it is installed, and
+the exact command it would run — `go install` for gopls, `brew install jdtls`,
+`cs install metals`, `npm install -g` for TypeScript and Pyright, `rustup
+component add rust-analyzer`, `gem install ruby-lsp` — and confirms before
+running anything. A server with no installer on the machine gets instructions
+for installing it by hand. The install script opens the menu after a first
+install; `JADE_SKIP_SETUP=1` skips it.
 
 ### From Go
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest    # newest
-go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.8    # pinned
+go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.9    # pinned
 ```
 
 Lands in `$GOBIN`, or `$(go env GOPATH)/bin` if that is unset — which is
@@ -238,7 +267,7 @@ current glibc. On an older distro, build from source or use the container
 image, which is statically linked against musl.
 
 ```bash
-VERSION=v0.0.8
+VERSION=v0.0.9
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fsSL "https://github.com/julianbei/jade/releases/download/${VERSION}/jade-mcp_${VERSION}_${OS}_${ARCH}.tar.gz" \
@@ -434,7 +463,7 @@ Jade is a child process, not a service, so the useful shape is to copy the
 binary into your own image rather than run Jade's:
 
 ```dockerfile
-FROM ghcr.io/julianbei/jade-mcp:v0.0.8 AS jade
+FROM ghcr.io/julianbei/jade-mcp:v0.0.9 AS jade
 
 FROM your-project-base
 COPY --from=jade /jade-mcp /usr/local/bin/jade-mcp
@@ -849,8 +878,8 @@ release exists, it says so only where you asked what you are running:
 
 ```
 $ jade-mcp --version
-jade-mcp v0.0.8
-update available: v0.0.9 (running v0.0.8) · curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh, then reconnect your MCP client
+jade-mcp v0.0.9
+update available: v0.0.10 (running v0.0.9) · curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh, then reconnect your MCP client
 ```
 
 and as the second line of `jade.capabilities`. It never appears in the server
