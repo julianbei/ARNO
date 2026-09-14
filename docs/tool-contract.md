@@ -284,6 +284,31 @@ response structs, not replacing any.
 4. Contract tests: every list-returning tool accepts `budget` and
    `continue`; every provenance value comes from the closed sets.
 
+## The 0.1.x stability promise
+
+*Draft. Binding from the `v0.1.0` tag, for every 0.1.x release.* Until then
+the stability policy above applies, and the five deprecated tools are removed
+before 0.1.0.
+
+Frozen for 0.1.x — a change to any of these waits for 0.2.0 and is called
+out in its release notes:
+
+| Surface | What is frozen |
+|---|---|
+| Tool names | Every tool in the 0.1.0 catalog, spelled `jade.<name>` or `jade_<name>` |
+| Arguments | Required arguments stay required and no optional argument becomes required |
+| Profiles | The names `core` and the full catalog, and that an unlisted tool stays callable |
+| Budgets | `budget` in tokens (four bytes each), cutting at whole items; `continue=<handle>` returning the next page; a handle refused after an edit |
+| Provenance | The certainty set (`exact`, `structural`, `approximate`, `text fallback`) and the completeness set (`complete`, `cut`, `may be incomplete`, `parse errors`, `stale`) |
+| Validation outcomes | `passed`, `failed`, `unavailable`, `running`, `timed out` |
+| Capability report | Its fields: per language the structure, server and server state, formatter and references provenance; git; validation commands; declared commands and kinds; providers |
+| The edit contract | Every guarantee in *The edit contract* above, with its test |
+
+Still free to change in 0.1.x: response wording and layout, symbol ID
+spelling, the `.jade/*` file formats (with migration), telemetry fields, and
+anything under `internal/`. New tools, new optional arguments, new provenance
+sources and new capability-report fields may be added.
+
 ## What is explicitly not frozen
 
 - **Response wording**, as above.

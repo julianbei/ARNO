@@ -703,7 +703,7 @@ checkpoint taken after the commit.
   `telemetry` summary (already content-free) voluntarily. *Done when* at least
   a handful of outside users have run it for weeks and their reports are
   triaged into ROADMAP.
-- [ ] **Stability promise for 0.1.x** in [tool-contract.md](tool-contract.md):
+- [ ] **Stability promise for 0.1.x** in [tool-contract.md](tool-contract.md) (*drafted 2026-09-14*, binding from the tag):
   tool names, required arguments, profile names, `budget` and continuation,
   provenance vocabulary, validation outcome set, capability-report fields and
   the edit contract's
