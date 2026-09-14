@@ -307,6 +307,15 @@ curl -fsSL "https://github.com/julianbei/jade/releases/download/${VERSION}/jade-
 sudo mv "jade-mcp_${VERSION}_${OS}_${ARCH}" /usr/local/bin/jade-mcp
 ```
 
+#### As an MCP bundle, for Claude Desktop
+
+From the next release on, each [GitHub release](https://github.com/julianbei/jade/releases)
+also carries `jade-mcp_<version>.mcpb`, one bundle with the binaries for macOS
+and Linux on Intel and ARM. Open it with Claude Desktop, pick the repository
+Jade should work on, and it runs with the core tools; no terminal and no
+Docker. Language servers still come from `jade-mcp install`, or run without
+them on tree-sitter alone.
+
 #### From source
 
 ```bash

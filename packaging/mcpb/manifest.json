@@ -1,0 +1,43 @@
+{
+  "manifest_version": "0.3",
+  "name": "jade-mcp",
+  "display_name": "Jade",
+  "version": "0.0.0",
+  "description": "The IDE for agents: read by symbol, edit against a revision, validate with your own build, revert.",
+  "long_description": "Jade is a local MCP server for coding agents. It reads code by symbol with tree-sitter and real language servers (Go, Java, Scala, TypeScript, Python, Rust, Ruby), edits against a known revision and returns compiler diagnostics with each edit, runs the repository's own build, test and declared commands, shows what changed, and reverts to checkpoints. Telemetry stays on your machine.\n\nLanguage servers are optional; install them with `jade-mcp install`.",
+  "author": {
+    "name": "Julian Amelung",
+    "url": "https://github.com/julianbei"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/julianbei/jade.git"
+  },
+  "homepage": "https://github.com/julianbei/jade",
+  "documentation": "https://github.com/julianbei/jade#readme",
+  "support": "https://github.com/julianbei/jade/issues",
+  "icon": "icon.png",
+  "license": "Apache-2.0",
+  "keywords": ["code", "ide", "refactoring", "language-server", "tree-sitter", "coding-agents"],
+  "server": {
+    "type": "binary",
+    "entry_point": "server/launch.sh",
+    "mcp_config": {
+      "command": "/bin/sh",
+      "args": ["${__dirname}/server/launch.sh", "--root", "${user_config.workspace}", "--tools", "core"],
+      "env": {}
+    }
+  },
+  "tools_generated": true,
+  "compatibility": {
+    "platforms": ["darwin", "linux"]
+  },
+  "user_config": {
+    "workspace": {
+      "type": "directory",
+      "title": "Repository",
+      "description": "The repository Jade reads, edits and validates",
+      "required": true
+    }
+  }
+}

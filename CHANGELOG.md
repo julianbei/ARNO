@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### MCP bundle for Claude Desktop
+
+Each release carries `jade-mcp_<version>.mcpb`: the four macOS and Linux
+binaries, a launcher that picks the one for the machine's architecture, and a
+manifest that asks for the repository to work on. Claude Desktop installs it
+without a terminal or Docker. The release workflow validates and packs it with
+the MCPB CLI, and lists its checksum in `checksums.txt`.
+
+### Registry listing published from CI
+
+The release workflow publishes the MCP Registry listing itself, logging in
+with GitHub OIDC. Version, image tag and the bundle's URL and sha256 come from
+the tag, so `server.json` no longer needs a bump before tagging. The listing
+now offers two packages: the container image and the MCP bundle.
+
 ## 0.0.10
 
 ### Listed in the official MCP Registry

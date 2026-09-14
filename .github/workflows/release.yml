@@ -76,13 +76,35 @@ jobs:
           path: dist
           merge-multiple: true
 
+      # One MCP bundle (.mcpb) carries all four binaries, so Claude Desktop and
+      # registry clients install Jade without Docker. MCPB tells operating
+      # systems apart but not architectures; launch.sh picks the binary.
+      - name: MCP bundle
+        run: |
+          set -e
+          bundle=build/mcpb
+          mkdir -p "$bundle/server"
+          for archive in dist/*.tar.gz; do
+            tar xzf "$archive" -C "$bundle/server"
+          done
+          for bin in "$bundle"/server/jade-mcp_*; do
+            mv "$bin" "$bundle/server/$(basename "$bin" | sed "s/_${GITHUB_REF_NAME}_/_/")"
+          done
+          chmod +x "$bundle"/server/jade-mcp_*
+          cp packaging/mcpb/launch.sh packaging/mcpb/icon.png "$bundle/"
+          mv "$bundle/launch.sh" "$bundle/server/launch.sh"
+          jq --arg v "${GITHUB_REF_NAME#v}" '.version = $v' packaging/mcpb/manifest.json > "$bundle/manifest.json"
+          ls -la "$bundle" "$bundle/server"
+          npx -y @anthropic-ai/mcpb@2.1.2 validate "$bundle/manifest.json"
+          npx -y @anthropic-ai/mcpb@2.1.2 pack "$bundle" "dist/jade-mcp_${GITHUB_REF_NAME}.mcpb"
+
       # Checksums are computed once, over everything, after all four
       # architectures have landed — a per-runner checksum file would give four
       # partial lists rather than one manifest.
       - name: Checksums
         run: |
           cd dist
-          sha256sum *.tar.gz > checksums.txt
+          sha256sum *.tar.gz *.mcpb > checksums.txt
           cat checksums.txt
 
       # Hand-written notes lead the release; GitHub's generated commit list is
@@ -140,8 +162,10 @@ jobs:
   # server.json keeps a committed version for local validation; the tag
   # overrides it here, so a release never needs a manual bump. GitHub OIDC
   # proves the io.github.julianbei namespace without a stored secret.
+  # The MCP bundle is a second package: the registry needs its URL and sha256,
+  # so this also waits for the release that uploads it.
   registry:
-    needs: image
+    needs: [image, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -151,9 +175,18 @@ jobs:
 
       - name: Set version from tag
         run: |
+          set -e
           version="${GITHUB_REF_NAME#v}"
-          jq --arg v "$version" --arg image "ghcr.io/${{ github.repository_owner }}/jade-mcp:${GITHUB_REF_NAME}" \
-            '.version = $v | .packages[0].identifier = $image' server.json > server.tmp
+          bundle_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/jade-mcp_${GITHUB_REF_NAME}.mcpb"
+          bundle_sha=$(curl -fsSL "$bundle_url" | sha256sum | cut -d' ' -f1)
+          jq --arg v "$version" \
+             --arg image "ghcr.io/${{ github.repository_owner }}/jade-mcp:${GITHUB_REF_NAME}" \
+             --arg bundle "$bundle_url" --arg sha "$bundle_sha" \
+            '.version = $v
+             | .packages = [
+                 (.packages[] | select(.registryType == "oci") | .identifier = $image),
+                 {registryType: "mcpb", identifier: $bundle, fileSha256: $sha, transport: {type: "stdio"}}
+               ]' server.json > server.tmp
           mv server.tmp server.json
           cat server.json
 
