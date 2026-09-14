@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/julianbei/jade/internal/project"
@@ -275,7 +276,45 @@ func cargoArgsFor(dir string, kind string) ([]string, bool) {
 	if err := cmd.Run(); err != nil {
 		return nil, false
 	}
-	return args, true
+	return cargoPackageScope(dir, args), true
+}
+
+// cargoPackageScope narrows --workspace to -p <package> when dir is a member
+// crate rather than the workspace root.
+//
+// cargo resolves the workspace from any member directory, so check with
+// target crates/ignore ran `cargo build --workspace` over all of ripgrep: the
+// target changed the directory and nothing else.
+func cargoPackageScope(dir string, args []string) []string {
+	manifest, err := os.ReadFile(filepath.Join(dir, "Cargo.toml"))
+	if err != nil || strings.Contains(string(manifest), "[workspace]") {
+		return args
+	}
+	name := cargoPackageName(string(manifest))
+	if name == "" || !insideCargoWorkspace(dir) {
+		return args
+	}
+	scoped := make([]string, 0, len(args)+1)
+	for _, arg := range args {
+		if arg == "--workspace" {
+			scoped = append(scoped, "-p", name)
+			continue
+		}
+		scoped = append(scoped, arg)
+	}
+	return scoped
+}
+
+// insideCargoWorkspace reports whether a directory above dir holds a
+// workspace manifest, which makes dir's crate a member of it. A standalone
+// crate keeps --workspace, which for it means the same thing.
+func insideCargoWorkspace(dir string) bool {
+	for parent := filepath.Dir(dir); parent != filepath.Dir(parent); parent = filepath.Dir(parent) {
+		if manifest, err := os.ReadFile(filepath.Join(parent, "Cargo.toml")); err == nil && strings.Contains(string(manifest), "[workspace]") {
+			return true
+		}
+	}
+	return false
 }
 
 // makefileTargetFor finds the first candidate target for kind that both

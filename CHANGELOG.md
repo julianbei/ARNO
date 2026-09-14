@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Validation keeps to the scope it was given
+
+`check` with a target inside a Cargo workspace now runs `cargo build -p
+<crate>` (and `check`/`test` likewise) instead of `--workspace`: cargo
+resolves the workspace from any member directory, so the target changed the
+directory and nothing else, and ripgrep's `crates/ignore` built all of
+ripgrep. A standalone crate is unchanged. `apply` with `check: "tests"` runs
+the tests for the edited files, not the whole suite, and a pass says so;
+`check` with kind `tests` still runs everything.
+
 ### Test results say what ran and what failed
 
 `check`, `run_tests` and `apply` read go test, cargo test, pytest, jest,

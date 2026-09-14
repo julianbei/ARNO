@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -147,5 +148,28 @@ func TestDiscoverCommandStillPrefersMakefileOverEcosystem(t *testing.T) {
 	}
 	if name != "make" {
 		t.Fatalf("expected a repository Makefile target to win over the npm script, got %q %v", name, args)
+	}
+}
+
+// A member crate is checked on its own; the workspace root still checks the
+// whole workspace.
+func TestCargoPackageScopeNarrowsAMemberCrate(t *testing.T) {
+	root := t.TempDir()
+	member := filepath.Join(root, "crates", "ignore")
+	if err := os.MkdirAll(member, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "Cargo.toml"), []byte("[package]\nname = \"ripgrep\"\n\n[workspace]\nmembers = [\"crates/*\"]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(member, "Cargo.toml"), []byte("[package]\nname = \"ignore\"\nversion = \"0.4.0\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := strings.Join(cargoPackageScope(member, []string{"build", "--workspace"}), " "); got != "build -p ignore" {
+		t.Fatalf("member crate: %q", got)
+	}
+	if got := strings.Join(cargoPackageScope(root, []string{"check", "--workspace", "--all-targets"}), " "); got != "check --workspace --all-targets" {
+		t.Fatalf("workspace root: %q", got)
 	}
 }

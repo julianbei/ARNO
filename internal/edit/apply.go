@@ -105,6 +105,14 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 			impact, files := s.impact(req.Edits, response.Changed, deletedReferences, deletedCount)
 			response.Impact = &impact
 			response.CheckOutcome, response.CheckSummary = s.runImpactTests(files)
+		} else if kind == "tests" {
+			// The edited files' tests, not the whole suite: requests' full
+			// suite took 70 seconds inline and failed on a missing SOCKS
+			// dependency unrelated to the edit. check tests still runs it all.
+			response.CheckOutcome, response.CheckSummary = s.runChangedTests(response.Changed, "tests for the edited files")
+			if response.CheckOutcome == protocol.OutcomePassed {
+				response.CheckSummary = "tests for the edited files only; check with kind tests runs the whole suite"
+			}
 		} else {
 			response.CheckOutcome, response.CheckSummary = s.runCheck(kind)
 		}

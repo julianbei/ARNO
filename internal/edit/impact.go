@@ -125,22 +125,32 @@ func (s *Service) traceDeleted(edits []protocol.EditOp) ([]protocol.ReferenceLoc
 	return references, count
 }
 
-// runImpactTests runs the scoped tests for the files an impact check found:
-// each Go package among them, and the test files elsewhere.
-func (s *Service) runImpactTests(files []string) (protocol.ValidationOutcome, string) {
+// runChangedTests runs the tests covering files the way run_tests with scope
+// changed runs them. A passing run returns an empty summary.
+func (s *Service) runChangedTests(files []string, what string) (protocol.ValidationOutcome, string) {
 	jobID := s.jobs.Start("tests")
 	s.jobs.RunScopedTests(jobID, s.workspace.Root(), jobs.TestScope{Kind: "changed"}, files)
 
 	output, finished := s.jobs.Wait(jobID, applyCheckTimeout)
 	if !finished {
-		return protocol.OutcomeTimedOut, fmt.Sprintf("the edits are written; impact tests did not finish within %s and are still running as %s", applyCheckTimeout, jobID)
+		return protocol.OutcomeTimedOut, fmt.Sprintf("the edits are written; %s did not finish within %s and are still running as %s", what, applyCheckTimeout, jobID)
 	}
 	outcome := jobs.Outcome(output, true)
+	if outcome == protocol.OutcomePassed {
+		return outcome, ""
+	}
+	if tests := jobs.SummarizeTests(output.Raw); tests.Found {
+		return outcome, tests.FailureLine(output.Summary)
+	}
+	return outcome, output.Summary
+}
+
+// runImpactTests runs the scoped tests for the files an impact check found:
+// each Go package among them, and the test files elsewhere.
+func (s *Service) runImpactTests(files []string) (protocol.ValidationOutcome, string) {
+	outcome, summary := s.runChangedTests(files, "impact tests")
 	if outcome != protocol.OutcomePassed {
-		if tests := jobs.SummarizeTests(output.Raw); tests.Found {
-			return outcome, tests.FailureLine(output.Summary)
-		}
-		return outcome, output.Summary
+		return outcome, summary
 	}
 
 	// Repository rules after the tests: the declared lint commands, run the
