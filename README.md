@@ -5,7 +5,9 @@
   <img src="logo.png" alt="Jade — Just Agentic Development Environment" width="520">
 </picture>
 
-**A change transaction for coding agents, served over MCP.** Read by symbol,
+## The IDE for agents
+
+Jade gives coding agents what an IDE gives you, served over MCP. Read by symbol,
 edit against a known revision, get the compiler's diagnostics back with the
 edit, validate with the repository's own commands, see what changed, and
 revert to a checkpoint — each step one tool call, none of it through the shell.

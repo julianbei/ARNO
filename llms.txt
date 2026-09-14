@@ -1,6 +1,6 @@
 # Jade
 
-> Jade is an MCP server that gives coding agents a change transaction: read code by symbol, edit against a known revision with compiler diagnostics in the response, validate with the repository's own build and test commands, see what changed, and revert to a checkpoint. It runs as a local stdio process (`jade-mcp`) on macOS and Linux. Windows is not supported; to ask for it, upvote https://github.com/julianbei/jade/issues/2.
+> Jade is the IDE for agents: an MCP server that gives coding agents a change transaction: read code by symbol, edit against a known revision with compiler diagnostics in the response, validate with the repository's own build and test commands, see what changed, and revert to a checkpoint. It runs as a local stdio process (`jade-mcp`) on macOS and Linux. Windows is not supported; to ask for it, upvote https://github.com/julianbei/jade/issues/2.
 
 Jade works in any repository. Structure (outline, find, grep, edit by symbol) comes from built-in tree-sitter grammars for Go, Java, Scala, TypeScript/JavaScript, Python, Rust and Ruby. Exact references, cross-file rename and type errors on edit need that language's server (gopls, jdtls, metals, typescript-language-server, pyright, rust-analyzer, ruby-lsp); without one, Jade still answers and labels the answer approximate. Kotlin has no support yet. Telemetry is local only and never transmitted. Current release: v0.0.9.
 
