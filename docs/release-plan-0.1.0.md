@@ -621,7 +621,7 @@ impact-aware validation comes after the write path it depends on, not before.
   provider may do, the two invariants, and the conditions a future plugin
   protocol must meet (see *Deferred*). Written now so the refactors above do
   not close the door and the plugin work later does not reopen the argument.
-- [ ] **Strengthen declared commands.** They are how validation stays inside
+- [x] **Strengthen declared commands.** They are how validation stays inside
   Jade. Declared commands appear in the capability report, `check` can run
   them as validation steps by kind (`lint`, `codegen`), and their runs appear
   in `changes` and `events` alongside edits, so the whole transaction is in
