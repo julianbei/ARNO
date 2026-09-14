@@ -30,7 +30,7 @@ runs. Sonnet 5, one run per task, four languages —
 [results and caveats](docs/benchmark-results.md) ·
 [how to set it up](#let-jade-replace-the-built-in-tools).
 
-**Status:** 0.0.8 — early, usable, and looking for feedback. **Testing it?**
+**Status:** 0.0.9 — early, usable, and looking for feedback. **Testing it?**
 Start with [the tester guide](#trying-jade-a-guide-for-testers).
 
 ```bash
