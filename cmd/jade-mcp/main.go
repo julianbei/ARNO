@@ -957,7 +957,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.create_file",
-			Description: "Create a brand-new file. Refuses to overwrite an existing one — use replace_text, apply or replace_file to modify existing content.",
+			Description: "Create a brand-new file. Refuses to overwrite an existing one — use replace_text or apply to modify existing content.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
