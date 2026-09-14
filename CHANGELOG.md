@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.0.11
 
 ### MCP bundle for Claude Desktop
 

@@ -34,7 +34,7 @@ runs. Sonnet 5, one run per task, four languages —
 [results and caveats](docs/benchmark-results.md) ·
 [how to set it up](#let-jade-replace-the-built-in-tools).
 
-**Status:** 0.0.10 — early, usable, and looking for feedback. **Testing it?**
+**Status:** 0.0.11 — early, usable, and looking for feedback. **Testing it?**
 Start with [the tester guide](#trying-jade-a-guide-for-testers).
 
 ```bash
@@ -95,7 +95,7 @@ shows how to install them by hand; Enter skips it, and you can run it again
 any time. **Run the same command again to
 update** — Jade tells you when a new release is out (see
 [Update check](#update-check)). (Prefer Go? `go install
-github.com/julianbei/jade/cmd/jade-mcp@v0.0.10` works too.) Jade reads
+github.com/julianbei/jade/cmd/jade-mcp@v0.0.11` works too.) Jade reads
 structure in every language with nothing else installed; exact references,
 cross-file rename and type errors on edit need the language's server —
 `jade-mcp install` installs these for you, or by hand:
@@ -225,7 +225,7 @@ CPU, verifies it against `checksums.txt`, and installs it without sudo to
 already on `PATH` is replaced where it is, and nothing is downloaded when it
 is already current. If the directory is not on `PATH`, it offers to add it to
 your shell profile (`JADE_ADD_TO_PATH=1` does it without asking) and prints
-the absolute path to use in your MCP client config. `JADE_VERSION=v0.0.10` pins a release;
+the absolute path to use in your MCP client config. `JADE_VERSION=v0.0.11` pins a release;
 `JADE_INSTALL_DIR` picks the directory. Read it first if you like:
 [install.sh](install.sh).
 
@@ -276,7 +276,7 @@ The install script above is the easiest way. These work too.
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest    # newest
-go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.10   # pinned
+go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.11   # pinned
 ```
 
 Lands in `$GOBIN`, or `$(go env GOPATH)/bin` if that is unset — which is
@@ -301,7 +301,7 @@ current glibc. On an older distro, build from source or use the container
 image, which is statically linked against musl.
 
 ```bash
-VERSION=v0.0.10
+VERSION=v0.0.11
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fsSL "https://github.com/julianbei/jade/releases/download/${VERSION}/jade-mcp_${VERSION}_${OS}_${ARCH}.tar.gz" \
@@ -311,7 +311,7 @@ sudo mv "jade-mcp_${VERSION}_${OS}_${ARCH}" /usr/local/bin/jade-mcp
 
 #### As an MCP bundle, for Claude Desktop
 
-From the next release on, each [GitHub release](https://github.com/julianbei/jade/releases)
+Since 0.0.11, each [GitHub release](https://github.com/julianbei/jade/releases)
 also carries `jade-mcp_<version>.mcpb`, one bundle with the binaries for macOS
 and Linux on Intel and ARM. Open it with Claude Desktop, pick the repository
 Jade should work on, and it runs with the core tools; no terminal and no
@@ -506,7 +506,7 @@ The [install script](#with-the-install-script) reads its own:
 
 | Variable | Effect |
 |---|---|
-| `JADE_VERSION` | Release to install, e.g. `v0.0.10`. Default: the latest. |
+| `JADE_VERSION` | Release to install, e.g. `v0.0.11`. Default: the latest. |
 | `JADE_INSTALL_DIR` | Where to put `jade-mcp`. Default: the directory of the `jade-mcp` already on `PATH`, else `/usr/local/bin` if writable, else `~/.local/bin`. |
 | `JADE_SERVERS` | Language servers to install afterwards without a menu: `go,java,scala,typescript,python,rust,ruby`, or `all`. |
 | `JADE_SKIP_SETUP=1` | Skip the language-server step. |
@@ -521,7 +521,7 @@ Jade is a child process, not a service, so the useful shape is to copy the
 binary into your own image rather than run Jade's:
 
 ```dockerfile
-FROM ghcr.io/julianbei/jade-mcp:v0.0.10 AS jade
+FROM ghcr.io/julianbei/jade-mcp:v0.0.11 AS jade
 
 FROM your-project-base
 COPY --from=jade /jade-mcp /usr/local/bin/jade-mcp
@@ -943,8 +943,8 @@ release exists, it says so only where you asked what you are running:
 
 ```
 $ jade-mcp --version
-jade-mcp v0.0.10
-update available: v0.0.11 (running v0.0.10) · curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh, then reconnect your MCP client
+jade-mcp v0.0.11
+update available: v0.0.12 (running v0.0.11) · curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh, then reconnect your MCP client
 ```
 
 and as the second line of `jade.capabilities`. It never appears in the server
