@@ -1272,7 +1272,7 @@ func (i *Index) CreateFile(path string, content string) error {
 		return err
 	}
 	if _, err := os.Stat(absolute); err == nil {
-		return fmt.Errorf("file already exists: %s (use replace_symbol/replace_range to modify it)", path)
+		return fmt.Errorf("file already exists: %s (use replace_text or apply to modify it)", path)
 	} else if !os.IsNotExist(err) {
 		return err
 	}

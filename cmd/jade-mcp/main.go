@@ -973,7 +973,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.create_file",
-			Description: "Create a brand-new file. Refuses to overwrite an existing one — use replace_text or apply to modify existing content.",
+			Description: "Create a brand-new file, and any missing parent directories. Refuses to overwrite an existing one — use replace_text or apply to modify existing content.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1115,7 +1115,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.declare_command",
-			Description: "Declare a named command in .jade/commands.json — a reproduction, a benchmark — to run with run_command in this and later sessions; the file is reviewed like any change. Do not redeclare an existing command just to run it.",
+			Description: "Declare a named command in .jade/commands.json — a reproduction, a benchmark — to run with run_command in this and later sessions; the file is reviewed like any change. Declaring an existing name replaces it; do not redeclare one just to run it.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
