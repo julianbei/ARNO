@@ -366,7 +366,9 @@ the confusion report names the tools Phase 3 should look at first.
 
 Theme: answer caution 2 with the Phase 2 data, not before it.
 
-- [ ] **Merge or cut overlapping tools** the confusion report implicates.
+- [x] **Merge or cut overlapping tools** the confusion report implicates.
+  *Done 2026-09-14:* the five deprecated in 0.0.7 are removed from the
+  catalog in 0.0.8 (commit 7694f2d).
   *Progress 2026-09-13:* `search`, `search_nudge`, `repository_map`,
   `read_symbol` and `replace_range` deprecated with evidence in
   [tool-contract.md](tool-contract.md#deprecated-in-005); removal before
@@ -436,7 +438,9 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   SymForge, builds, tests, lint and codegen stay on the Jade side of that
   line: validation run from the shell is validation the transaction cannot
   see.
-- [ ] **Shrink the full catalog, not only the core profile.** The second
+- [x] **Shrink the full catalog, not only the core profile.** *Done
+  2026-09-14:* 36 tools to 31, each removal justified in tool-contract.md;
+  the full `tools/list` is 23.4 KB. The second
   review's 10–15 is a hypothesis to test against the confusion report, not a
   quota. Every tool that is rarely called or often mis-picked is merged or
   deprecated unless a benchmark task shows what it uniquely saves.
