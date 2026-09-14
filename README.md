@@ -68,11 +68,15 @@ two of your normal work with it switched on, and then telling us how it went —
 ### 1. Install Jade and your language servers
 
 ```bash
-go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.8
-jade-mcp --version        # ~/go/bin may need to be on PATH, see Install
+curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh
+jade-mcp --version
 ```
 
-No Go toolchain? Take a [release binary](#from-a-release-binary). Jade reads
+The script picks the build for your OS and CPU, checks it against the
+release's checksums and installs it to `/usr/local/bin`, or `~/.local/bin`
+when that is not writable — no sudo, no Go toolchain. It tells you if the
+directory still needs to go on `PATH`. (Prefer Go? `go install
+github.com/julianbei/jade/cmd/jade-mcp@v0.0.8` works too.) Jade reads
 structure in every language with nothing else installed; exact references,
 cross-file rename and type errors on edit need the language's server:
 
@@ -188,6 +192,18 @@ being *named in the log* — not when the tool shipped.
 ---
 
 ## Install
+
+### With the install script
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh
+```
+
+Downloads the latest [release binary](#from-a-release-binary) for your OS and
+CPU, verifies it against `checksums.txt`, and installs it without sudo to
+`/usr/local/bin` or `~/.local/bin`. `JADE_VERSION=v0.0.8` pins a release;
+`JADE_INSTALL_DIR` picks the directory. Read it first if you like:
+[install.sh](install.sh).
 
 ### From Go
 

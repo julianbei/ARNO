@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Install script
+
+`curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh`
+picks the release binary for the OS and CPU, verifies it against the
+release's `checksums.txt`, and installs it without sudo to `/usr/local/bin`
+or `~/.local/bin`, saying when that directory is not on `PATH`.
+`JADE_VERSION` pins a release and `JADE_INSTALL_DIR` picks the directory. It
+is the first install step in the tester guide: unlike `go install`, which is
+served from the Go module proxy's cache, every script install shows in the
+release's download counts, per platform. A test runs the script against a
+release laid out on disk, including a tampered archive it must refuse.
+
 ## 0.0.8
 
 ### Core profile: declared commands in, `outline` and `workspace_tree` out

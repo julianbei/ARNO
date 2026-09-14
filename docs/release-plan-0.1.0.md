@@ -778,7 +778,10 @@ Also after 0.1.0, with conditions attached now so they do not drift:
     supported.
   - Authority classes come from the protocol; core renders them.
   - Installation is the user's: `~/.jade/plugins/` and `jade plugin
-    install|list|remove|doctor`. A repository's `.jade/config.json` may *name*
+    install|list|remove|doctor`. `install.sh` (added 2026-09-14) is the
+    natural front door: the same script can offer options and a plugin
+    picker at install time, calling those commands rather than placing
+    binaries itself. A repository's `.jade/config.json` may *name*
     a plugin it wants; Jade never launches a binary found inside a
     repository.
   - No plugin adds MCP tools.
