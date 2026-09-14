@@ -1,5 +1,5 @@
 name: "Bug — a tool did the wrong thing"
-description: A jade tool returned a wrong answer, failed when it should not have, or changed something it should not have.
+description: A Jade tool returned a wrong answer, failed when it should not have, or changed something it should not have.
 title: "bug: "
 labels: ["bug"]
 body:
@@ -10,10 +10,9 @@ body:
       description: |
         Please confirm this first — it is by far the most common false alarm.
 
-        The MCP tool catalog is fixed at connection time. A newly added tool
-        does not appear, and a newly built binary is not used, until the client
-        reconnects. During jade's own development this accounted for every
-        single "the tool is missing" report.
+        The MCP tool catalog is fixed at connection time. A new binary is not
+        used, and a changed tool list does not appear, until the client
+        reconnects (`/mcp` in Claude Code) or restarts.
       options:
         - label: I reconnected my MCP client (or restarted it) and the problem persists.
           required: true
@@ -22,10 +21,10 @@ body:
     id: call
     attributes:
       label: The call
-      description: Tool name and arguments.
+      description: Tool name and arguments. Shorten or redact code if you need to.
       render: json
       placeholder: |
-        {"name": "jade.replace_text", "arguments": {"path": "a.go", "oldText": "…", "newText": "…"}}
+        {"name": "jade.rename", "arguments": {"path": "src/main/java/app/Order.java", "symbolName": "total", "newName": "grandTotal"}}
     validations:
       required: true
 
@@ -45,39 +44,64 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language of the file involved
+      options:
+        - Java
+        - Scala
+        - Go
+        - Kotlin (text search only)
+        - TypeScript / JavaScript
+        - Python
+        - Rust
+        - Ruby
+        - Other (text search only)
+        - Not language-specific
+    validations:
+      required: true
+
+  - type: textarea
+    id: capabilities
+    attributes:
+      label: Capabilities (very helpful for language problems)
+      description: |
+        Output of the `jade.capabilities` tool: which grammar and language
+        server Jade used, and the build and test commands it found. No source
+        code in it.
+      render: text
+
   - type: textarea
     id: telemetry
     attributes:
-      label: Telemetry (optional, very helpful)
+      label: Telemetry (optional)
       description: |
         Output of the `jade.telemetry` tool. It records **no arguments, no
         response bodies and no error text** — only tool names, sizes, timings
         and failure classes — so it is safe to paste from a private repo.
       render: text
 
+  - type: dropdown
+    id: host
+    attributes:
+      label: Agent host
+      options:
+        - Claude Code
+        - Codex CLI
+        - OpenCode
+        - goose
+        - Cline
+        - Gemini CLI
+        - Other
+    validations:
+      required: true
+
   - type: input
     id: version
     attributes:
       label: Version
       description: Output of `jade-mcp --version`.
-      placeholder: jade-mcp v0.0.1
-    validations:
-      required: true
-
-  - type: dropdown
-    id: language
-    attributes:
-      label: Language of the file involved
-      description: |
-        Jade has real tree-sitter grammars for Go, TypeScript, TSX and Rust
-        only. Everything else uses a text-scan fallback that finds some
-        declarations and misses others — a known limitation, not a bug, though
-        we do want to hear if the fallback is worse than you expected.
-      options:
-        - Go
-        - TypeScript / TSX
-        - Rust
-        - Other (text-scan fallback)
-        - Not language-specific
+      placeholder: jade-mcp v0.0.8
     validations:
       required: true

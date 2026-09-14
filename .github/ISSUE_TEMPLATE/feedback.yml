@@ -1,0 +1,137 @@
+name: "Feedback — how it went after using Jade"
+description: A tester's report after some days of real work with Jade. Also the place to say why you turned it off.
+title: "feedback: "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying Jade. This report is for the overall picture after
+        some real sessions — a few days to a couple of weeks. For one specific
+        problem, a **bug** or **friction** report is quicker.
+
+        **"I turned it off" is the most useful feedback there is.** Please file
+        it even if the reason feels small.
+
+  - type: dropdown
+    id: still-on
+    attributes:
+      label: Is Jade still enabled?
+      options:
+        - Yes, and I plan to keep it
+        - Yes, but I am not sure it helps
+        - No, I turned it off
+        - I never got it working
+    validations:
+      required: true
+
+  - type: textarea
+    id: turned-off
+    attributes:
+      label: If you turned it off or never got it working — why?
+      description: Setup trouble, wrong answers, slower, noisier, the agent ignored it, "just did not feel better" — all valid.
+
+  - type: dropdown
+    id: host
+    attributes:
+      label: Agent host
+      multiple: true
+      options:
+        - Claude Code (terminal)
+        - Claude Code (VS Code / JetBrains)
+        - Codex CLI
+        - OpenCode
+        - goose
+        - Cline
+        - Gemini CLI
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: How was Jade set up?
+      options:
+        - In place of the host's built-in tools (--tools core)
+        - Alongside the host's built-in tools
+        - Both, at different times
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: languages
+    attributes:
+      label: Languages you used it on
+      multiple: true
+      options:
+        - Java
+        - Scala
+        - Go
+        - Kotlin
+        - TypeScript / JavaScript
+        - Python
+        - Rust
+        - Ruby
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: project
+    attributes:
+      label: Project shape
+      description: No names needed. Size, build tool, monorepo or not.
+      placeholder: "~400k lines, Gradle multi-module, Spring; or: sbt, 12 modules"
+
+  - type: input
+    id: duration
+    attributes:
+      label: How long did you use it, roughly?
+      placeholder: 3 days, ~15 sessions
+    validations:
+      required: true
+
+  - type: textarea
+    id: worked
+    attributes:
+      label: What worked well?
+      description: A task where Jade clearly helped — fewer steps, a rename that just worked, a check that caught something.
+
+  - type: textarea
+    id: broke
+    attributes:
+      label: What broke, confused you, or was slow?
+      description: Wrong answers, a language server that never came up, a response too long to read, the agent choosing the shell anyway.
+    validations:
+      required: true
+
+  - type: textarea
+    id: servers
+    attributes:
+      label: Language servers
+      description: |
+        Paste the output of the `jade.capabilities` tool (ask your agent to call
+        it). It lists each language, whether its server ran, and the build and
+        test commands Jade found. It contains no source code.
+      render: text
+
+  - type: textarea
+    id: telemetry
+    attributes:
+      label: Telemetry (optional, very helpful)
+      description: |
+        Output of the `jade.telemetry` tool. It records no arguments, no
+        response bodies and no error text — only tool names, sizes, timings and
+        failure classes — so it is safe to paste from a private repository.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `jade-mcp --version`.
+      placeholder: jade-mcp v0.0.8
+    validations:
+      required: true

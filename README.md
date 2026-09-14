@@ -30,7 +30,8 @@ runs. Sonnet 5, one run per task, four languages —
 [results and caveats](docs/benchmark-results.md) ·
 [how to set it up](#let-jade-replace-the-built-in-tools).
 
-**Status:** 0.0.7 — early, usable, and looking for feedback.
+**Status:** 0.0.8 — early, usable, and looking for feedback. **Testing it?**
+Start with [the tester guide](#trying-jade-a-guide-for-testers).
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest
@@ -40,6 +41,7 @@ go install github.com/julianbei/jade/cmd/jade-mcp@latest
 
 ## Table of contents
 
+- [Trying Jade: a guide for testers](#trying-jade-a-guide-for-testers)
 - [Why Jade exists](#why-jade-exists)
 - [Install](#install)
 - [Configure your MCP client](#configure-your-mcp-client)
@@ -54,6 +56,99 @@ go install github.com/julianbei/jade/cmd/jade-mcp@latest
 - [Telemetry](#telemetry)
 - [Reporting problems](#reporting-problems)
 - [Development](#development)
+
+---
+
+## Trying Jade: a guide for testers
+
+Thanks for testing. Half an hour gets you set up; the useful part is a week or
+two of your normal work with it switched on, and then telling us how it went —
+**including if you turned it off.**
+
+### 1. Install Jade and your language servers
+
+```bash
+go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.8
+jade-mcp --version        # ~/go/bin may need to be on PATH, see Install
+```
+
+No Go toolchain? Take a [release binary](#from-a-release-binary). Jade reads
+structure in every language with nothing else installed; exact references,
+cross-file rename and type errors on edit need the language's server:
+
+| Language | Install | Notes |
+|---|---|---|
+| Go | `go install golang.org/x/tools/gopls@latest` | First answer about 1.6s. |
+| Java | `brew install jdtls` (needs JDK 21+), or your distro's package | First answer about 8.5s while it indexes. `check` runs `mvn` or `gradle`; with only the Gradle wrapper, have the agent declare `./gradlew build` once (step 4). |
+| Scala | `cs install metals` ([coursier](https://get-coursier.io)) | Set `JADE_METALS_IMPORT=1` so metals may import the sbt build (it creates `.bloop/` and `.metals/`). First answer about 22s. |
+| Kotlin | — | No grammar or server yet: text search only. Tell us if you need it. |
+
+A missing server is never an error: Jade says which answers are approximate.
+
+### 2. Point your agent at a real repository
+
+For **Claude Code**, put this in `.mcp.json` at the root of the repository you
+work in (other hosts: [Codex CLI, goose, OpenCode](#other-hosts)):
+
+```json
+{
+  "mcpServers": {
+    "jade": {
+      "type": "stdio",
+      "command": "jade-mcp",
+      "args": ["--root", "/absolute/path/to/the/repo", "--tools", "core"],
+      "alwaysLoad": true
+    }
+  }
+}
+```
+
+That keeps Claude Code's own tools too. For the clearest signal, run some
+sessions with Jade **in place of** them: `claude --tools ""` with the same
+config ([why and trade-offs](#let-jade-replace-the-built-in-tools)). Restart
+or reconnect the client (`/mcp`) after installing or upgrading Jade.
+
+### 3. Check it came up
+
+Ask the agent: *"call jade.capabilities"*. You should see your languages, each
+with `server … (not started)` or `no server (… not installed)`, plus the build
+and test commands Jade found (`mvn`, `gradle`, `sbt`, `go test`). If a server
+you installed shows as not installed, that is a bug report.
+
+### 4. What to try
+
+Work as you normally would. If you want a checklist for the first sessions:
+
+- **Find and follow code:** "where is X declared, and who calls it?" — `find`,
+  `references`.
+- **Rename across files:** a method or class used in several files — `rename`
+  (exact with gopls, jdtls or metals running).
+- **A change in several places at once:** "change the signature and update the
+  callers, then check it builds" — `apply` with `check`.
+- **Run the tests that matter:** `run_tests` with a file or test name, or `apply`
+  with `check: "impact"`.
+- **Repeatable commands:** have the agent `declare_command` something you run
+  often (`./gradlew :core:test`, `sbt "testOnly *ParserSpec"`); later sessions
+  reuse it from `.jade/commands.json`.
+- **Undo:** `checkpoint` before something risky, `revert` if it goes wrong.
+
+### 5. Tell us how it went
+
+| When | File this |
+|---|---|
+| After a week or two — or when you turn Jade off | [**Feedback**](https://github.com/julianbei/jade/issues/new?template=feedback.yml) |
+| The agent used the shell although a Jade tool existed | [Friction](https://github.com/julianbei/jade/issues/new?template=friction.yml) |
+| A tool gave a wrong answer or failed | [Bug](https://github.com/julianbei/jade/issues/new?template=bug.yml) |
+| Something you wish Jade did | [Feature wish](https://github.com/julianbei/jade/issues/new?template=feature.yml) |
+
+The templates ask for the output of `jade.capabilities` and, optionally,
+`jade.telemetry`. Neither contains source code; telemetry is
+[local only](#telemetry) and records no arguments or response text, so both are
+safe to paste from a private repository.
+
+**Known rough edges on the JVM:** no formatter runs for Java or Scala files;
+large Gradle builds can make jdtls's first answer much slower than 8.5s; Kotlin
+has no support yet.
 
 ---
 
@@ -733,11 +828,12 @@ routine call — something sixteen tasks of hand-written notes had never noticed
 ## Reporting problems
 
 [docs/reporting.md](docs/reporting.md) says what makes a useful report. There
-are three issue templates:
+are four issue templates:
 
+- **feedback** — how it went after some real use, or why you turned it off.
 - **bug** — it did the wrong thing.
 - **friction** — *"I used the shell instead."* This is the valuable one.
-- **feature** — it should be able to do X.
+- **feature wish** — it should be able to do X.
 
 If you are unsure which, pick friction. It is the cheapest to write and the
 easiest to act on, and **"it was just habit" is a real answer** — we want it.
