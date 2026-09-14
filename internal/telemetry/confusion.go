@@ -37,12 +37,9 @@ func TargetOf(args map[string]interface{}) string {
 // from a read to an edit on the same file is ordinary work and not counted.
 var inspectTools = map[string]bool{
 	"jade.find":           true,
-	"jade.search":         true,
 	"jade.grep":           true,
 	"jade.retrieve":       true,
 	"jade.context":        true,
-	"jade.repository_map": true,
-	"jade.read_symbol":    true,
 	"jade.read_range":     true,
 	"jade.outline":        true,
 	"jade.references":     true,

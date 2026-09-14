@@ -21,10 +21,20 @@ func TestCoreProfileListsOnlyRealToolsAndIsSmaller(t *testing.T) {
 
 	full, _ := json.Marshal(listedTools("all"))
 	lean, _ := json.Marshal(core)
-	if len(lean)*2 > len(full) {
-		t.Errorf("core catalog is %d bytes of %d; the point is to be under half", len(lean), len(full))
+	if len(lean) >= len(full) {
+		t.Errorf("core catalog is %d bytes, the full one %d; core must be smaller", len(lean), len(full))
+	}
+	// The host resends the tool list on every turn, so core's size is paid per
+	// turn. It was a ratio, under half the full catalog, until 0.0.8 removed
+	// five tools from the full one; the absolute size is what an agent pays.
+	// 12.4 KB on 2026-09-14, with budget, continue and expectedDigest.
+	if len(lean) > maxCoreCatalogBytes {
+		t.Errorf("core catalog is %d bytes, over its %d-byte ceiling; a schema grew", len(lean), maxCoreCatalogBytes)
 	}
 }
+
+// maxCoreCatalogBytes is the core profile's tools/list size ceiling.
+const maxCoreCatalogBytes = 13000
 
 func TestToolsFlag(t *testing.T) {
 	cases := []struct {

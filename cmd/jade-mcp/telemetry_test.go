@@ -193,9 +193,11 @@ func TestInBandFailureIsRecordedAsAFallback(t *testing.T) {
 		t.Fatalf("write source: %v", err)
 	}
 
-	if _, err := server.handleToolCall(toolCall(t, "jade.read_symbol", map[string]interface{}{
-		"path":       "a.go",
-		"symbolName": "DefinitelyNotDeclaredHere",
+	// check with nothing to run answers "unavailable" inside a successful
+	// response, the same in-band shape read_symbol's not_found had before it
+	// was removed.
+	if _, err := server.handleToolCall(toolCall(t, "jade.check", map[string]interface{}{
+		"kind": "build",
 	})); err != nil {
 		// The point is precisely that this does NOT error.
 		t.Fatalf("expected an in-band not_found, got a returned error: %v", err)

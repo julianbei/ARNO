@@ -80,18 +80,18 @@ if you need something machine-readable; that JSON mirrors the Go structs in
 
 ## Known asymmetries, deliberately kept
 
-- `delete_symbol` and `read_symbol` require `path` but accept *either*
-  `symbolName` or `symbolId`. JSON Schema's `required` cannot express
-  "one of these two", so the server enforces it and returns a clear error.
+- `delete_symbol`, `references`, `rename`, `history` and `context` require
+  `path` but accept *either* `symbolName` or `symbolId`. JSON Schema's
+  `required` cannot express "one of these two", so the server enforces it and
+  returns a clear error.
 - `create_file` refuses to overwrite; `replace_file` refuses to create. Neither
   takes a force flag — choosing the tool is the explicit act.
-- `search` ranks declaration *names*; `grep` searches *text*; `find` does both
-  and returns bodies. They overlap and that is intended, but `search` will not
-  find a struct field or a string literal. Its description says so.
+- `grep` searches *text*; `find` finds declarations by name and returns their
+  bodies. Each description says when to prefer it over the other.
 
 ## The frozen surface
 
-34 tools. `cmd/jade-mcp/contract_test.go` is the authority; this table is for
+31 tools. `cmd/jade-mcp/contract_test.go` is the authority; this table is for
 reading.
 
 | Tool | Required arguments |
@@ -115,20 +115,16 @@ reading.
 | `jade.job_status` | `id` |
 | `jade.outline` | `path` |
 | `jade.read_range` | — (`path` or `ranges`, enforced by the server) |
-| `jade.read_symbol` | `path` |
 | `jade.references` | `path` |
 | `jade.rename` | `newName`, `path` |
 | `jade.replace_file` | `content`, `path` |
-| `jade.replace_range` | `endLine`, `newCode`, `path`, `startLine` |
 | `jade.replace_symbol` | `newCode`, `symbolId` |
 | `jade.replace_text` | `newText`, `oldText`, `path` |
-| `jade.repository_map` | `query` |
 | `jade.retrieve` | `query` |
 | `jade.revert` | `checkpointId` |
 | `jade.run_command` | — |
 | `jade.run_tests` | — |
-| `jade.search` | `query` |
-| `jade.search_nudge` | `command` |
+| `jade.capabilities` | — |
 | `jade.telemetry` | — |
 | `jade.workspace_tree` | — |
 
@@ -188,12 +184,13 @@ Jade or by another session — each session counts its own edits, and only the
 digest precondition sees the rest — and that `changes` attributes an edit to
 the session that made it.
 
-## Deprecated in 0.0.5
+## Removed in 0.0.8
 
-Served, and working, through 0.0.x; removed before 0.1.0 with a note in
-those release notes. Each description now starts with
-`Deprecated, removed before 0.1.0:` and names what replaces it. None is in the
-core profile.
+Deprecated in 0.0.7, when each description started with
+`Deprecated, removed before 0.1.0:` and named its replacement; removed in
+0.0.8, a breaking change stated in its release notes. The internal functions
+behind them remain where other tools use them (`retrieve`, `context`, and
+`apply`'s `replace_range` edit).
 
 | Tool | Use instead | Evidence |
 |---|---|---|
@@ -212,7 +209,7 @@ are redundant.
 ## Budgets and provenance — 0.0.5 design
 
 *Implemented in 0.0.5 for `grep`, `find`, `references`, `read_range` (and its
-`ranges`), `read_symbol`, `workspace_tree`, `history`, `diff` and
+`ranges`), `workspace_tree`, `history`, `diff` and
 `job_output`; `cmd/jade-mcp/contract_test.go` holds each to it.* `outline`
 stays whole — a file's declarations are a short list. `events` keeps its
 `after` cursor, which already continues. Two conventions that every list- or

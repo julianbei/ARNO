@@ -317,7 +317,7 @@ Jade will find them.
 
 ## The tools
 
-36 tools, in four groups. Every response is plain text, shaped to lead with the
+31 tools, in four groups. Every response is plain text, shaped to lead with the
 decisive line — the answer first, the supporting detail after, raw output only
 when you ask for it.
 
@@ -333,17 +333,13 @@ Jade accepts both `jade.find` and `jade_find`.
 |---|---|
 | `capabilities` | What Jade can do in this workspace: per language, grammar or text scan, language server state, formatter; git, validation commands, declared commands. Call it first. |
 | `outline` | File structure — declarations grouped by kind, without reading bodies. |
-| `read_symbol` | *Deprecated, removed before 0.1.0 — use `find`.* One declaration, by name or symbol ID. |
 | `read_range` | Verbatim lines, or a whole file. `lines: "280-400"` picks a range; `ranges` reads several files or ranges in one call; an end line past the file reads to the end. `dep:<name>/<path>` reads a dependency's source, read-only, at the locked version — `grep` and `find` take `dependency` to search it. |
 | `find` | Locate a declaration **and** get its body in one call. `queries` finds several names at once. |
 | `grep` | Literal or regex text search with path globs. The replacement for `grep -rn`. |
-| `search` | *Deprecated, removed before 0.1.0 — use `find` or `grep`.* Rank declarations by name similarity. |
 | `references` | Find usages. Exact from the language server when one is installed; a name-matched approximation otherwise, and it says which answered. |
-| `repository_map` | *Deprecated, removed before 0.1.0 — use `retrieve`.* Rank files against a task description, within a token budget. |
 | `retrieve` | Pull a working set for a query. |
 | `context` | Assemble the surrounding context for one symbol. |
 | `workspace_tree` | Directory structure. |
-| `search_nudge` | *Deprecated, removed before 0.1.0.* For harness integrators: given a shell search command the harness already ran, return index hits worth appending below it. |
 
 Symbols are addressed as `path::Name`, or `path::Name@line` when a name is
 ambiguous. An ambiguous read returns the candidates with their signatures
@@ -355,7 +351,6 @@ rather than guessing.
 |---|---|
 | `replace_symbol` | Replace a whole declaration. Takes the full `path::Name@line` ID, or just `path::Name` when that name is unique in the file. |
 | `replace_text` | Replace exact, unique text. Anchored on content, not line numbers. Like every text edit, returns the edited region as it now reads. |
-| `replace_range` | *Deprecated, removed before 0.1.0 — use `replace_text` or `apply`.* Replace a line range. |
 | `replace_file` | Replace an entire file's contents. |
 | `create_file` | Create a new file. |
 | `delete_file` | Delete a file. |

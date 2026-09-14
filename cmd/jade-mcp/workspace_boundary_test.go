@@ -36,10 +36,7 @@ func TestEveryPathToolRefusesToLeaveTheWorkspace(t *testing.T) {
 	}
 
 	tools := map[string]func(path string) map[string]interface{}{
-		"jade.outline": func(p string) map[string]interface{} { return map[string]interface{}{"path": p} },
-		"jade.read_symbol": func(p string) map[string]interface{} {
-			return map[string]interface{}{"path": p, "symbolName": "Secret"}
-		},
+		"jade.outline":    func(p string) map[string]interface{} { return map[string]interface{}{"path": p} },
 		"jade.read_range": func(p string) map[string]interface{} { return map[string]interface{}{"path": p, "startLine": 1} },
 		"jade.references": func(p string) map[string]interface{} {
 			return map[string]interface{}{"path": p, "symbolName": "Secret"}
@@ -52,9 +49,6 @@ func TestEveryPathToolRefusesToLeaveTheWorkspace(t *testing.T) {
 		},
 		"jade.history": func(p string) map[string]interface{} {
 			return map[string]interface{}{"path": p, "symbolName": "Secret"}
-		},
-		"jade.replace_range": func(p string) map[string]interface{} {
-			return map[string]interface{}{"path": p, "startLine": 1, "endLine": 1, "newCode": "package leaked"}
 		},
 		"jade.replace_text": func(p string) map[string]interface{} {
 			return map[string]interface{}{"path": p, "oldText": "return 1", "newText": "return 2"}

@@ -64,20 +64,18 @@ var frozenSurface = map[string][]string{
 	"jade.outline":    {"path"},
 	// path or ranges; the server enforces one of them. Made optional in 0.0.3.
 	"jade.read_range":     {},
-	"jade.read_symbol":    {"path"},
 	"jade.references":     {"path"},
 	"jade.rename":         {"newName", "path"},
 	"jade.replace_file":   {"content", "path"},
-	"jade.replace_range":  {"endLine", "newCode", "path", "startLine"},
 	"jade.replace_symbol": {"newCode", "symbolId"},
 	"jade.replace_text":   {"newText", "oldText", "path"},
-	"jade.repository_map": {"query"},
 	"jade.retrieve":       {"query"},
 	"jade.revert":         {"checkpointId"},
 	"jade.run_command":    {},
 	"jade.run_tests":      {},
-	"jade.search":         {"query"},
-	"jade.search_nudge":   {"command"},
+	// Removed in 0.0.8, a breaking change stated in its release notes:
+	// read_symbol, replace_range, repository_map, search and search_nudge,
+	// deprecated in 0.0.7.
 	"jade.telemetry":      {},
 	"jade.workspace_tree": {},
 }
@@ -148,9 +146,8 @@ var pagedTools = map[string]string{
 	"jade.find":           "maxLines",
 	"jade.references":     "",
 	"jade.read_range":     "",
-	"jade.read_symbol":    "maxLines",
-	"jade.workspace_tree": "maxEntries",
 	"jade.history":        "",
+	"jade.workspace_tree": "maxEntries",
 	"jade.diff":           "",
 	"jade.job_output":     "",
 }

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Breaking: five deprecated tools removed
+
+`search`, `search_nudge`, `repository_map`, `read_symbol` and
+`replace_range`, deprecated in 0.0.7, are gone. A call to one now fails as an
+unknown tool. Use instead:
+
+| Removed | Use |
+|---|---|
+| `read_symbol` | `find` (declaration and body), or `read_range` |
+| `search` | `find` for a declaration by name, `grep` for text |
+| `repository_map` | `retrieve` |
+| `replace_range` | `replace_text`, or `apply` with a `replace_range` edit |
+| `search_nudge` | — (a harness hook no agent called) |
+
+The catalog is 31 tools. `apply` still accepts `replace_range` edits.
+
 ### Verified in Codex CLI and goose
 
 A live session in each — find a declaration, insert beside it, run `check`

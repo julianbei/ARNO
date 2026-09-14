@@ -360,23 +360,6 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
-	case "jade.read_symbol":
-		path := stringArg(args, "path")
-		symbolID := stringArg(args, "symbolId")
-		symbolName := stringArg(args, "symbolName")
-		maxLines := intArg(args, "maxLines")
-		res, err := s.api.ReadSymbol(protocol.ReadSymbolRequest{
-			Path:       path,
-			SymbolID:   symbolID,
-			SymbolName: symbolName,
-			MaxLines:   maxLines,
-			Budget:     intArg(args, "budget"),
-			Continue:   stringArg(args, "continue"),
-		})
-		if err != nil {
-			return mcpToolResult{}, err
-		}
-		return jsonResult(res)
 	case "jade.read_range":
 		if _, present := args["ranges"]; present {
 			ranges, err := rangesArg(args)
@@ -464,14 +447,6 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
-	case "jade.repository_map":
-		query := stringArg(args, "query")
-		maxTokens := intArg(args, "maxTokens")
-		res, err := s.api.RepositoryMap(protocol.RepositoryMapRequest{Query: query, MaxTokens: maxTokens})
-		if err != nil {
-			return mcpToolResult{}, err
-		}
-		return jsonResult(res)
 	case "jade.find":
 		if queries := stringsArg(args, "queries"); len(queries) > 0 {
 			res, err := s.api.FindBatch(queries, stringArg(args, "kind"), intArg(args, "limit"), intArg(args, "maxLines"), stringArg(args, "dependency"))
@@ -496,25 +471,6 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
-	case "jade.search":
-		query := stringArg(args, "query")
-		mode := stringArg(args, "mode")
-		limit := intArg(args, "limit")
-		res, err := s.api.Search(protocol.SearchRequest{Query: query, Mode: mode, Limit: limit})
-		if err != nil {
-			return mcpToolResult{}, err
-		}
-		return jsonResult(res)
-	case "jade.search_nudge":
-		command := stringArg(args, "command")
-		outputLength := intArg(args, "outputLength")
-		firstInSession := boolArg(args, "firstInSession")
-		res := s.api.SearchNudge(protocol.SearchNudgeRequest{
-			Command:        command,
-			OutputLength:   outputLength,
-			FirstInSession: firstInSession,
-		})
-		return jsonResult(res)
 	case "jade.retrieve":
 		query := stringArg(args, "query")
 		maxTokens := intArg(args, "maxTokens")
@@ -528,23 +484,6 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		newCode := stringArg(args, "newCode")
 		expected := stringArg(args, "expectedRevision")
 		res, err := s.api.ReplaceSymbol(protocol.ReplaceSymbolRequest{SymbolID: symbolID, NewCode: newCode, ExpectedRevision: expected})
-		if err != nil {
-			return mcpToolResult{}, err
-		}
-		return jsonResult(res)
-	case "jade.replace_range":
-		path := stringArg(args, "path")
-		expected := stringArg(args, "expectedRevision")
-		startLine := intArg(args, "startLine")
-		endLine := intArg(args, "endLine")
-		newCode := stringArg(args, "newCode")
-		res, err := s.api.ReplaceRange(protocol.ReplaceRangeRequest{
-			Path:             path,
-			ExpectedRevision: expected,
-			StartLine:        startLine,
-			EndLine:          endLine,
-			NewCode:          newCode,
-		})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
@@ -778,16 +717,10 @@ func catalogNames() []string {
 	return names
 }
 
-// deprecatedTools are served through 0.0.x and removed before 0.1.0
-// (docs/tool-contract.md, "Deprecated in 0.0.5"). Each overlaps a tool that
-// does its job, named in the reason.
-var deprecatedTools = map[string]string{
-	"jade.search":         "use find for a declaration by name, grep for text",
-	"jade.search_nudge":   "a harness hook rather than an agent tool, never called by an agent",
-	"jade.repository_map": "use retrieve for ranked files within a token budget",
-	"jade.read_symbol":    "use find, which returns the declaration and its body",
-	"jade.replace_range":  "use replace_text, or apply with a replace_range edit",
-}
+// deprecatedTools are served with a notice before they are removed
+// (docs/tool-contract.md). Empty since 0.0.8 removed search, search_nudge,
+// repository_map, read_symbol and replace_range, deprecated in 0.0.7.
+var deprecatedTools = map[string]string{}
 
 // tools is the served catalog, a deprecated tool saying so before anything
 // else in its description.
@@ -830,22 +763,6 @@ func catalogTools() []mcpTool {
 				"type": "object",
 				"properties": map[string]interface{}{
 					"path": map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
-				},
-				"required": []string{"path"},
-			},
-		},
-		{
-			Name:        "jade.read_symbol",
-			Description: "Read a symbol body by ID or name and return exact, ambiguous, or not_found resolution metadata.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"path":       map[string]interface{}{"type": "string", "description": "Repository-relative or workspace-relative file path."},
-					"symbolId":   map[string]interface{}{"type": "string", "description": "Exact symbol ID if already known."},
-					"symbolName": map[string]interface{}{"type": "string", "description": "Symbol name to resolve when ID is unknown."},
-					"maxLines":   map[string]interface{}{"type": "integer", "description": "Maximum number of lines to return from the symbol body. Prefer budget."},
-					"budget":     map[string]interface{}{"type": "integer", "description": "Size of the body in tokens. Cut at whole lines; the rest is behind continue=<handle>."},
-					"continue":   map[string]interface{}{"type": "string", "description": "Handle from a cut body: its next page."},
 				},
 				"required": []string{"path"},
 			},
@@ -895,7 +812,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.context",
-			Description: "Assemble everything needed to act on one symbol in a single call: implementation, related types, direct callers, tests exercising it, current diagnostics, and whether it changed since HEAD. Replaces read_symbol + references + test search + diagnostics round trips.",
+			Description: "Assemble everything needed to act on one symbol in a single call: implementation, related types, direct callers, tests exercising it, current diagnostics, and whether it changed since HEAD. Replaces find + references + test search + diagnostics round trips.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -938,20 +855,8 @@ func catalogTools() []mcpTool {
 			},
 		},
 		{
-			Name:        "jade.repository_map",
-			Description: "Rank the most relevant repository files for a query and return the included/omitted slice within a token budget.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"query":     map[string]interface{}{"type": "string", "description": "Task description or symbol name to rank against."},
-					"maxTokens": map[string]interface{}{"type": "integer", "description": "Maximum cost budget to keep the map under."},
-				},
-				"required": []string{"query"},
-			},
-		},
-		{
 			Name:        "jade.find",
-			Description: "Locate declarations by name AND return their source in one call — the fused search-and-read that replaces `grep -n 'func X' -A 30`. Exact name matches win over substring ones. Use this instead of outline+read_symbol when you have not located the symbol yet. Pass queries to find several names in one call.",
+			Description: "Locate declarations by name AND return their source in one call — the fused search-and-read that replaces `grep -n 'func X' -A 30`. Exact name matches win over substring ones. Use this instead of outline and read_range when you have not located the symbol yet. Pass queries to find several names in one call.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -965,32 +870,6 @@ func catalogTools() []mcpTool {
 					"dependency": map[string]interface{}{"type": "string", "description": "Look in this dependency's source instead of the workspace, read-only: a crate, Go module, npm or Python package name."},
 				},
 				"required": []string{},
-			},
-		},
-		{
-			Name:        "jade.search",
-			Description: "Rank DECLARATIONS by name similarity to a query. This matches symbol names only — it does not search file contents, so it will not find a struct field, string literal or comment, and it returns name-similar declarations even when none contain the query text. For text search use grep; to locate a declaration and read its body use find.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"query": map[string]interface{}{"type": "string", "description": "Search text or symbol name."},
-					"mode":  map[string]interface{}{"type": "string", "description": "One of exact, symbol, semantic, or auto."},
-					"limit": map[string]interface{}{"type": "integer", "description": "Maximum number of hits to return."},
-				},
-				"required": []string{"query"},
-			},
-		},
-		{
-			Name:        "jade.search_nudge",
-			Description: "Given a raw shell search command (grep/rg/ag/ack/find/fd) a harness already ran, decide whether jade index hits should be appended below its output, and return them.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"command":        map[string]interface{}{"type": "string", "description": "The raw shell command that was run."},
-					"outputLength":   map[string]interface{}{"type": "integer", "description": "Length in characters of that command's output."},
-					"firstInSession": map[string]interface{}{"type": "boolean", "description": "Whether this is the first search-style command of the session."},
-				},
-				"required": []string{"command"},
 			},
 		},
 		{
@@ -1019,28 +898,6 @@ func catalogTools() []mcpTool {
 			},
 		},
 		{
-			Name:        "jade.replace_range",
-			Description: "Replace a line range in a file only if the expected revision matches the current workspace revision.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"path":             map[string]interface{}{"type": "string", "description": "File path to edit."},
-					"expectedRevision": map[string]interface{}{"type": "string", "description": "Optional. Revision expected before editing; the edit is rejected if the workspace has moved on. Omit for no precondition."},
-					"startLine":        map[string]interface{}{"type": "integer", "description": "Inclusive start line."},
-					"endLine":          map[string]interface{}{"type": "integer", "description": "Inclusive end line."},
-					"newCode":          map[string]interface{}{"type": "string", "description": "Replacement code to insert in the target range."},
-				},
-				// expectedRevision is deliberately not required: the server treats
-				// an empty value as "no precondition", exactly as apply and
-				// replace_symbol do. Declaring it required made the schema state a
-				// contract the implementation does not enforce, which is worse than
-				// either behaviour on its own — a client that trusts the schema
-				// sends a value it did not need, and one that does not is told it
-				// is wrong when it is not.
-				"required": []string{"path", "startLine", "endLine", "newCode"},
-			},
-		},
-		{
 			Name:        "jade.insert",
 			Description: "Add text to a file without replacing anything — a new function, a new section, an extra case. Use this for additive work instead of rewriting a surrounding symbol. With no anchor it appends to the end of the file; with one it places the text before or after that anchor, refusing if the anchor is absent or matches more than once. Several additions or edits at once belong in apply.",
 			InputSchema: map[string]interface{}{
@@ -1058,7 +915,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.replace_text",
-			Description: "Replace an exact, unique string in a file. Preferred over replace_range for follow-up edits: an anchor string does not move when the lines around it do. Refuses when the anchor is absent or matches more than once — extend it with surrounding context to disambiguate. For several sites, use apply: atomic, one validation, no diagnostics from half-done intermediate states.",
+			Description: "Replace an exact, unique string in a file. An anchor string does not move when the lines around it do, which is why follow-up edits address text rather than line numbers. Refuses when the anchor is absent or matches more than once — extend it with surrounding context to disambiguate. For several sites, use apply: atomic, one validation, no diagnostics from half-done intermediate states.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
