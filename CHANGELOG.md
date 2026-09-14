@@ -18,14 +18,14 @@ unknown tool. Use instead:
 
 The catalog is 31 tools. `apply` still accepts `replace_range` edits.
 
-### Verified in Codex CLI and goose
+### Verified in Codex CLI, goose and OpenCode
 
 A live session in each — find a declaration, insert beside it, run `check`
 — used only Jade's tools and passed. The README has the configuration for
-both and the one thing to know about Codex: its approval policy must let MCP
-tool calls through (`codex exec --approve-for-me`, or interactive approval).
-OpenCode is installed on the benchmark machine but not verified: its only
-provider credential had no API credits.
+all three and the one thing to know about Codex: its approval policy must let
+MCP tool calls through (`codex exec --approve-for-me`, or interactive
+approval). OpenCode was verified through its `github-copilot` provider; it
+names the tools `jade_jade_find` and so on.
 
 ## 0.0.7
 

@@ -453,9 +453,10 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   *Progress 2026-09-14:* **Codex CLI 0.154 verified** (find, insert, check
   through Jade; needs `--approve-for-me` or interactive approval of MCP
   calls) and **goose 1.50 verified** (stdio extension, `claude-code`
-  provider); README "Other hosts" has both. OpenCode 1.18 is installed but
-  unverified: the machine's only provider credential, an OpenAI key, has no
-  credits. Cline and Gemini CLI not installed.
+  provider) and **OpenCode 1.18.30 verified** (local MCP server in
+  `opencode.json`, `github-copilot` provider with Claude Sonnet 5, tools
+  named `jade_jade_*`); README "Other hosts" has all three. Cline and Gemini
+  CLI not installed.
 
 - [ ] **Carried from 0.0.4.** A Java repository and a fifth pilot repository
   (needs a JDK on the benchmark machine), the Serena competitor arm, and the

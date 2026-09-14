@@ -256,7 +256,27 @@ or permanently with `goose configure` → *Add Extension* → *Command-line
 Extension*, command `jade-mcp --root /absolute/path/to/the/repo --tools core`.
 Verified through goose's `claude-code` provider.
 
-OpenCode, Cline and Gemini CLI are not verified yet.
+**OpenCode** (1.18), in `opencode.json` at the repository root or in
+`~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "jade": {
+      "type": "local",
+      "command": ["jade-mcp", "--root", "/absolute/path/to/the/repo", "--tools", "core"],
+      "enabled": true
+    }
+  }
+}
+```
+
+OpenCode prefixes tools with the server name, so they appear as
+`jade_jade_find` and so on. Verified with the `github-copilot` provider
+(Claude Sonnet 5).
+
+Cline and Gemini CLI are not verified yet.
 
 ### Three things that will confuse you once
 
