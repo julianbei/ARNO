@@ -708,7 +708,9 @@ checkpoint taken after the commit.
   provenance vocabulary, validation outcome set, capability-report fields and
   the edit contract's
   guarantees frozen; response wording still not.
-- [ ] **Hardening statement.** README keeps "not hardened for untrusted input"
+- [x] **Hardening statement.** *Done 2026-09-14:* README "What Jade does not do
+  yet" says what Jade covers, what only a sandbox covers, and what nothing
+  covers. README keeps "not hardened for untrusted input"
   and says what running Jade inside a sandbox covers (ROADMAP non-goals).
 - [ ] **README rewrite of "Status"** from "early, usable" to what 0.1.0 does
   and does not promise, and removal of any number not re-measured on the

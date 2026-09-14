@@ -268,7 +268,7 @@ Jade is a child process, not a service, so the useful shape is to copy the
 binary into your own image rather than run Jade's:
 
 ```dockerfile
-FROM ghcr.io/julianbei/jade-mcp:v0.0.3 AS jade
+FROM ghcr.io/julianbei/jade-mcp:v0.0.4 AS jade
 
 FROM your-project-base
 COPY --from=jade /jade-mcp /usr/local/bin/jade-mcp
@@ -288,7 +288,7 @@ Jade will find them.
 
 ## The tools
 
-35 tools, in four groups. Every response is plain text, shaped to lead with the
+36 tools, in four groups. Every response is plain text, shaped to lead with the
 decisive line — the answer first, the supporting detail after, raw output only
 when you ask for it.
 
@@ -302,6 +302,7 @@ Jade accepts both `jade.find` and `jade_find`.
 
 | Tool | What it does |
 |---|---|
+| `capabilities` | What Jade can do in this workspace: per language, grammar or text scan, language server state, formatter; git, validation commands, declared commands. Call it first. |
 | `outline` | File structure — declarations grouped by kind, without reading bodies. |
 | `read_symbol` | *Deprecated, removed before 0.1.0 — use `find`.* One declaration, by name or symbol ID. |
 | `read_range` | Verbatim lines, or a whole file. `lines: "280-400"` picks a range; `ranges` reads several files or ranges in one call; an end line past the file reads to the end. `dep:<name>/<path>` reads a dependency's source, read-only, at the locked version — `grep` and `find` take `dependency` to search it. |
@@ -614,7 +615,22 @@ reporting and what is already known. What is planned is in
   a restart of the server.
 - **Not hardened for untrusted input.** It runs shell commands you declare and
   edits files you point it at. Treat it as a development tool, and do not point
-  it at a repository you would not run `make` in.
+  it at a repository you would not run `make` in. What running Jade inside a
+  sandbox or container does and does not cover:
+  - **Covered by Jade itself:** reads and writes stay inside the workspace root,
+    symlinks included; dependency sources are read-only; a repository cannot
+    make Jade launch a binary it ships (declared commands run through the
+    shell you already trust, and a `.jade/project.json` interpreter is a path
+    you review in the diff).
+  - **Covered only by the sandbox:** what a declared command, a Makefile
+    target, an npm script or a test suite does when `check`, `run_tests` or
+    `run_command` runs it — network access, files outside the workspace,
+    credentials in the environment. Jade runs the repository's own commands
+    with your environment; a malicious repository's `make test` is as
+    dangerous under Jade as in your shell.
+  - **Not covered at all:** an agent asked to declare a harmful command, and
+    language servers, which execute project configuration of their own
+    (build scripts, plugins) when they index a workspace.
 
 ---
 

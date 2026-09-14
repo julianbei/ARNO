@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### What a sandbox covers, written down
+
+The README's "not hardened for untrusted input" now says what Jade itself
+enforces (the workspace boundary, read-only dependency sources, no binaries
+launched from a repository), what only a sandbox covers (whatever a
+repository's own build, test and declared commands do), and what nothing
+covers (a harmful command an agent is asked to declare, and language servers
+executing project configuration). The tool table lists `capabilities`.
+
 ### `grep`, `find`, `references` and `read_range` page by budget
 
 The first tools on the 0.0.5 budget convention
