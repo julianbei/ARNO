@@ -17,16 +17,19 @@ two things before accepting it:
 
 ## For each release
 
-1. Before tagging, set `version` and the image tag in `server.json` to the
-   release: `"version": "0.0.10"` and `ghcr.io/julianbei/jade-mcp:v0.0.10`.
-2. Tag and let the release workflow publish the image.
-3. Publish the listing from the repository root:
+Nothing to do by hand. The `registry` job in the
+[release workflow](../.github/workflows/release.yml) runs after the image is
+pushed: it sets `version` and the image tag in `server.json` from the tag,
+logs in with GitHub OIDC (no secret) and runs `mcp-publisher publish`.
 
-   ```bash
-   brew install mcp-publisher      # once; or see the registry's README
-   mcp-publisher login github      # once per machine; opens a browser
-   mcp-publisher publish
-   ```
+If that job fails, publish from the repository root instead, after setting
+`version` and the image tag in `server.json` to the release:
+
+```bash
+brew install mcp-publisher      # once; or see the registry's README
+mcp-publisher login github      # once per machine; opens a browser
+mcp-publisher publish
+```
 
 The registry keeps every published version; `publish` adds the new one.
 
