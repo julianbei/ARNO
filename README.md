@@ -34,8 +34,11 @@ runs. Sonnet 5, one run per task, four languages —
 Start with [the tester guide](#trying-jade-a-guide-for-testers).
 
 ```bash
-go install github.com/julianbei/jade/cmd/jade-mcp@latest
+curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh
 ```
+
+macOS and Linux; on Windows, run it inside [WSL 2](https://learn.microsoft.com/windows/wsl/install).
+Run it again to update. [Other ways to install](#other-ways-to-install).
 
 ---
 
@@ -260,7 +263,11 @@ with the command that installs it. Installing is deliberately not an MCP
 tool: global package installs go through the agent's shell, where you approve
 them.
 
-### From Go
+### Other ways to install
+
+The install script above is the easiest way. These work too.
+
+#### From Go
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest    # newest
@@ -279,7 +286,7 @@ jade-mcp --version
 If you would rather not touch `PATH`, use the absolute path in your MCP client
 config instead of the bare `jade-mcp` shown below.
 
-### From a release binary
+#### From a release binary
 
 Prebuilt binaries for linux and darwin on amd64 and arm64 are attached to each
 [GitHub release](https://github.com/julianbei/jade/releases), with a
@@ -297,7 +304,7 @@ curl -fsSL "https://github.com/julianbei/jade/releases/download/${VERSION}/jade-
 sudo mv "jade-mcp_${VERSION}_${OS}_${ARCH}" /usr/local/bin/jade-mcp
 ```
 
-### From source
+#### From source
 
 ```bash
 git clone https://github.com/julianbei/jade.git
