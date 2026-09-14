@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/julianbei/jade/internal/commands"
 	"github.com/julianbei/jade/internal/protocol"
 )
 
@@ -285,5 +286,28 @@ func TestImpactTracesWhatADeletionBreaks(t *testing.T) {
 	}
 	if joined := strings.Join(files, ","); !strings.Contains(joined, "b.go") || !strings.Contains(joined, "a_test.go") {
 		t.Fatalf("the files a deletion breaks should be validated, got %v", files)
+	}
+}
+func TestImpactCheckRunsDeclaredLintAfterTheTests(t *testing.T) {
+	dir := t.TempDir()
+	svc := newTestService(t, dir)
+	registry, err := commands.Load(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := registry.Declare("rules", commands.Command{Run: "echo 'forbidden call' >&2; exit 4", Kind: "lint"}); err != nil {
+		t.Fatal(err)
+	}
+
+	outcome, summary := svc.runImpactTests(nil)
+	if outcome != protocol.OutcomeFailed || !strings.Contains(summary, "declared lint rules") {
+		t.Fatalf("a failing declared lint should fail the impact check and be named, got %s %q", outcome, summary)
+	}
+
+	if _, err := registry.Declare("rules", commands.Command{Run: "true", Kind: "lint"}); err != nil {
+		t.Fatal(err)
+	}
+	if outcome, summary := svc.runImpactTests(nil); outcome != protocol.OutcomePassed {
+		t.Fatalf("passing tests and lint should pass the impact check, got %s %q", outcome, summary)
 	}
 }

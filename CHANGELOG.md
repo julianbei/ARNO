@@ -167,6 +167,10 @@ them, and the test files elsewhere. The summary says what it reached:
 3 edits across 2 files, +12 -4 · impact: 2 declarations · 6 callers in 3 files · 2 likely tests · pass impact
 ```
 
+After the tests pass, the repository's declared `lint` commands run as the
+same stopping chain `check lint` uses, and a failing rule fails the check
+named: `declared lint semgrep: …`.
+
 Declarations a `delete_symbol` edit removes are traced before anything is
 written, so their callers — what the deletion breaks — are validated too. A
 single edit gets the same check as `apply` with one edit.

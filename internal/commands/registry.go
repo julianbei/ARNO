@@ -142,6 +142,24 @@ type Declared struct {
 	Command
 }
 
+// Chain joins the declared commands of kind, in name order, into one shell
+// command that stops at the first failure. names are the commands it runs;
+// declared is false when none of that kind is declared. check lint and the
+// impact check both run validation this way.
+func (r *Registry) Chain(kind string) (names []string, run string, declared bool) {
+	var runs []string
+	for _, entry := range r.All() {
+		if entry.Kind == kind {
+			names = append(names, entry.Name)
+			runs = append(runs, "("+entry.Run+")")
+		}
+	}
+	if len(names) == 0 {
+		return nil, "", false
+	}
+	return names, strings.Join(runs, " && "), true
+}
+
 // Lookup returns the command declared under name.
 func (r *Registry) Lookup(name string) (Command, bool) {
 	command, ok := r.commands[strings.TrimSpace(name)]

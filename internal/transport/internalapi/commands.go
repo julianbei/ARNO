@@ -150,14 +150,8 @@ func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol
 	if err != nil {
 		return protocol.CheckResponse{Kind: kind, Outcome: protocol.OutcomeUnavailable, Status: "no command", Summary: err.Error()}, true
 	}
-	var names, runs []string
-	for _, entry := range registry.All() {
-		if entry.Kind == kind {
-			names = append(names, entry.Name)
-			runs = append(runs, "("+entry.Run+")")
-		}
-	}
-	if len(names) == 0 {
+	names, chain, declared := registry.Chain(kind)
+	if !declared {
 		return protocol.CheckResponse{}, false
 	}
 
@@ -167,7 +161,7 @@ func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol
 	}
 	jobID := s.jobs.Start("check:" + kind)
 	s.jobs.RunPlan(jobID, jobs.Plan{
-		Kind: "check:" + kind, Name: shell(), Args: []string{"-c", strings.Join(runs, " && ")},
+		Kind: "check:" + kind, Name: shell(), Args: []string{"-c", chain},
 		Dir: s.workspace.Root(), Source: commands.RelPath,
 	})
 	if !req.Wait {

@@ -654,8 +654,8 @@ impact-aware validation comes after the write path it depends on, not before.
   their references through the registry, scoped tests for edited and
   referencing files, and an impact line in the summary. Deleted
   declarations are traced before the edits; a single edit uses `apply` with
-  one edit. Not yet: declared commands in the chain, and folding the verdict
-  into the edit response's `checked:` line.
+  one edit. Declared lint commands run after the tests. Not yet: folding the
+  verdict into the edit response's `checked:` line.
 - [ ] **Concurrent-agent test.** Two sessions against one workspace: stale
   edits rejected, neither loses the other's work, `changes` attributes each.
   The review singles this out as where revisions earn their keep; it is not

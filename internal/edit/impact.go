@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/julianbei/jade/internal/commands"
 	"github.com/julianbei/jade/internal/jobs"
 	"github.com/julianbei/jade/internal/protocol"
 )
@@ -135,10 +136,30 @@ func (s *Service) runImpactTests(files []string) (protocol.ValidationOutcome, st
 		return protocol.OutcomeTimedOut, fmt.Sprintf("impact tests did not finish within %s — poll job_status %s", applyCheckTimeout, jobID)
 	}
 	outcome := jobs.Outcome(output, true)
-	if outcome == protocol.OutcomePassed {
+	if outcome != protocol.OutcomePassed {
+		return outcome, output.Summary
+	}
+
+	// Repository rules after the tests: the declared lint commands, run the
+	// way check lint runs them, so an impact check is the whole validation.
+	registry, err := commands.Load(s.workspace.Root())
+	if err != nil {
+		return protocol.OutcomeUnavailable, err.Error()
+	}
+	names, chain, declared := registry.Chain("lint")
+	if !declared {
 		return outcome, ""
 	}
-	return outcome, output.Summary
+	lintID := s.jobs.Start("check:lint")
+	s.jobs.RunPlan(lintID, jobs.Plan{Kind: "check:lint", Name: "sh", Args: []string{"-c", chain}, Dir: s.workspace.Root(), Source: commands.RelPath})
+	lintOutput, done := s.jobs.Wait(lintID, applyCheckTimeout)
+	if !done {
+		return protocol.OutcomeTimedOut, fmt.Sprintf("declared lint %s did not finish within %s — poll job_status %s", strings.Join(names, ", "), applyCheckTimeout, lintID)
+	}
+	if lintOutcome := jobs.Outcome(lintOutput, true); lintOutcome != protocol.OutcomePassed {
+		return lintOutcome, "declared lint " + strings.Join(names, ", ") + ": " + lintOutput.Summary
+	}
+	return outcome, ""
 }
 
 // impactLine renders an impact report for the apply summary.
