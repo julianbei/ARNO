@@ -215,7 +215,9 @@ Downloads the latest [release binary](#from-a-release-binary) for your OS and
 CPU, verifies it against `checksums.txt`, and installs it without sudo to
 `/usr/local/bin` or `~/.local/bin`. Run it again to update: a `jade-mcp`
 already on `PATH` is replaced where it is, and nothing is downloaded when it
-is already current. `JADE_VERSION=v0.0.9` pins a release;
+is already current. If the directory is not on `PATH`, it offers to add it to
+your shell profile (`JADE_ADD_TO_PATH=1` does it without asking) and prints
+the absolute path to use in your MCP client config. `JADE_VERSION=v0.0.9` pins a release;
 `JADE_INSTALL_DIR` picks the directory. Read it first if you like:
 [install.sh](install.sh).
 
@@ -311,8 +313,11 @@ Without it they still work — `references` degrades to a textual approximation
 that says so in the response, and `rename` refuses rather than guessing.
 
 ```bash
-go install golang.org/x/tools/gopls@latest
+jade-mcp install --servers go      # or: go install golang.org/x/tools/gopls@latest
 ```
+
+The same goes for every language below: `jade-mcp install` shows which servers
+are installed and installs the rest ([Language servers](#language-servers-jade-mcp-install)).
 
 ---
 
@@ -474,6 +479,18 @@ deliberately still uses `go run` for that reason.
 | `JADE_TELEMETRY=0` | Disable local usage recording entirely. |
 | `JADE_STATE_DIR` | Keep the telemetry log outside the workspace, one subdirectory per workspace. |
 | `JADE_METALS_IMPORT=1` | Let metals import an sbt build so Scala edits get diagnostics. Runs sbt; creates `.bloop/` and `.metals/`. |
+| `JADE_UPDATE_CHECK=0` | Turn off the daily check for a newer release ([Update check](#update-check)). |
+
+The [install script](#with-the-install-script) reads its own:
+
+| Variable | Effect |
+|---|---|
+| `JADE_VERSION` | Release to install, e.g. `v0.0.9`. Default: the latest. |
+| `JADE_INSTALL_DIR` | Where to put `jade-mcp`. Default: the directory of the `jade-mcp` already on `PATH`, else `/usr/local/bin` if writable, else `~/.local/bin`. |
+| `JADE_SERVERS` | Language servers to install afterwards without a menu: `go,java,scala,typescript,python,rust,ruby`, or `all`. |
+| `JADE_SKIP_SETUP=1` | Skip the language-server step. |
+| `JADE_ADD_TO_PATH=1` | Add the install directory to the shell profile without asking. |
+| `JADE_RELEASE_URL` | Base URL of the releases, for a mirror. |
 
 ---
 
@@ -668,8 +685,8 @@ prints findings and exits 0 passes.
 
 Structure comes from tree-sitter grammars compiled into the binary, so it
 works with nothing installed. Semantics come from a real language server,
-which you provide — jade starts it on first use, reuses it for the session,
-and shuts it down on exit.
+which you provide — `jade-mcp install` installs it for you — and jade starts
+it on first use, reuses it for the session, and shuts it down on exit.
 
 | Language | Structure | Semantics, with this installed |
 |---|---|---|
