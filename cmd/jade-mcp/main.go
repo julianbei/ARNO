@@ -1060,7 +1060,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.run_command",
-			Description: "Run one of the repository's declared commands by name and wait for the verdict — lint, vet, codegen, migrate, anything check() does not cover. Call with no name to list what this repo declares. Use this instead of a shell: it returns pass/fail with the decisive output, and an unknown name answers with the commands that do exist.",
+			Description: "Run a command the repository declares, by name, and wait for the verdict: pass/fail with the decisive output. Use it instead of a shell for anything check does not cover. No name lists the declared commands. Nothing fits? declare_command it once.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1072,7 +1072,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.declare_command",
-			Description: "Declare a named command in .jade/commands.json so it can be replayed by name later. Declare once, then invoke with run_command — do not redeclare a command that already exists just to run it.",
+			Description: "Declare a named command in .jade/commands.json — a reproduction, a benchmark — to run with run_command in this and later sessions; the file is reviewed like any change. Do not redeclare an existing command just to run it.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1080,7 +1080,7 @@ func catalogTools() []mcpTool {
 					"run":         map[string]interface{}{"type": "string", "description": "Shell command to run from the workspace root."},
 					"description": map[string]interface{}{"type": "string", "description": "Optional note on what the command is for."},
 					"remove":      map[string]interface{}{"type": "boolean", "description": "Delete the named command instead of declaring it."},
-					"kind":        map[string]interface{}{"type": "string", "description": "Optional. lint or codegen makes the command a validation step: check with that kind runs every declared command of it."},
+					"kind":        map[string]interface{}{"type": "string", "description": "Optional: lint or codegen; check with that kind runs it."},
 				},
 				"required": []string{"name"},
 			},

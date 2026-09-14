@@ -206,8 +206,9 @@ To run Jade in place of the built-in tools:
 claude --tools "" --mcp-config jade.json
 ```
 
-with `jade.json` passing the core profile, which lists the twelve tools agents
-use and keeps the others callable:
+with `jade.json` passing the core profile, which lists twelve tools — read,
+edit, validate, and run the commands a repository declares — and keeps the
+others callable:
 
 ```json
 {
@@ -224,7 +225,8 @@ use and keeps the others callable:
 
 The trade-off is real: without Bash the agent cannot run arbitrary commands.
 `run_tests`, `check` and repository commands declared with `declare_command`
-cover building and testing; a task that needs git operations, network access
+cover building, testing and repeatable scripts — a declaration lives in
+`.jade/commands.json`, so later sessions reuse it; a task that needs git operations, network access
 or ad-hoc scripts needs the shell back. The numbers above are one run per task
 — see [docs/benchmark-results.md](docs/benchmark-results.md) for the results,
 a rerun after the pilot's fixes, and the caveats.

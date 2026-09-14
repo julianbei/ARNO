@@ -10,7 +10,6 @@ package main
 var coreTools = []string{
 	"jade.find",
 	"jade.read_range",
-	"jade.outline",
 	"jade.replace_text",
 	"jade.insert",
 	"jade.apply",
@@ -21,8 +20,9 @@ var coreTools = []string{
 // by every session. It says what to load, when to batch, and the one naming
 // fact that otherwise costs a failed call.
 const serverInstructions = "Jade inspects, edits and validates code in this workspace. " +
-	"Load these first: jade.find (declaration and body in one call), jade.read_range, jade.outline, " +
+	"Load these first: jade.find (declaration and body in one call), jade.read_range, " +
 	"jade.replace_text, jade.insert, jade.apply, jade.check. " +
+	"Repeatable runs (a repro, a benchmark): jade.declare_command once, then jade.run_command. " +
 	"Edits return diagnostics inline, so a build is rarely needed to see a mistake. " +
 	"Changing more than one site? Use jade.apply: one atomic call, one validation at the end, " +
 	"and no errors reported from half-finished intermediate states. " +

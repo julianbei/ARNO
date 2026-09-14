@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Core profile: declared commands in, `outline` and `workspace_tree` out
+
+`--tools core` now lists `run_command` and `declare_command` in place of
+`outline` and `workspace_tree`, which agents called four times in 24
+benchmark runs; it stays at twelve tools, and both removed tools remain
+callable by name. Without a shell an agent had no way to run a reproduction
+or a benchmark, and `run_command` alone could not help because it runs only
+declared commands. A declaration is written to `.jade/commands.json`, so in a
+repository you keep working in it is made once, reviewed like any change, and
+reused by later sessions. This is not benchmarked: every benchmark task starts
+from a fresh clone, the one case where declaring never pays back.
+
 ### Benchmark: transcript fixes measured, core profile unchanged
 
 With the fixes below, Jade's core profile solved 10 of 12 tasks at 0.83M

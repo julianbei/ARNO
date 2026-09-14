@@ -12,19 +12,26 @@ import (
 //
 // Unlisted tools stay callable. The profile changes what is advertised, never
 // what is served, so an agent or script that names jade.rename still works.
+//
+// Since 0.0.8 run_command and declare_command replace outline and
+// workspace_tree, which the 0.0.7 reruns called four times in 24 runs. Without
+// a shell an agent could not run a reproduction or a benchmark at all, and
+// run_command alone could not help: it runs only declared commands. A
+// declaration is a file in the repository, so in a repository worked in for
+// longer it is paid for once and reused by every later session.
 var coreProfileTools = map[string]bool{
-	"jade.find":           true,
-	"jade.grep":           true,
-	"jade.read_range":     true,
-	"jade.outline":        true,
-	"jade.replace_text":   true,
-	"jade.insert":         true,
-	"jade.apply":          true,
-	"jade.check":          true,
-	"jade.run_tests":      true,
-	"jade.create_file":    true,
-	"jade.delete_file":    true,
-	"jade.workspace_tree": true,
+	"jade.find":            true,
+	"jade.grep":            true,
+	"jade.read_range":      true,
+	"jade.replace_text":    true,
+	"jade.insert":          true,
+	"jade.apply":           true,
+	"jade.check":           true,
+	"jade.run_tests":       true,
+	"jade.run_command":     true,
+	"jade.declare_command": true,
+	"jade.create_file":     true,
+	"jade.delete_file":     true,
 }
 
 // toolsFlag reads --tools all|core (or --tools=core). The default is all.
