@@ -752,8 +752,12 @@ Deliberately not on this path because none of the six claims needs them:
 SCIP backend, ast-grep structural search and rewrite, git signals in ranking,
 shared language servers across sessions (unless Phase 5 measures otherwise),
 native Semgrep or SWE-ReX integration, scratch root, Java and Ruby formatting,
-ruby-lsp method rename, native Windows (a cgo tree-sitter build in the release
-workflow and six `sh -c` call sites; WSL 2 works today).
+ruby-lsp method rename.
+
+Not supported, until further notice: Windows as a developer machine. Demand is
+counted on [issue #2](https://github.com/julianbei/jade/issues/2). A port would
+need a native cgo tree-sitter build, a process-tree kill in place of Unix
+process groups, a shell other than `sh -c`, and drive-letter file URIs.
 
 Also after 0.1.0, with conditions attached now so they do not drift:
 

@@ -44,8 +44,10 @@ with `jade-mcp install --servers <language>`. Installing stays out of the MCP
 tool list on purpose: global package installs go through the agent's shell,
 where the user approves them.
 
-Windows: the install instructions now say to use WSL 2; there is no native
-Windows build.
+Windows is not supported, and the docs now say so kindly and clearly. If you'd
+like Jade on Windows, upvote [issue #2](https://github.com/julianbei/jade/issues/2)
+or tell us there why it matters; the install script points there too. WSL 2
+may run the Linux build, but it isn't tested.
 
 ### Update notice that stays out of the way
 

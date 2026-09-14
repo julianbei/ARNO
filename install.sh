@@ -36,6 +36,7 @@ need uname
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
 case "$os" in
 darwin | linux) ;;
+mingw* | msys* | cygwin* | windows*) fail "Windows isn't supported, sorry! If you'd like it to be, please upvote https://github.com/$repo/issues/2" ;;
 *) fail "no prebuilt binary for $os; build from source: https://github.com/$repo#from-source" ;;
 esac
 

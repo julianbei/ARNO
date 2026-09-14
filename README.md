@@ -37,7 +37,7 @@ Start with [the tester guide](#trying-jade-a-guide-for-testers).
 curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh
 ```
 
-macOS and Linux; on Windows, run it inside [WSL 2](https://learn.microsoft.com/windows/wsl/install).
+For macOS and Linux — Windows isn't supported ([here's why, and where to upvote](https://github.com/julianbei/jade/issues/2)).
 Run it again to update. [Other ways to install](#other-ways-to-install).
 
 ---
@@ -76,9 +76,10 @@ two of your normal work with it switched on, and then telling us how it went —
 curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh
 ```
 
-**Windows:** Jade runs inside [WSL 2](https://learn.microsoft.com/windows/wsl/install).
-Open your WSL terminal (Ubuntu, for instance), run the same command there, and
-work on repositories inside WSL. There is no native Windows build yet.
+**Windows** isn't supported, sorry! If you'd like it to be, please 👍
+[issue #2](https://github.com/julianbei/jade/issues/2) or tell us there why it
+matters to you. (WSL 2 runs Linux, so the Linux build may work there, but we
+don't test it or take bug reports for it.)
 
 The script picks the build for your OS and CPU, checks it against the
 release's checksums and installs it to `/usr/local/bin`, or `~/.local/bin`
@@ -224,8 +225,8 @@ the absolute path to use in your MCP client config. `JADE_VERSION=v0.0.9` pins a
 `JADE_INSTALL_DIR` picks the directory. Read it first if you like:
 [install.sh](install.sh).
 
-On **Windows**, run it inside [WSL 2](https://learn.microsoft.com/windows/wsl/install);
-Jade has no native Windows build yet.
+**Windows** isn't supported — see [issue #2](https://github.com/julianbei/jade/issues/2),
+and give it a 👍 if you'd like that to change.
 
 ### Language servers: `jade-mcp install`
 
@@ -813,6 +814,13 @@ command.
 ---
 
 ## What Jade does not do yet
+
+**Windows.** Jade is built and tested for macOS and Linux only, and we'd
+rather do those two really well than three halfway. Until further notice we
+don't build, test or look at Windows. If you'd like Jade on Windows, please 👍
+[issue #2](https://github.com/julianbei/jade/issues/2) — and if you think
+this is the wrong call, say so there; honest feedback is welcome. WSL 2 runs
+Linux, so the Linux build may work there, but it isn't tested.
 
 This list is more useful than the feature list — it tells you what is worth
 reporting and what is already known. What is planned is in

@@ -14,6 +14,10 @@ body:
         "What Jade does not do yet" section lists known gaps — a wish that
         one of them bit you in real work still tells us its priority.
 
+        **Wishing for Windows?** Please give
+        [issue #2](https://github.com/julianbei/jade/issues/2) a 👍 instead —
+        that's where we count.
+
   - type: dropdown
     id: area
     attributes:
