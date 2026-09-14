@@ -636,7 +636,7 @@ impact-aware validation comes after the write path it depends on, not before.
   `.jade/commands.json` that runs Semgrep (or any repository rule tool) after
   diagnostics and tests, with exit status authoritative. No native
   integration; the example is the feature.
-- [ ] **Impact-aware validation** (ROADMAP § Trustworthy), on top of the
+- [x] **Impact-aware validation** (ROADMAP § Trustworthy), on top of the
   single write path. References name the affected packages and likely tests;
   those run first. code-atlas already detects affected tests, so this is
   parity for the inspect side — what Jade adds is running them inside the
@@ -654,8 +654,11 @@ impact-aware validation comes after the write path it depends on, not before.
   their references through the registry, scoped tests for edited and
   referencing files, and an impact line in the summary. Deleted
   declarations are traced before the edits; a single edit uses `apply` with
-  one edit. Declared lint commands run after the tests. Not yet: folding the
-  verdict into the edit response's `checked:` line.
+  one edit. Declared lint commands run after the tests. *Done 2026-09-14.*
+  The verdict is on apply's summary line beside the impact report
+  (`impact: 2 declarations · 6 callers in 3 files · 2 likely tests · pass
+  impact`); repeating it on the `checked:` line would cost tokens and say
+  nothing new, so it is not.
 - [ ] **Concurrent-agent test.** Two sessions against one workspace: stale
   edits rejected, neither loses the other's work, `changes` attributes each.
   The review singles this out as where revisions earn their keep; it is not
