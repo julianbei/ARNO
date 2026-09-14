@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.0.7
 
 ### An exact answer names its server again
 

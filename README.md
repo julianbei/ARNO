@@ -30,7 +30,7 @@ runs. Sonnet 5, one run per task, four languages —
 [results and caveats](docs/benchmark-results.md) ·
 [how to set it up](#let-jade-replace-the-built-in-tools).
 
-**Status:** 0.0.4 — early, usable, and looking for feedback.
+**Status:** 0.0.7 — early, usable, and looking for feedback.
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest
@@ -98,7 +98,7 @@ being *named in the log* — not when the tool shipped.
 
 ```bash
 go install github.com/julianbei/jade/cmd/jade-mcp@latest    # newest
-go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.4    # pinned
+go install github.com/julianbei/jade/cmd/jade-mcp@v0.0.7    # pinned
 ```
 
 Lands in `$GOBIN`, or `$(go env GOPATH)/bin` if that is unset — which is
@@ -123,7 +123,7 @@ current glibc. On an older distro, build from source or use the container
 image, which is statically linked against musl.
 
 ```bash
-VERSION=v0.0.4
+VERSION=v0.0.7
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fsSL "https://github.com/julianbei/jade/releases/download/${VERSION}/jade-mcp_${VERSION}_${OS}_${ARCH}.tar.gz" \
@@ -268,7 +268,7 @@ Jade is a child process, not a service, so the useful shape is to copy the
 binary into your own image rather than run Jade's:
 
 ```dockerfile
-FROM ghcr.io/julianbei/jade-mcp:v0.0.4 AS jade
+FROM ghcr.io/julianbei/jade-mcp:v0.0.7 AS jade
 
 FROM your-project-base
 COPY --from=jade /jade-mcp /usr/local/bin/jade-mcp
