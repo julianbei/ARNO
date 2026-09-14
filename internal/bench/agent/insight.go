@@ -84,7 +84,7 @@ type Insight struct {
 
 // Valid reports whether the run measured its arm: a Jade arm needs Jade.
 func (in Insight) Valid() bool {
-	return in.Arm == ArmShell || in.JadeStatus == "connected"
+	return !in.Arm.UsesJade() || in.JadeStatus == "connected"
 }
 
 type contentBlock struct {
@@ -553,7 +553,7 @@ func InsightReport(results []RunResult) string {
 		fmt.Fprintf(&b, "\n%s\n", task)
 		columns()
 		groups := byArm(list)
-		for _, arm := range []Arm{ArmShell, ArmJade, ArmJadeShell} {
+		for _, arm := range []Arm{ArmShell, ArmShellLean, ArmJade, ArmJadeShell} {
 			if g, ok := groups[arm]; ok {
 				line(arm, g)
 			}
@@ -563,14 +563,14 @@ func InsightReport(results []RunResult) string {
 	b.WriteString("\nall tasks\n")
 	columns()
 	groups := byArm(valid)
-	for _, arm := range []Arm{ArmShell, ArmJade, ArmJadeShell} {
+	for _, arm := range []Arm{ArmShell, ArmShellLean, ArmJade, ArmJadeShell} {
 		if g, ok := groups[arm]; ok {
 			line(arm, g)
 		}
 	}
 
 	b.WriteString("\ntokens per run by kind (means, k)\n")
-	for _, arm := range []Arm{ArmShell, ArmJade, ArmJadeShell} {
+	for _, arm := range []Arm{ArmShell, ArmShellLean, ArmJade, ArmJadeShell} {
 		g, ok := groups[arm]
 		if !ok {
 			continue

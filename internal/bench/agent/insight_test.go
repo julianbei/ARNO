@@ -60,6 +60,14 @@ func TestAJadeArmWithoutJadeIsInvalid(t *testing.T) {
 	}
 }
 
+// shell-lean has no MCP server at all, so it must not be read as a Jade arm
+// whose server failed to connect.
+func TestAShellLeanArmIsValidWithoutJade(t *testing.T) {
+	if !(Insight{Arm: ArmShellLean}).Valid() {
+		t.Fatal("a shell-lean run was counted as invalid for lacking Jade")
+	}
+}
+
 // Exploration before the first edit, re-reads of an unchanged target, parallel
 // calls and errors are derived from the call sequence.
 func TestAnalyzeDerivesTheCallSequenceMetrics(t *testing.T) {
