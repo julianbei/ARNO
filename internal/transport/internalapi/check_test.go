@@ -160,3 +160,17 @@ func TestVerdictSummaryKeepsTheDecisiveLineOnFailure(t *testing.T) {
 		t.Fatalf("expected the decisive line preserved, got %q", got)
 	}
 }
+
+// Test counts replace a line count, and a failure names its test and assertion.
+func TestVerdictSummaryReadsTestRunnerOutput(t *testing.T) {
+	cargo := "running 5 tests\ntest result: ok. 5 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s\n"
+	if got := verdictSummary(true, "", cargo); got != "5 passed, 1 skipped" {
+		t.Fatalf("passing cargo run: %q", got)
+	}
+
+	goFail := "--- FAIL: TestPlugin (0.00s)\n    command_test.go:42: got a, want b\nFAIL\n"
+	got := verdictSummary(false, "--- FAIL: TestPlugin (0.00s)", goFail)
+	if !strings.Contains(got, "1 failed — first failure: TestPlugin: command_test.go:42") {
+		t.Fatalf("failing go run: %q", got)
+	}
+}

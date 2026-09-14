@@ -194,9 +194,20 @@ func checkTimeout(seconds int) time.Duration {
 // to sort last. That is correct and it reads as a partial run; confirming it
 // was not cost a `cat Makefile` and a redundant `go test` during dogfooding.
 // A count is both smaller and true.
+//
+// Test-runner output comes first: counts in place of a line count, and on
+// failure the first failing test with its assertion. "103 lines of output"
+// did not say whether a new test had run, so agents ran suites twice.
 func verdictSummary(passed bool, summary string, raw string) string {
+	tests := jobs.SummarizeTests(raw)
 	if !passed {
+		if tests.Found {
+			return tests.FailureLine(summary)
+		}
 		return summary
+	}
+	if tests.Found {
+		return tests.Counts()
 	}
 	return successSummary(raw)
 }

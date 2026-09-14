@@ -137,6 +137,9 @@ func (s *Service) runImpactTests(files []string) (protocol.ValidationOutcome, st
 	}
 	outcome := jobs.Outcome(output, true)
 	if outcome != protocol.OutcomePassed {
+		if tests := jobs.SummarizeTests(output.Raw); tests.Found {
+			return outcome, tests.FailureLine(output.Summary)
+		}
 		return outcome, output.Summary
 	}
 

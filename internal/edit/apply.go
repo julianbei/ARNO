@@ -302,6 +302,9 @@ func (s *Service) runCheck(kind string) (protocol.ValidationOutcome, string) {
 		// shown under "pass tests", they sent the agent to re-run every test.
 		return outcome, ""
 	}
+	if tests := jobs.SummarizeTests(output.Raw); tests.Found {
+		return outcome, tests.FailureLine(output.Summary)
+	}
 	return outcome, output.Summary
 }
 

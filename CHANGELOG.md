@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Test results say what ran and what failed
+
+`check`, `run_tests` and `apply` read go test, cargo test, pytest, jest,
+vitest and ava output. A pass reports counts (`596 passed, 2 skipped`) in
+place of "103 lines of output"; a failure reports counts, the first failing
+test and its assertion or panic line (`1 failed — first failure: TestPlugin:
+command_test.go:42: got a, want b`). When the output shows the machine lacks
+something the tests need — Playwright browsers, PySocks — the failure says
+so. Output in other formats is summarised as before.
+
 ### A run that outlives its wait is joined, not restarted
 
 When `check`, `run_tests` or `run_command` times out, the response now says
