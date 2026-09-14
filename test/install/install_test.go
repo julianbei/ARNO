@@ -80,6 +80,51 @@ func TestInstallScriptLeavesACurrentBinaryAlone(t *testing.T) {
 	}
 }
 
+// An agent has no terminal: JADE_SERVERS picks servers up front, and without
+// it the script names the non-interactive commands.
+func TestInstallScriptTakesServersWithoutATerminal(t *testing.T) {
+	release := fakeRelease(t, false)
+
+	out, err := runInstall(t, release, "JADE_INSTALL_DIR="+filepath.Join(t.TempDir(), "bin"), "JADE_SERVERS=go,java")
+	if err != nil || !strings.Contains(out, "install --servers go,java") {
+		t.Fatalf("expected the servers passed on, got err %v:\n%s", err, out)
+	}
+
+	out, err = runInstall(t, release, "JADE_INSTALL_DIR="+filepath.Join(t.TempDir(), "bin"))
+	if err != nil || !strings.Contains(out, "jade-mcp install --list --json") {
+		t.Fatalf("expected the agent hint, got err %v:\n%s", err, out)
+	}
+}
+
+// An install directory off PATH is added to the shell profile once, so
+// `jade-mcp` is not "command not found" in the next terminal.
+func TestInstallScriptAddsTheDirectoryToPathOnce(t *testing.T) {
+	release := fakeRelease(t, false)
+	home := t.TempDir()
+	dir := filepath.Join(home, ".local", "bin")
+	env := []string{"HOME=" + home, "SHELL=/bin/zsh", "JADE_ADD_TO_PATH=1", "JADE_INSTALL_DIR=" + dir}
+
+	for run := 0; run < 2; run++ {
+		if run == 1 {
+			// Force a reinstall so the PATH step runs again.
+			if err := os.Remove(filepath.Join(dir, "jade-mcp")); err != nil {
+				t.Fatal(err)
+			}
+		}
+		out, err := runInstall(t, release, env...)
+		if err != nil || !strings.Contains(out, "use this command: "+dir+"/jade-mcp") {
+			t.Fatalf("run %d: err %v:\n%s", run, err, out)
+		}
+	}
+	profile, err := os.ReadFile(filepath.Join(home, ".zshrc"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Count(string(profile), "export PATH=\""+dir+":$PATH\""); got != 1 {
+		t.Fatalf("expected the PATH line once, found %d:\n%s", got, profile)
+	}
+}
+
 func runInstall(t *testing.T, release string, env ...string) (string, error) {
 	t.Helper()
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
@@ -123,7 +168,9 @@ func fakeRelease(t *testing.T, corrupt bool) string {
 	}
 	zipped := gzip.NewWriter(file)
 	tarball := tar.NewWriter(zipped)
-	binary := []byte("#!/bin/sh\necho jade-mcp " + version + "\n")
+	// Echoes its arguments after the version, so a test sees how install.sh
+	// called it; `--version` still reads as the version in field two.
+	binary := []byte("#!/bin/sh\necho jade-mcp " + version + " \"$@\"\n")
 	if err := tarball.WriteHeader(&tar.Header{Name: name, Mode: 0o755, Size: int64(len(binary))}); err != nil {
 		t.Fatal(err)
 	}

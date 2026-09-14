@@ -79,8 +79,9 @@ work on repositories inside WSL. There is no native Windows build yet.
 
 The script picks the build for your OS and CPU, checks it against the
 release's checksums and installs it to `/usr/local/bin`, or `~/.local/bin`
-when that is not writable — no sudo, no Go toolchain. It tells you if the
-directory still needs to go on `PATH`. On a first install it then opens
+when that is not writable — no sudo, no Go toolchain. If that directory is
+not on `PATH`, it offers to add it to your shell profile, and it prints the
+absolute path to use as `command` in your MCP client config. On a first install it then opens
 `jade-mcp install`, a menu that installs the language servers you pick, or
 shows how to install them by hand; Enter skips it, and you can run it again
 any time. **Run the same command again to
@@ -237,6 +238,25 @@ component add rust-analyzer`, `gem install ruby-lsp` — and confirms before
 running anything. A server with no installer on the machine gets instructions
 for installing it by hand. The install script opens the menu after a first
 install; `JADE_SKIP_SETUP=1` skips it.
+
+**For an agent, or any script** — there is no terminal to answer a menu, so the
+same steps come without questions:
+
+```bash
+# install Jade and chosen servers in one go
+curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | JADE_SERVERS=go,java sh
+
+jade-mcp install --list --json                   # state of every server, as JSON
+jade-mcp install --servers java,scala --dry-run  # the commands, not run
+jade-mcp install --servers java,scala            # run them
+```
+
+`--list --json` gives each server's `key`, whether it is `installed` and
+where, the `command` that would install it on this machine, and `manual`
+steps when there is none. `jade.capabilities` ends a missing server's line
+with the command that installs it. Installing is deliberately not an MCP
+tool: global package installs go through the agent's shell, where you approve
+them.
 
 ### From Go
 

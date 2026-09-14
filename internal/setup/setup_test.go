@@ -136,12 +136,37 @@ func TestAnUnknownChoiceIsAskedAgain(t *testing.T) {
 func TestAFailedInstallIsReportedWithTheManualWay(t *testing.T) {
 	f := &fakeMachine{available: map[string]bool{"go": true}, installed: map[string]bool{}, fail: map[string]bool{"go": true}}
 	m, out := menu(f, "")
-	err := m.Install([]string{"go"}, false)
+	err := m.Install([]string{"go"}, false, false)
 	if !errors.Is(err, ErrInstallFailed) || !strings.Contains(out.String(), "gopls: install failed") {
 		t.Fatalf("expected a reported failure, got %v:\n%s", err, out)
 	}
-	if err := m.Install([]string{"kotlin"}, false); err == nil || !strings.Contains(err.Error(), "choose from go, java, scala") {
+	if err := m.Install([]string{"kotlin"}, false, false); err == nil || !strings.Contains(err.Error(), "choose from go, java, scala") {
 		t.Fatalf("expected an unknown-key error, got %v", err)
+	}
+}
+
+// An agent can read the state and preview the commands without anything
+// running.
+func TestAnAgentCanReadStatusAndPreviewWithoutRunning(t *testing.T) {
+	f := &fakeMachine{available: map[string]bool{"go": true}, installed: map[string]bool{"jdtls": true}}
+	m, out := menu(f, "")
+
+	statuses := m.Statuses()
+	if len(statuses) != 3 || statuses[0].Installed || strings.Join(statuses[0].Command, " ") != "go install gopls" {
+		t.Fatalf("gopls status: %+v", statuses)
+	}
+	if !statuses[1].Installed || statuses[1].Path != "/opt/bin/jdtls" || statuses[1].Command != nil {
+		t.Fatalf("jdtls status: %+v", statuses[1])
+	}
+	if statuses[2].Command != nil || statuses[2].Manual == "" {
+		t.Fatalf("metals status: %+v", statuses[2])
+	}
+
+	if err := m.Install(nil, true, true); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.ran) != 0 || !strings.Contains(out.String(), "would run: go install gopls") {
+		t.Fatalf("dry run ran %q:\n%s", f.ran, out)
 	}
 }
 

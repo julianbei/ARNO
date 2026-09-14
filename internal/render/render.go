@@ -480,7 +480,7 @@ func capabilities(r protocol.CapabilitiesResponse) string {
 			}
 			parts = append(parts, "server "+language.Server+" ("+state+")")
 		case language.MissingServer != "":
-			parts = append(parts, "no server ("+language.MissingServer+" not installed) · rename refused")
+			parts = append(parts, "no server ("+language.MissingServer+" not installed) · rename refused · install: jade-mcp install --servers "+installKey(language.Language))
 		default:
 			parts = append(parts, "no server known")
 		}
@@ -519,6 +519,16 @@ func capabilities(r protocol.CapabilitiesResponse) string {
 		lines = append(lines, capability.Capability+" providers, in order: "+strings.Join(capability.Providers, ", "))
 	}
 	return strings.Join(lines, "\n")
+}
+
+// installKey is the `jade-mcp install --servers` name for a language's server.
+// TSX and JavaScript share TypeScript's.
+func installKey(language string) string {
+	switch language {
+	case "tsx", "javascript":
+		return "typescript"
+	}
+	return language
 }
 
 func diff(r protocol.DiffResponse) string {

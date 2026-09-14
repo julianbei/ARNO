@@ -14,6 +14,12 @@ served from the Go module proxy's cache, every script install shows in the
 release's download counts, per platform. A test runs the script against a
 release laid out on disk, including a tampered archive it must refuse.
 
+When the install directory is not on `PATH` — `~/.local/bin` on a Mac, where
+`/usr/local/bin` is usually not writable — the script offers to add it to the
+shell profile (`JADE_ADD_TO_PATH=1` without asking; the line is added once),
+so `jade-mcp` is not "command not found" afterwards. It always prints the
+absolute path for the MCP client config.
+
 Run again, it updates: a `jade-mcp` already on `PATH` is replaced in its own
 directory, one already at the release is left alone without downloading, and
 a directory it cannot write is named with what to do.
@@ -28,6 +34,15 @@ machine gets instructions for installing it by hand. `--list`, `--servers
 go,java,scala` and `--all` do the same without questions. The install script
 opens the menu after a first install when a terminal is attached. Plugins are
 meant to join the menu as a second kind of component.
+
+Agents and scripts get the same without a terminal: `--list --json` reports
+each server's state, the command that would install it and manual steps;
+`--dry-run` prints the commands for `--servers` or `--all` without running
+them; `JADE_SERVERS=go,java` (or `all`) makes the install script install
+those servers with no menu; and `capabilities` ends a missing server's line
+with `jade-mcp install --servers <language>`. Installing stays out of the MCP
+tool list on purpose: global package installs go through the agent's shell,
+where the user approves them.
 
 Windows: the install instructions now say to use WSL 2; there is no native
 Windows build.

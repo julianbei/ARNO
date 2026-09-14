@@ -157,6 +157,39 @@ func (m Menu) List() {
 	fmt.Fprintln(m.Out)
 }
 
+// Status is one component's state as an agent reads it from
+// `jade-mcp install --list --json`.
+type Status struct {
+	Key       string   `json:"key"`
+	Kind      string   `json:"kind"`
+	Name      string   `json:"name"`
+	For       string   `json:"for"`
+	Installed bool     `json:"installed"`
+	Path      string   `json:"path,omitempty"`
+	Command   []string `json:"command,omitempty"`
+	Manual    string   `json:"manual,omitempty"`
+	Note      string   `json:"note,omitempty"`
+}
+
+// Statuses reports every component: where it is installed, or the command
+// that would install it here and the manual way when there is none.
+func (m Menu) Statuses() []Status {
+	out := make([]Status, 0, len(m.Components))
+	for _, component := range m.Components {
+		status := Status{Key: component.Key, Kind: component.Kind, Name: component.Name, For: component.For, Note: component.Note}
+		if path, ok := component.Detect(); ok {
+			status.Installed, status.Path = true, path
+		} else {
+			if recipe, ok := component.Recipe(m.Env); ok {
+				status.Command = recipe.Command
+			}
+			status.Manual = component.Manual
+		}
+		out = append(out, status)
+	}
+	return out
+}
+
 func (m Menu) status(component Component) string {
 	if path, ok := component.Detect(); ok {
 		return "installed · " + path
@@ -192,14 +225,15 @@ func (m Menu) Run() error {
 		fmt.Fprintln(m.Out, "Nothing installed. Run jade-mcp install any time.")
 		return nil
 	}
-	return m.install(picked, reader)
+	return m.install(picked, reader, false)
 }
 
 // Install installs the components with the given keys, or every missing one,
-// without asking.
-func (m Menu) Install(keys []string, all bool) error {
+// without asking. dryRun prints the commands instead of running them, so an
+// agent can show them to its user first.
+func (m Menu) Install(keys []string, all bool, dryRun bool) error {
 	if all {
-		return m.install(m.Components, nil)
+		return m.install(m.Components, nil, dryRun)
 	}
 	var picked []Component
 	for _, key := range keys {
@@ -209,12 +243,12 @@ func (m Menu) Install(keys []string, all bool) error {
 		}
 		picked = append(picked, component)
 	}
-	return m.install(picked, nil)
+	return m.install(picked, nil, dryRun)
 }
 
 // install runs the recipes for the missing components among picked. A nil
 // reader installs without confirming.
-func (m Menu) install(picked []Component, confirm *bufio.Reader) error {
+func (m Menu) install(picked []Component, confirm *bufio.Reader, dryRun bool) error {
 	type step struct {
 		component Component
 		recipe    Recipe
@@ -233,6 +267,13 @@ func (m Menu) install(picked []Component, confirm *bufio.Reader) error {
 		steps = append(steps, step{component, recipe})
 	}
 	if len(steps) == 0 {
+		return nil
+	}
+
+	if dryRun {
+		for _, s := range steps {
+			fmt.Fprintf(m.Out, "would run: %s\n", strings.Join(s.recipe.Command, " "))
+		}
 		return nil
 	}
 

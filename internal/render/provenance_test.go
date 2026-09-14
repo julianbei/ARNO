@@ -121,7 +121,7 @@ func TestCapabilitiesShowTheReferencesPromiseAndProviders(t *testing.T) {
 		Providers: []protocol.ProviderCapability{{Capability: "references", Providers: []string{"language server", "gopls", "text index"}}},
 	})
 	for _, want := range []string{
-		"no server (rust-analyzer not installed) · rename refused · references approximate · text index · may be incomplete",
+		"no server (rust-analyzer not installed) · rename refused · install: jade-mcp install --servers rust · references approximate · text index · may be incomplete",
 		"references providers, in order: language server, gopls, text index",
 	} {
 		if !strings.Contains(out, want) {

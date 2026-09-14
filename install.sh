@@ -11,6 +11,10 @@
 # JADE_VERSION      a release tag, e.g. v0.0.8 (default: the latest release)
 # JADE_INSTALL_DIR  where to put jade-mcp
 # JADE_RELEASE_URL  base URL of the releases, for mirrors and tests
+# JADE_SERVERS      language servers to install afterwards without a menu:
+#                   go,java,scala,typescript,python,rust,ruby, or all
+# JADE_SKIP_SETUP   set to skip the language-server step
+# JADE_ADD_TO_PATH  1 adds the install directory to the shell profile without asking
 set -eu
 
 repo="julianbei/jade"
@@ -106,10 +110,36 @@ if [ -n "$current" ]; then
 else
 	say "installed jade-mcp $installed to $install_dir/jade-mcp"
 fi
+# Not on PATH means `jade-mcp` is "command not found" right after installing.
+# At a terminal, offer to add it to the shell profile; JADE_ADD_TO_PATH=1 does
+# it without asking. The line is added once, and marked.
 case ":$PATH:" in
 *":$install_dir:"*) ;;
-*) say "$install_dir is not on PATH; add it: export PATH=\"$install_dir:\$PATH\"" ;;
+*)
+	case "${SHELL:-}" in
+	*/zsh) profile="$HOME/.zshrc" ;;
+	*/bash) if [ "$os" = darwin ]; then profile="$HOME/.bash_profile"; else profile="$HOME/.bashrc"; fi ;;
+	*) profile="" ;;
+	esac
+	line="export PATH=\"$install_dir:\$PATH\""
+	add="${JADE_ADD_TO_PATH:-}"
+	if [ -z "$add" ] && [ -n "$profile" ] && [ -t 1 ] && { : </dev/tty; } 2>/dev/null; then
+		printf 'jade: %s is not on PATH. Add it in %s? [Y/n] ' "$install_dir" "$profile"
+		answer=n
+		read -r answer </dev/tty || answer=n
+		case "$answer" in "" | y | Y | yes) add=1 ;; esac
+	fi
+	if [ "$add" = 1 ] && [ -n "$profile" ]; then
+		if ! grep -qsF "$line" "$profile"; then
+			printf '\n# added by the Jade installer\n%s\n' "$line" >>"$profile"
+		fi
+		say "added $install_dir to PATH in $profile; open a new terminal, or run: $line"
+	else
+		say "$install_dir is not on PATH; add it: $line"
+	fi
+	;;
 esac
+say "in your MCP client config, use this command: $install_dir/jade-mcp"
 
 # has_setup reports whether a release has `jade-mcp install`, added after
 # v0.0.8. An older binary would take the word for a server start and wait on
@@ -121,10 +151,20 @@ has_setup() {
 # After a first install, offer the language-server menu when someone is at a
 # terminal to answer it; curl | sh keeps stdin for the script, so the menu
 # reads the terminal directly.
-if [ -z "$current" ] && [ -z "${JADE_SKIP_SETUP:-}" ] && has_setup "$installed" && [ -t 1 ] && { : </dev/tty; } 2>/dev/null; then
+servers="${JADE_SERVERS:-}"
+if [ -n "${JADE_SKIP_SETUP:-}" ]; then
+	:
+elif [ -n "$servers" ] && has_setup "$installed"; then
+	# Chosen up front, by a person or an agent: no menu, no questions.
+	if [ "$servers" = "all" ]; then
+		"$install_dir/jade-mcp" install --all || say "some language servers did not install; see above"
+	else
+		"$install_dir/jade-mcp" install --servers "$servers" || say "some language servers did not install; see above"
+	fi
+elif [ -z "$current" ] && has_setup "$installed" && [ -t 1 ] && { : </dev/tty; } 2>/dev/null; then
 	"$install_dir/jade-mcp" install </dev/tty || say "language server setup did not finish; run jade-mcp install any time"
 elif has_setup "$installed"; then
-	say "add language servers any time: jade-mcp install"
+	say "add language servers any time: jade-mcp install (menu), or jade-mcp install --list --json and --servers go,java"
 else
 	say "language servers: https://github.com/$repo#trying-jade-a-guide-for-testers"
 fi
