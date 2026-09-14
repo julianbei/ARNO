@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.0.8
 
 ### Core profile: declared commands in, `outline` and `workspace_tree` out
 
