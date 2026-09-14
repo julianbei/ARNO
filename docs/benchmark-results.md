@@ -76,6 +76,37 @@ noise of one run per task; only the totals are worth quoting.
 Jade's runs made 13.8 calls before the first edit against 7.9 for the shell,
 and re-read an unchanged target 4.2 times per run against none.
 
+## Transcript fixes, and a larger core profile
+
+Jade at `15138d6`: timeout hints that name only the tool just called and join
+the running job, test results with counts and the first failure, and
+validation kept to its target. Two Jade arms, no shell arm: `core` as shipped,
+and `core-exec` with `run_command` and `diff` added to the core list. Same
+tasks and cap, $15.06 in total. Recorded 2026-09-14. The shell and 0.0.7 rows
+are from the rerun above.
+
+| Arm | Solved | Tokens | Turns | Time | Cost |
+|---|---|---|---|---|---|
+| `shell-lean` (0.0.7 rerun) | 10 of 12 | 0.94M | 25.9 | 182s | $0.63 |
+| `jade` at 0.0.7 | 11 of 12 | 0.80M | 25.2 | 206s | $0.61 |
+| `core` at `15138d6` | 10 of 12 | 0.83M | 26.3 | 162s | $0.60 |
+| `core-exec` | 11 of 12 | 0.95M | 26.8 | 185s | $0.66 |
+
+- **The fixes cost nothing and saved time.** `core` is level with 0.0.7 on
+  tokens (+4%) and 21% faster, 11% faster than the shell. Its one extra loss,
+  ripgrep's hidden-whitelist task, hit the $1.50 cap with no edit made; 0.0.7
+  and `core-exec` solved it near the cap too. No run timed out, so the job
+  join was not exercised; 20 of `core`'s responses carried a named first
+  failure.
+- **`run_command` in the core profile did not pay, and could not have.** It
+  runs only commands declared in `.jade/commands.json`, none of the four
+  repositories declares any, and `declare_command` stayed unlisted. Its seven
+  calls answered "no commands declared". `core-exec` spent 14% more tokens
+  for a second tool schema and `diff`, which three calls used. The reproduction
+  gap seen in the 0.0.7 transcripts remains.
+
+The core profile stays as it was.
+
 ## What the numbers say
 
 - **Most of the saving over Claude Code's defaults is the shorter tool list.**

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Benchmark: transcript fixes measured, core profile unchanged
+
+With the fixes below, Jade's core profile solved 10 of 12 tasks at 0.83M
+tokens per run, level with 0.0.7 and 21% faster; the extra loss hit the
+per-run cost cap. Adding `run_command` and `diff` to the core profile cost
+14% more tokens and bought nothing: `run_command` runs only declared
+commands and none of the benchmark repositories declares one. The core
+profile is unchanged. Details in `docs/benchmark-results.md`.
+
 ### Validation keeps to the scope it was given
 
 `check` with a target inside a Cargo workspace now runs `cargo build -p
