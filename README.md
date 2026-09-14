@@ -577,7 +577,7 @@ rather than guessing.
 | `replace_text` | Replace exact, unique text. Anchored on content, not line numbers. Like every text edit, returns the edited region as it now reads. |
 | `replace_file` | Replace an entire file's contents. |
 | `create_file` | Create a new file. |
-| `delete_file` | Delete a file. |
+| `delete_file` | Delete one file; directories are refused. |
 | `delete_symbol` | Delete one declaration. |
 | `rename` | Cross-file rename from the language server; refuses rather than guessing when it cannot be exact. |
 | `insert` | Add text without replacing anything — a new function, a new section, an extra case. Appends with no anchor; places before or after a unique anchor with one. |

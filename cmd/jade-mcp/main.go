@@ -1017,7 +1017,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.delete_file",
-			Description: "Delete a file.",
+			Description: "Delete a file, not a directory; to edit content use replace_text or apply.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1112,11 +1112,11 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.run_tests",
-			Description: "Run a scoped test run (all/file/test/changed) and wait for the verdict. Waits by default and returns pass/fail with the decisive summary; set wait=false for a job ID to poll instead.",
+			Description: "Rerun a failing test, a test file, or changed files' tests; waits for pass/fail and the first failure. Full suite: check kind tests.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"scope":          map[string]interface{}{"type": "string", "description": "One of: all, file, test, changed. Defaults to all."},
+					"scope":          map[string]interface{}{"type": "string", "description": "all (default), file, test or changed."},
 					"file":           map[string]interface{}{"type": "string", "description": "Test file to run, for scope=file (Go: its package). With scope=test, limits the name filter to this file."},
 					"test":           map[string]interface{}{"type": "string", "description": "Test name, for scope=test: exact in Go, the runner's name filter elsewhere (jest/vitest -t, ava --match, pytest -k, cargo test <name>)."},
 					"wait":           map[string]interface{}{"type": "boolean", "description": "Wait for the result (default true). False returns a job ID to poll."},
