@@ -50,7 +50,21 @@ type mcpTool struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	InputSchema map[string]interface{} `json:"inputSchema"`
+	Annotations *toolAnnotations       `json:"annotations,omitempty"`
 }
+
+// toolAnnotations are MCP's behaviour hints. Unannotated tools are taken to
+// be writes that may destroy, which is right for most of Jade's; only the
+// read-only tools and delete_file say anything.
+type toolAnnotations struct {
+	ReadOnlyHint    bool `json:"readOnlyHint,omitempty"`
+	DestructiveHint bool `json:"destructiveHint,omitempty"`
+}
+
+var (
+	readOnlyTool    = &toolAnnotations{ReadOnlyHint: true}
+	destructiveTool = &toolAnnotations{DestructiveHint: true}
+)
 
 type mcpTextContent struct {
 	Type string `json:"type"`
@@ -794,6 +808,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.read_range",
+			Annotations: readOnlyTool,
 			Description: "Read a file verbatim, whole or by line range — the replacement for `cat` and `sed -n`. Omit both line numbers to read the whole file, which is how to read go.mod, a Makefile, or any JSON/YAML/TOML config that has no symbols to address. An end line past the end of the file reads to the end. A dependency's source reads as dep:<name>/<path>, read-only. Several ranges, in one file or many, go in one call: {\"ranges\": [{\"path\": \"a.go\", \"lines\": \"280-400\"}, {\"path\": \"b.go\", \"lines\": \"700-760\"}]}.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
@@ -881,6 +896,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.find",
+			Annotations: readOnlyTool,
 			Description: "Locate declarations by name AND return their source in one call — the fused search-and-read that replaces `grep -n 'func X' -A 30`. Exact name matches win over substring ones. Use this instead of outline and read_range when you have not located the symbol yet. Pass queries to find several names in one call.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
@@ -1017,7 +1033,8 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.delete_file",
-			Description: "Delete a file, not a directory; to edit content use replace_text or apply.",
+			Annotations: destructiveTool,
+			Description: "Delete a file, not a directory; fails if it does not exist. Reverting to an earlier checkpoint recreates it. To edit content use replace_text or apply.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1064,6 +1081,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "jade.grep",
+			Annotations: readOnlyTool,
 			Description: "Literal or regex text search across the workspace, returning path:line matches with optional trailing context — the replacement for `grep -rn`. Use this for anything that is not a declaration name: struct fields, string literals, error messages, config keys, or any search needing a path filter. Use find instead when you want a declaration and its body. Pass queries to search several patterns in one call.",
 			InputSchema: map[string]interface{}{
 				"type": "object",

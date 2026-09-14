@@ -17,6 +17,17 @@ with GitHub OIDC. Version, image tag and the bundle's URL and sha256 come from
 the tag, so `server.json` no longer needs a bump before tagging. The listing
 now offers two packages: the container image and the MCP bundle.
 
+### Tool annotations and clearer descriptions
+
+`read_range`, `find` and `grep` carry MCP's `readOnlyHint`, and `delete_file`
+carries `destructiveHint`, so hosts can treat reads and deletions differently
+(auto-approving reads, for one). `delete_file` now says it refuses
+directories, fails on a missing path, and that reverting to an earlier
+checkpoint recreates the file. `run_tests` says when to use it rather than
+`check`, and `create_file` no longer points at `replace_file`, which the core
+profile does not include. The core catalog's size ceiling moves from 13000 to
+13300 bytes to make room.
+
 ## 0.0.10
 
 ### Listed in the official MCP Registry
