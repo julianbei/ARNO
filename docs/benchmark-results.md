@@ -51,6 +51,31 @@ Jade alone against `shell-lean`: −18% tokens, −14% turns, −24% time. By
 repository: cobra −18%, ky −31%, requests −58%, ripgrep −2%. Both failed ky's
 download-progress task. The suite's requests result reversed, so it was noise.
 
+## Rerun at 0.0.7
+
+Jade at `b4921b2` (v0.0.7): response budgets, provenance, preconditions,
+impact checks and the deprecation of five overlapping tools. Only `jade` and
+`shell-lean`, same tasks and cap, $14.85 in total. Recorded 2026-09-14.
+
+| Arm | Solved | Tokens | Turns | Time | Cost |
+|---|---|---|---|---|---|
+| `shell-lean` | 10 of 12 | 0.94M | 25.9 | 182s | $0.63 |
+| `jade` | 11 of 12 | 0.80M | 25.2 | 206s | $0.61 |
+
+Jade alone against `shell-lean`: −14% tokens, −3% turns, +13% time. By
+repository: cobra +18%, ky −60%, requests +43%, ripgrep −6%. Both failed
+ky's download-progress task; `shell-lean` also failed requests'
+double-slash task, which Jade solved.
+
+Against the previous rerun, Jade's tokens per run are level (0.82M to 0.80M)
+and its success unchanged, so 0.0.5–0.0.7 did not cost tokens. Time got
+worse: one ripgrep run took 706s against 314s for the shell. Per repository
+the sign flips between runs (requests went from −58% to +43%), which is the
+noise of one run per task; only the totals are worth quoting.
+
+Jade's runs made 13.8 calls before the first edit against 7.9 for the shell,
+and re-read an unchanged target 4.2 times per run against none.
+
 ## What the numbers say
 
 - **Most of the saving over Claude Code's defaults is the shorter tool list.**

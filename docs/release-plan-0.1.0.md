@@ -469,6 +469,12 @@ tools in the contract lack a when-to-prefer sentence; OpenCode and goose
 sessions verified; every inspect and edit response carries provenance and
 every list-returning tool honours `budget`.
 
+*Gate check 2026-09-14:* the rerun at v0.0.7 on the core profile solved 11 of
+12 with 0.80M tokens per run, level with the previous rerun (0.82M, 11 of 12)
+and 14% under `shell-lean`, so the benchmark condition holds. No full-catalog
+arm was run; every benchmark so far used the core profile. OpenCode and goose
+are verified.
+
 ## Phase 4 — 0.0.6: predictable across environments
 
 Theme: answer caution 3. Degrading is fine; degrading silently is not.

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Benchmark rerun at 0.0.7
+
+Same 12 tasks, `jade` against `shell-lean`: Jade solved 11 of 12 against 10,
+with 14% fewer tokens and 3% fewer turns but 13% more time. Tokens per run
+are level with the previous rerun, so the 0.0.5–0.0.7 work did not cost
+tokens. Details in `docs/benchmark-results.md`.
+
+### Fixed: `shell-lean` runs dropped from the benchmark insight report
+
+The report counted every `shell-lean` run as a Jade arm whose server failed
+to connect, so the per-task tables showed only Jade.
+
 ### Breaking: five deprecated tools removed
 
 `search`, `search_nudge`, `repository_map`, `read_symbol` and
