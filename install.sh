@@ -5,7 +5,8 @@
 #
 # Picks the build for this OS and CPU, verifies it against the release's
 # checksums.txt and installs it without sudo: /usr/local/bin when that is
-# writable, ~/.local/bin otherwise.
+# writable, ~/.local/bin otherwise. Run it again to update: a jade-mcp already
+# on PATH is replaced where it is, and one already at the release is left alone.
 #
 # JADE_VERSION      a release tag, e.g. v0.0.8 (default: the latest release)
 # JADE_INSTALL_DIR  where to put jade-mcp
@@ -47,6 +48,23 @@ if [ -z "$version" ]; then
 	[ -n "$version" ] || fail "could not look up the latest release; set JADE_VERSION, e.g. JADE_VERSION=v0.0.8"
 fi
 
+existing=""
+if [ -n "$install_dir" ]; then
+	if [ -x "$install_dir/jade-mcp" ]; then existing="$install_dir/jade-mcp"; fi
+else
+	existing=$(command -v jade-mcp 2>/dev/null || true)
+	if [ -n "$existing" ]; then install_dir=$(dirname "$existing"); fi
+fi
+current=""
+if [ -n "$existing" ]; then
+	current=$("$existing" --version 2>/dev/null | awk 'NR == 1 { print $2 }')
+	if [ "$current" = "$version" ]; then
+		say "jade-mcp $version is already installed at $existing"
+		exit 0
+	fi
+	[ -w "$install_dir" ] || fail "$existing is not writable; re-run with sudo, or set JADE_INSTALL_DIR to install elsewhere"
+fi
+
 name="jade-mcp_${version}_${os}_${arch}"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -81,7 +99,13 @@ mkdir -p "$install_dir"
 mv "$tmp/$name" "$install_dir/jade-mcp"
 chmod 755 "$install_dir/jade-mcp"
 
-say "installed $("$install_dir/jade-mcp" --version 2>/dev/null || echo "$version") to $install_dir/jade-mcp"
+installed=$("$install_dir/jade-mcp" --version 2>/dev/null | awk 'NR == 1 { print $2 }')
+[ -n "$installed" ] || installed="$version"
+if [ -n "$current" ]; then
+	say "updated jade-mcp ${current:-unknown} -> $installed in $install_dir; reconnect your MCP client (/mcp in Claude Code) to use it"
+else
+	say "installed jade-mcp $installed to $install_dir/jade-mcp"
+fi
 case ":$PATH:" in
 *":$install_dir:"*) ;;
 *) say "$install_dir is not on PATH; add it: export PATH=\"$install_dir:\$PATH\"" ;;

@@ -19,10 +19,10 @@ import (
 const version = "v9.9.9"
 
 func TestInstallScriptVerifiesAndInstalls(t *testing.T) {
-	release, name := fakeRelease(t, false)
+	release := fakeRelease(t, false)
 	dir := filepath.Join(t.TempDir(), "bin")
 
-	out, err := runInstall(t, release, dir)
+	out, err := runInstall(t, release, "JADE_INSTALL_DIR="+dir)
 	if err != nil {
 		t.Fatalf("install failed: %v\n%s", err, out)
 	}
@@ -31,15 +31,15 @@ func TestInstallScriptVerifiesAndInstalls(t *testing.T) {
 	}
 	info, err := os.Stat(filepath.Join(dir, "jade-mcp"))
 	if err != nil || info.Mode()&0o111 == 0 {
-		t.Fatalf("jade-mcp not installed as an executable (%s): %v", name, err)
+		t.Fatalf("jade-mcp not installed as an executable: %v", err)
 	}
 }
 
 func TestInstallScriptRefusesAChecksumMismatch(t *testing.T) {
-	release, _ := fakeRelease(t, true)
+	release := fakeRelease(t, true)
 	dir := filepath.Join(t.TempDir(), "bin")
 
-	out, err := runInstall(t, release, dir)
+	out, err := runInstall(t, release, "JADE_INSTALL_DIR="+dir)
 	if err == nil || !strings.Contains(out, "checksum mismatch") {
 		t.Fatalf("expected a checksum refusal, got err %v:\n%s", err, out)
 	}
@@ -48,22 +48,39 @@ func TestInstallScriptRefusesAChecksumMismatch(t *testing.T) {
 	}
 }
 
-func runInstall(t *testing.T, release string, dir string) (string, error) {
-	t.Helper()
-	cmd := exec.Command("sh", filepath.Join("..", "..", "install.sh"))
-	cmd.Env = append(os.Environ(),
-		"JADE_VERSION="+version,
-		"JADE_RELEASE_URL=file://"+release,
-		"JADE_INSTALL_DIR="+dir,
-	)
-	out, err := cmd.CombinedOutput()
-	return string(out), err
+// An older jade-mcp on PATH is replaced where it is, not installed a second
+// time somewhere else.
+func TestInstallScriptUpdatesTheBinaryOnPath(t *testing.T) {
+	release := fakeRelease(t, false)
+	dir := t.TempDir()
+	writeFakeBinary(t, filepath.Join(dir, "jade-mcp"), "v0.0.1")
+
+	out, err := runInstall(t, release, "PATH="+dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if err != nil {
+		t.Fatalf("update failed: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "updated jade-mcp v0.0.1 -> "+version+" in "+dir) {
+		t.Fatalf("expected an in-place update, got:\n%s", out)
+	}
+	got, err := exec.Command(filepath.Join(dir, "jade-mcp"), "--version").Output()
+	if err != nil || !strings.Contains(string(got), version) {
+		t.Fatalf("the binary on PATH was not replaced: %q %v", got, err)
+	}
 }
 
-// fakeRelease writes <release>/<version>/jade-mcp_<version>_<os>_<arch>.tar.gz
-// holding a stand-in binary, and checksums.txt in sha256sum's format. corrupt
-// lists a wrong checksum.
-func fakeRelease(t *testing.T, corrupt bool) (string, string) {
+// A binary already at the release is left alone, and nothing is downloaded.
+func TestInstallScriptLeavesACurrentBinaryAlone(t *testing.T) {
+	dir := t.TempDir()
+	writeFakeBinary(t, filepath.Join(dir, "jade-mcp"), version)
+
+	// No release on disk at all: any download attempt would fail the run.
+	out, err := runInstall(t, filepath.Join(t.TempDir(), "no-release"), "JADE_INSTALL_DIR="+dir)
+	if err != nil || !strings.Contains(out, "jade-mcp "+version+" is already installed") {
+		t.Fatalf("expected no-op, got err %v:\n%s", err, out)
+	}
+}
+
+func runInstall(t *testing.T, release string, env ...string) (string, error) {
 	t.Helper()
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
 		t.Skip("install.sh supports darwin and linux")
@@ -71,6 +88,27 @@ func fakeRelease(t *testing.T, corrupt bool) (string, string) {
 	if _, err := exec.LookPath("curl"); err != nil {
 		t.Skip("curl not available")
 	}
+	cmd := exec.Command("sh", filepath.Join("..", "..", "install.sh"))
+	cmd.Env = append(append(os.Environ(),
+		"JADE_VERSION="+version,
+		"JADE_RELEASE_URL=file://"+release,
+	), env...)
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+func writeFakeBinary(t *testing.T, path string, reports string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte("#!/bin/sh\necho jade-mcp "+reports+"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// fakeRelease writes <release>/<version>/jade-mcp_<version>_<os>_<arch>.tar.gz
+// holding a stand-in binary, and checksums.txt in sha256sum's format. corrupt
+// lists a wrong checksum.
+func fakeRelease(t *testing.T, corrupt bool) string {
+	t.Helper()
 	name := "jade-mcp_" + version + "_" + runtime.GOOS + "_" + runtime.GOARCH
 	release := t.TempDir()
 	dir := filepath.Join(release, version)
@@ -110,5 +148,5 @@ func fakeRelease(t *testing.T, corrupt bool) (string, string) {
 	if err := os.WriteFile(filepath.Join(dir, "checksums.txt"), []byte(digest+"  "+name+".tar.gz\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	return release, name
+	return release
 }

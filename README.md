@@ -75,7 +75,9 @@ jade-mcp --version
 The script picks the build for your OS and CPU, checks it against the
 release's checksums and installs it to `/usr/local/bin`, or `~/.local/bin`
 when that is not writable — no sudo, no Go toolchain. It tells you if the
-directory still needs to go on `PATH`. (Prefer Go? `go install
+directory still needs to go on `PATH`. **Run the same command again to
+update** — Jade tells you when a new release is out (see
+[Update check](#update-check)). (Prefer Go? `go install
 github.com/julianbei/jade/cmd/jade-mcp@v0.0.8` works too.) Jade reads
 structure in every language with nothing else installed; exact references,
 cross-file rename and type errors on edit need the language's server:
@@ -201,7 +203,9 @@ curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh
 
 Downloads the latest [release binary](#from-a-release-binary) for your OS and
 CPU, verifies it against `checksums.txt`, and installs it without sudo to
-`/usr/local/bin` or `~/.local/bin`. `JADE_VERSION=v0.0.8` pins a release;
+`/usr/local/bin` or `~/.local/bin`. Run it again to update: a `jade-mcp`
+already on `PATH` is replaced where it is, and nothing is downloaded when it
+is already current. `JADE_VERSION=v0.0.8` pins a release;
 `JADE_INSTALL_DIR` picks the directory. Read it first if you like:
 [install.sh](install.sh).
 
@@ -834,6 +838,24 @@ Jade tries not to leave files in a repository it was only asked to work in:
 `.jade/commands.json` is different: it is the repository's declared command
 vocabulary, meant to be committed, and is only created when you declare a
 command.
+
+### Update check
+
+Separate from telemetry, Jade looks up the newest release tag on GitHub — one
+unauthenticated request for `releases/latest`, carrying nothing about your
+workspace or how you use Jade — at most once a day, in the background, with a
+three-second timeout. A failed or offline check also waits a day. When a newer
+release exists, it says so only where you asked what you are running:
+
+```
+$ jade-mcp --version
+jade-mcp v0.0.8
+update available: v0.0.9 (running v0.0.8) · curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh, then reconnect your MCP client
+```
+
+and as the second line of `jade.capabilities`. It never appears in the server
+instructions or in other tool responses. `JADE_UPDATE_CHECK=0` turns it off;
+it is also off in CI (`CI` set) and for development builds.
 
 It exists because response *cost* is invisible to whoever is reading the
 response. Its first live reading found a tool returning 4.6KB in 704ms on a

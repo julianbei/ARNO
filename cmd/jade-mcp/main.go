@@ -23,6 +23,7 @@ import (
 	"github.com/julianbei/jade/internal/render"
 	"github.com/julianbei/jade/internal/telemetry"
 	"github.com/julianbei/jade/internal/transport/internalapi"
+	"github.com/julianbei/jade/internal/update"
 	"github.com/julianbei/jade/internal/workspace"
 )
 
@@ -122,6 +123,11 @@ func main() {
 	for _, arg := range os.Args[1:] {
 		if arg == "--version" || arg == "-version" || arg == "version" {
 			fmt.Fprintf(os.Stdout, "jade-mcp %s\n", resolveVersion())
+			// Read from the cache only: asking what you run must not wait on
+			// the network.
+			if notice := update.New(resolveVersion()).Notice(); notice != "" {
+				fmt.Fprintln(os.Stdout, notice)
+			}
 			return
 		}
 	}
@@ -139,6 +145,9 @@ func main() {
 	if resolved.Warning != "" {
 		fmt.Fprintf(os.Stderr, "jade-mcp warning: %s\n", resolved.Warning)
 	}
+	// At most once a day, bounded by a short timeout, and never on a request:
+	// the next --version or capabilities reads what this left in the cache.
+	go update.New(resolveVersion()).Refresh()
 	root := resolved.Path
 	profile, err := toolsFlag(os.Args[1:])
 	if err != nil {
@@ -656,7 +665,17 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		if err != nil {
 			return mcpToolResult{}, err
 		}
-		return jsonResult(res)
+		result, err := jsonResult(res)
+		if err == nil && len(result.Content) > 0 {
+			// What is running, and whether a newer release exists, lead the
+			// report — the one place someone asks what they have.
+			header := "jade-mcp " + resolveVersion()
+			if notice := update.New(resolveVersion()).Notice(); notice != "" {
+				header += "\n" + notice
+			}
+			result.Content[0].Text = header + "\n" + result.Content[0].Text
+		}
+		return result, err
 	case "jade.changes":
 		res := s.api.Changes()
 		return jsonResult(res)

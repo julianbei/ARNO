@@ -14,6 +14,20 @@ served from the Go module proxy's cache, every script install shows in the
 release's download counts, per platform. A test runs the script against a
 release laid out on disk, including a tampered archive it must refuse.
 
+Run again, it updates: a `jade-mcp` already on `PATH` is replaced in its own
+directory, one already at the release is left alone without downloading, and
+a directory it cannot write is named with what to do.
+
+### Update notice that stays out of the way
+
+Once a day at most, in the background with a three-second timeout, Jade reads
+the latest release tag from GitHub and caches it; a failed check waits a day
+too. A newer release is mentioned only by `jade-mcp --version` and the first
+lines of `capabilities`, which now also name the running version — never in
+the server instructions or other responses. The request carries nothing about
+the workspace. `JADE_UPDATE_CHECK=0` turns it off; it is off in CI and for
+development builds.
+
 ## 0.0.8
 
 ### Core profile: declared commands in, `outline` and `workspace_tree` out
