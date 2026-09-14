@@ -46,15 +46,17 @@ func (s *Server) RunCommand(req protocol.RunCommandRequest) (protocol.RunCommand
 
 	// The job kind carries the command name so history, events and job_status
 	// all say which command ran rather than an opaque "command".
-	jobID := s.jobs.Start("command:" + req.Name)
-	s.jobs.RunPlan(jobID, jobs.Plan{
-		Kind: "command:" + req.Name, Name: shell(), Args: []string{"-c", command.Run},
-		// No Timeout: the process gets the runner's own bound. The caller's
-		// timeout bounds the wait, and killing the process at the same moment
-		// ended every backgrounded or out-waited run — a docker build sent
-		// with wait: false died after 90 seconds.
-		Dir: s.workspace.Root(), Source: commands.RelPath,
-	})
+	jobID, joined := s.jobs.StartOnce("command:"+req.Name, "command|"+req.Name+"|"+command.Run+"|"+s.workspace.Revision())
+	if !joined {
+		s.jobs.RunPlan(jobID, jobs.Plan{
+			Kind: "command:" + req.Name, Name: shell(), Args: []string{"-c", command.Run},
+			// No Timeout: the process gets the runner's own bound. The caller's
+			// timeout bounds the wait, and killing the process at the same moment
+			// ended every backgrounded or out-waited run — a docker build sent
+			// with wait: false died after 90 seconds.
+			Dir: s.workspace.Root(), Source: commands.RelPath,
+		})
+	}
 
 	if !req.Wait {
 		return protocol.RunCommandResponse{
@@ -74,7 +76,7 @@ func (s *Server) RunCommand(req protocol.RunCommandRequest) (protocol.RunCommand
 			JobID:   jobID,
 			Outcome: protocol.OutcomeTimedOut,
 			Status:  "running",
-			Summary: fmt.Sprintf("%s did not finish within %s — poll job_status %s", req.Name, checkTimeout(req.TimeoutSeconds), jobID),
+			Summary: stillRunning(req.Name, "run_command", checkTimeout(req.TimeoutSeconds), jobID),
 		}, nil
 	}
 
@@ -159,11 +161,13 @@ func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol
 	if req.DryRun {
 		return protocol.CheckResponse{Kind: kind, Status: "dry run", Command: command}, true
 	}
-	jobID := s.jobs.Start("check:" + kind)
-	s.jobs.RunPlan(jobID, jobs.Plan{
-		Kind: "check:" + kind, Name: shell(), Args: []string{"-c", chain},
-		Dir: s.workspace.Root(), Source: commands.RelPath,
-	})
+	jobID, joined := s.jobs.StartOnce("check:"+kind, "check|"+kind+"|"+chain+"|"+s.workspace.Revision())
+	if !joined {
+		s.jobs.RunPlan(jobID, jobs.Plan{
+			Kind: "check:" + kind, Name: shell(), Args: []string{"-c", chain},
+			Dir: s.workspace.Root(), Source: commands.RelPath,
+		})
+	}
 	if !req.Wait {
 		return protocol.CheckResponse{JobID: jobID, Kind: kind, Outcome: protocol.OutcomeRunning, Status: "running", Command: command}, true
 	}
@@ -171,7 +175,7 @@ func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol
 	if !finished {
 		return protocol.CheckResponse{
 			JobID: jobID, Kind: kind, Outcome: protocol.OutcomeTimedOut, Status: "running", Command: command,
-			Summary: fmt.Sprintf("%s did not finish within %s and is still running — poll job_status %s", kind, checkTimeout(req.TimeoutSeconds), jobID),
+			Summary: stillRunning(kind, "check", checkTimeout(req.TimeoutSeconds), jobID),
 		}, true
 	}
 	outcome := finishedOutcome(output)

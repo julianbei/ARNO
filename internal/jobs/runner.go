@@ -35,7 +35,10 @@ type Runner struct {
 	// done carries one channel per job, closed when the job completes, so
 	// waiting is a block rather than a poll loop.
 	done map[string]chan struct{}
-	bus  *events.Bus
+	// running maps a run's key to the job still executing it, so the same
+	// run asked for again joins that job instead of starting a second one.
+	running map[string]string
+	bus     *events.Bus
 }
 
 func NewRunner(bus *events.Bus) *Runner {
@@ -49,6 +52,7 @@ func NewRunner(bus *events.Bus) *Runner {
 		omitted: make(map[string]int),
 		failed:  make(map[string]bool),
 		done:    make(map[string]chan struct{}),
+		running: make(map[string]string),
 		bus:     bus,
 	}
 }
@@ -74,6 +78,39 @@ func (r *Runner) Start(kind string) string {
 	}
 
 	return id
+}
+
+// StartOnce starts a job for key unless one is still running for it, in which
+// case it returns that job and joined is true; the caller then waits on it
+// instead of running the command again.
+//
+// A test run that outlived its wait used to be started twice more by an agent
+// that could not poll it — about eight minutes of duplicated cargo test in
+// one benchmark run. Keys carry the workspace revision, so a run asked for
+// after an edit never joins one that started before it.
+func (r *Runner) StartOnce(kind string, key string) (id string, joined bool) {
+	r.mu.Lock()
+	if existing, ok := r.running[key]; ok && key != "" {
+		r.mu.Unlock()
+		return existing, true
+	}
+	r.mu.Unlock()
+
+	id = r.Start(kind)
+	if key != "" {
+		r.mu.Lock()
+		if r.status[id] == "running" {
+			r.running[key] = id
+		}
+		r.mu.Unlock()
+	}
+	return id, false
+}
+
+// ValidationKey identifies a discovered validation run, shared by check and
+// by apply's post-edit check so a check called after apply joins its run.
+func ValidationKey(dir string, kind string, revision string) string {
+	return "validate|" + dir + "|" + kind + "|" + revision
 }
 
 func (r *Runner) Complete(id string, summary string) {
@@ -105,6 +142,11 @@ func (r *Runner) CompleteWithResult(id string, output string, failed bool) {
 	r.full[id] = storedRawOutput(output)
 	r.omitted[id] = omitted
 	r.failed[id] = failed
+	for key, running := range r.running {
+		if running == id {
+			delete(r.running, key)
+		}
+	}
 	kind := r.kind[id]
 	done := r.done[id]
 	r.mu.Unlock()

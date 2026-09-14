@@ -133,7 +133,7 @@ func (s *Service) runImpactTests(files []string) (protocol.ValidationOutcome, st
 
 	output, finished := s.jobs.Wait(jobID, applyCheckTimeout)
 	if !finished {
-		return protocol.OutcomeTimedOut, fmt.Sprintf("impact tests did not finish within %s — poll job_status %s", applyCheckTimeout, jobID)
+		return protocol.OutcomeTimedOut, fmt.Sprintf("the edits are written; impact tests did not finish within %s and are still running as %s", applyCheckTimeout, jobID)
 	}
 	outcome := jobs.Outcome(output, true)
 	if outcome != protocol.OutcomePassed {
@@ -154,7 +154,7 @@ func (s *Service) runImpactTests(files []string) (protocol.ValidationOutcome, st
 	s.jobs.RunPlan(lintID, jobs.Plan{Kind: "check:lint", Name: "sh", Args: []string{"-c", chain}, Dir: s.workspace.Root(), Source: commands.RelPath})
 	lintOutput, done := s.jobs.Wait(lintID, applyCheckTimeout)
 	if !done {
-		return protocol.OutcomeTimedOut, fmt.Sprintf("declared lint %s did not finish within %s — poll job_status %s", strings.Join(names, ", "), applyCheckTimeout, lintID)
+		return protocol.OutcomeTimedOut, fmt.Sprintf("the edits are written; declared lint %s did not finish within %s and is still running as %s — call check with kind lint to run it again", strings.Join(names, ", "), applyCheckTimeout, lintID)
 	}
 	if lintOutcome := jobs.Outcome(lintOutput, true); lintOutcome != protocol.OutcomePassed {
 		return lintOutcome, "declared lint " + strings.Join(names, ", ") + ": " + lintOutput.Summary

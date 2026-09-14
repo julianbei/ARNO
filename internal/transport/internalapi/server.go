@@ -599,9 +599,12 @@ func (s *Server) DeleteFile(req protocol.DeleteFileRequest) (protocol.EditRespon
 }
 
 func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsResponse {
-	jobID := s.jobs.Start("tests")
 	scope := jobs.TestScope{Kind: req.Scope, File: req.File, Test: req.Test}
-	s.jobs.RunScopedTests(jobID, s.workspace.Root(), scope, s.workspace.Changes())
+	key := "tests|" + req.Scope + "|" + req.File + "|" + req.Test + "|" + s.workspace.Revision()
+	jobID, joined := s.jobs.StartOnce("tests", key)
+	if !joined {
+		s.jobs.RunScopedTests(jobID, s.workspace.Root(), scope, s.workspace.Changes())
+	}
 
 	if !req.Wait {
 		return protocol.RunTestsResponse{JobID: jobID, Outcome: protocol.OutcomeRunning, Status: "running"}
@@ -615,7 +618,7 @@ func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsRespons
 			JobID:   jobID,
 			Outcome: protocol.OutcomeTimedOut,
 			Status:  "running",
-			Summary: fmt.Sprintf("tests did not finish within %s — poll job_status %s", checkTimeout(req.TimeoutSeconds), jobID),
+			Summary: stillRunning("tests", "run_tests", checkTimeout(req.TimeoutSeconds), jobID),
 		}
 	}
 

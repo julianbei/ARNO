@@ -95,8 +95,10 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 		return protocol.CheckResponse{Kind: kind, Status: "dry run", Command: command}, nil
 	}
 
-	jobID := s.jobs.Start(kind)
-	s.jobs.RunValidationCommand(jobID, dir, kind)
+	jobID, joined := s.jobs.StartOnce(kind, jobs.ValidationKey(dir, kind, s.workspace.Revision()))
+	if !joined {
+		s.jobs.RunValidationCommand(jobID, dir, kind)
+	}
 
 	if !req.Wait {
 		return protocol.CheckResponse{JobID: jobID, Kind: kind, Outcome: protocol.OutcomeRunning, Status: "running", Command: command}, nil
@@ -109,7 +111,7 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 			Kind:    kind,
 			Outcome: protocol.OutcomeTimedOut,
 			Status:  "running",
-			Summary: fmt.Sprintf("%s did not finish within %s and is still running — poll job_status %s", kind, checkTimeout(req.TimeoutSeconds), jobID),
+			Summary: stillRunning(kind, "check", checkTimeout(req.TimeoutSeconds), jobID),
 			Command: command,
 		}, nil
 	}
@@ -126,6 +128,14 @@ func (s *Server) Check(req protocol.CheckRequest) (protocol.CheckResponse, error
 		Summary: verdictSummary(passed, output.Summary, output.Raw),
 		Command: command,
 	}, nil
+}
+
+// stillRunning is the summary of a run that outlived the caller's wait. It
+// names only the tool that was just called: a hint to poll job_status sent an
+// agent whose host had not loaded job_status to start the same tests twice
+// more. Calling the same tool again joins the running job.
+func stillRunning(what string, tool string, waited time.Duration, jobID string) string {
+	return fmt.Sprintf("%s did not finish within %s and is still running as %s — call %s again with the same arguments to keep waiting on this run; nothing restarts", what, waited, jobID, tool)
 }
 
 // checkTarget resolves check's target to a directory inside the workspace,

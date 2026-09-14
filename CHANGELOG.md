@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### A run that outlives its wait is joined, not restarted
+
+When `check`, `run_tests` or `run_command` times out, the response now says
+to call the same tool again with the same arguments, and that call waits on
+the job already running instead of starting a second one. The old hint,
+"poll job_status", named a tool the core profile does not advertise: in the
+0.0.7 rerun an agent started the same cargo test twice more and lost about
+eight minutes. A check called after `apply`'s own check timed out joins that
+run too. Runs are keyed by the workspace revision, so a call made after an
+edit always starts fresh.
+
 ### Benchmark rerun at 0.0.7
 
 Same 12 tasks, `jade` against `shell-lean`: Jade solved 11 of 12 against 10,

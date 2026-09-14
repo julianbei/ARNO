@@ -30,6 +30,45 @@ func TestRunCommandThatOutlivesTheWaitSaysTimedOut(t *testing.T) {
 	}
 }
 
+// A run that outlived its wait is joined, not restarted, when the same call
+// comes again, and its summary names no tool the host may not have loaded.
+func TestARepeatedCallJoinsTheRunThatOutlivedItsWait(t *testing.T) {
+	server, _ := newTestMCPServer(t)
+	if _, err := server.api.DeclareCommand(protocol.DeclareCommandRequest{Name: "slow", Run: "sleep 4"}); err != nil {
+		t.Fatalf("declare: %v", err)
+	}
+
+	first, err := server.api.RunCommand(protocol.RunCommandRequest{Name: "slow", Wait: true, TimeoutSeconds: 1})
+	if err != nil {
+		t.Fatalf("run_command: %v", err)
+	}
+	if first.Outcome != protocol.OutcomeTimedOut {
+		t.Fatalf("expected a timeout, got %+v", first)
+	}
+	if strings.Contains(first.Summary, "job_status") || !strings.Contains(first.Summary, "call run_command again") {
+		t.Fatalf("the hint must point at the tool just called, got %q", first.Summary)
+	}
+
+	second, err := server.api.RunCommand(protocol.RunCommandRequest{Name: "slow", Wait: true, TimeoutSeconds: 10})
+	if err != nil {
+		t.Fatalf("run_command: %v", err)
+	}
+	if second.JobID != first.JobID {
+		t.Fatalf("the second call started %s instead of joining %s", second.JobID, first.JobID)
+	}
+	if second.Outcome != protocol.OutcomePassed {
+		t.Fatalf("the joined run should finish and pass, got %+v", second)
+	}
+
+	third, err := server.api.RunCommand(protocol.RunCommandRequest{Name: "slow", Wait: false})
+	if err != nil {
+		t.Fatalf("run_command: %v", err)
+	}
+	if third.JobID == first.JobID {
+		t.Fatal("a finished run must not be joined")
+	}
+}
+
 // A tool that is not installed checked nothing. Saying FAIL sends the caller
 // to fix code; saying pass is worse.
 func TestRunCommandWithAMissingToolIsUnavailable(t *testing.T) {

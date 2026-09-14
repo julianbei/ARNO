@@ -284,12 +284,16 @@ func (s *Service) runCheck(kind string) (protocol.ValidationOutcome, string) {
 		return "", fmt.Sprintf("unknown check kind %q", kind)
 	}
 
-	jobID := s.jobs.Start(kind)
-	s.jobs.RunValidationCommand(jobID, s.workspace.Root(), kind)
+	// Keyed like check's own run, so a check called after this one timed out
+	// joins it rather than starting the build again.
+	jobID, joined := s.jobs.StartOnce(kind, jobs.ValidationKey(s.workspace.Root(), kind, s.workspace.Revision()))
+	if !joined {
+		s.jobs.RunValidationCommand(jobID, s.workspace.Root(), kind)
+	}
 
 	output, finished := s.jobs.Wait(jobID, applyCheckTimeout)
 	if !finished {
-		return protocol.OutcomeTimedOut, fmt.Sprintf("%s did not finish within %s — poll job_status %s", kind, applyCheckTimeout, jobID)
+		return protocol.OutcomeTimedOut, fmt.Sprintf("the edits are written; %s did not finish within %s and is still running as %s — call check with kind %s to keep waiting on this run", kind, applyCheckTimeout, jobID, kind)
 	}
 	outcome := jobs.Outcome(output, true)
 	if outcome == protocol.OutcomePassed {
