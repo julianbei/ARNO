@@ -43,6 +43,10 @@ RUN VERSION="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || ec
 # Install git and gopls in your own image if you want the full surface.
 FROM gcr.io/distroless/static-debian12:nonroot
 
+# Proves to the official MCP Registry that this image belongs to the server
+# published there as io.github.julianbei/jade (see docs/mcp-registry.md).
+LABEL io.modelcontextprotocol.server.name="io.github.julianbei/jade"
+
 COPY --from=build /jade-mcp /jade-mcp
 
 # JADE_WORKSPACE_ROOT is the repository jade inspects. Mount it here.

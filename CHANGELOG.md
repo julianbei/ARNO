@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.10
+
+### Listed in the official MCP Registry
+
+The container image carries the `io.modelcontextprotocol.server.name` label
+the [MCP Registry](https://registry.modelcontextprotocol.io) uses to verify
+ownership, and [server.json](server.json) describes the listing
+`io.github.julianbei/jade`. It is published with `mcp-publisher publish`
+after each release, starting with this one; the steps are in
+[docs/mcp-registry.md](docs/mcp-registry.md).
+
 ## 0.0.9
 
 ### Install script

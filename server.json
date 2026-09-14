@@ -1,0 +1,37 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.julianbei/jade",
+  "title": "Jade",
+  "description": "The IDE for agents: read by symbol, edit against a revision, validate with your own build, revert.",
+  "repository": {
+    "url": "https://github.com/julianbei/jade",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/julianbei/jade#trying-jade-a-guide-for-testers",
+  "version": "0.0.10",
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/julianbei/jade-mcp:v0.0.10",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "description": "Mount the repository Jade should work on at /workspace",
+          "name": "--mount",
+          "value": "type=bind,src={workspace},dst=/workspace",
+          "isRequired": true,
+          "variables": {
+            "workspace": {
+              "description": "Absolute path of the repository on the host",
+              "format": "filepath",
+              "isRequired": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
