@@ -54,8 +54,10 @@ releasing a new version.
 These list open-source MCP servers without a popularity requirement. They are
 worth updating when the description or install steps change:
 
-- [Glama](https://glama.ai/mcp/servers) — indexes GitHub on its own; claim
-  the listing to edit it.
+- [Glama](https://glama.ai/mcp/servers/julianbei/jade) — indexes GitHub on
+  its own and builds a new release after ours, from the build spec on its
+  Dockerfile page (it installs the latest release with the install script).
+  Nothing to do per release; [glama.json](../glama.json) names the maintainer.
 - [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) —
   one line under Developer Tools, submitted in
   [#14418](https://github.com/punkpeye/awesome-mcp-servers/pull/14418).
