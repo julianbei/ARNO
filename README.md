@@ -5,6 +5,8 @@
   <img src="logo.png" alt="Jade — Just Agentic Development Environment" width="520">
 </picture>
 
+[![julianbei/jade MCP server](https://glama.ai/mcp/servers/julianbei/jade/badges/score.svg)](https://glama.ai/mcp/servers/julianbei/jade)
+
 ## The IDE for agents
 
 Jade gives coding agents what an IDE gives you, served over MCP. Read by symbol,
