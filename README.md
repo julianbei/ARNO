@@ -34,7 +34,7 @@ runs. Sonnet 5, one run per task, four languages —
 [results and caveats](docs/benchmark-results.md) ·
 [how to set it up](#let-arno-replace-the-built-in-tools).
 
-**Status:** 0.0.11 — early, usable, and looking for feedback. **Testing it?**
+**Status:** 0.0.11 shipped as Jade; 0.0.12 is the first release called Arno — early, usable, and looking for feedback. **Testing it?**
 Start with [the tester guide](#trying-arno-a-guide-for-testers).
 
 ```bash
@@ -95,7 +95,7 @@ shows how to install them by hand; Enter skips it, and you can run it again
 any time. **Run the same command again to
 update** — Arno tells you when a new release is out (see
 [Update check](#update-check)). (Prefer Go? `go install
-github.com/julianbei/arno/cmd/arno-mcp@v0.0.11` works too.) Arno reads
+github.com/julianbei/arno/cmd/arno-mcp@latest` works too.) Arno reads
 structure in every language with nothing else installed; exact references,
 cross-file rename and type errors on edit need the language's server —
 `arno-mcp install` installs these for you, or by hand:
@@ -225,7 +225,7 @@ CPU, verifies it against `checksums.txt`, and installs it without sudo to
 already on `PATH` is replaced where it is, and nothing is downloaded when it
 is already current. If the directory is not on `PATH`, it offers to add it to
 your shell profile (`ARNO_ADD_TO_PATH=1` does it without asking) and prints
-the absolute path to use in your MCP client config. `ARNO_VERSION=v0.0.11` pins a release;
+the absolute path to use in your MCP client config. `ARNO_VERSION` pins a release tag;
 `ARNO_INSTALL_DIR` picks the directory. Read it first if you like:
 [install.sh](install.sh).
 
@@ -276,7 +276,7 @@ The install script above is the easiest way. These work too.
 
 ```bash
 go install github.com/julianbei/arno/cmd/arno-mcp@latest    # newest
-go install github.com/julianbei/arno/cmd/arno-mcp@v0.0.11   # pinned
+go install github.com/julianbei/arno/cmd/arno-mcp@v0.0.12   # pinned to a tag
 ```
 
 Lands in `$GOBIN`, or `$(go env GOPATH)/bin` if that is unset — which is
@@ -301,7 +301,7 @@ current glibc. On an older distro, build from source or use the container
 image, which is statically linked against musl.
 
 ```bash
-VERSION=v0.0.11
+VERSION=$(curl -fsSL https://api.github.com/repos/julianbei/arno/releases/latest | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fsSL "https://github.com/julianbei/arno/releases/download/${VERSION}/arno-mcp_${VERSION}_${OS}_${ARCH}.tar.gz" \
@@ -506,7 +506,7 @@ The [install script](#with-the-install-script) reads its own:
 
 | Variable | Effect |
 |---|---|
-| `ARNO_VERSION` | Release to install, e.g. `v0.0.11`. Default: the latest. |
+| `ARNO_VERSION` | Release to install, e.g. `v0.0.12`. Default: the latest. |
 | `ARNO_INSTALL_DIR` | Where to put `arno-mcp`. Default: the directory of the `arno-mcp` already on `PATH`, else `/usr/local/bin` if writable, else `~/.local/bin`. |
 | `ARNO_SERVERS` | Language servers to install afterwards without a menu: `go,java,scala,typescript,python,rust,ruby`, or `all`. |
 | `ARNO_SKIP_SETUP=1` | Skip the language-server step. |
@@ -521,7 +521,7 @@ Arno is a child process, not a service, so the useful shape is to copy the
 binary into your own image rather than run Arno's:
 
 ```dockerfile
-FROM ghcr.io/julianbei/arno-mcp:v0.0.11 AS arno
+FROM ghcr.io/julianbei/arno-mcp:latest AS arno
 
 FROM your-project-base
 COPY --from=arno /arno-mcp /usr/local/bin/arno-mcp
@@ -943,8 +943,8 @@ release exists, it says so only where you asked what you are running:
 
 ```
 $ arno-mcp --version
-arno-mcp v0.0.11
-update available: v0.0.12 (running v0.0.11) · curl -fsSL https://raw.githubusercontent.com/julianbei/arno/main/install.sh | sh, then reconnect your MCP client
+arno-mcp v0.0.12
+update available: v0.0.13 (running v0.0.12) · curl -fsSL https://raw.githubusercontent.com/julianbei/arno/main/install.sh | sh, then reconnect your MCP client
 ```
 
 and as the second line of `arno.capabilities`. It never appears in the server
