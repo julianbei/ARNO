@@ -34,7 +34,7 @@ runs. Sonnet 5, one run per task, four languages —
 [results and caveats](docs/benchmark-results.md) ·
 [how to set it up](#let-arno-replace-the-built-in-tools).
 
-**Status:** 0.0.11 shipped as Jade; 0.0.12 is the first release called ARNO — early, usable, and looking for feedback. **Testing it?**
+**Status:** 0.0.12 shipped, the first release called ARNO; 0.0.11 and earlier were Jade — early, usable, and looking for feedback. **Testing it?**
 Start with [the tester guide](#trying-arno-a-guide-for-testers).
 
 ```bash
