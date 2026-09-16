@@ -1,22 +1,22 @@
-# Arno — Agent Repository Navigation & Operations
+# ARNO — Agent Repository Navigation & Operations
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="logo-dark.png">
-  <img src="logo.png" alt="Arno — Agent Repository Navigation & Operations" width="520">
+  <img src="logo.png" alt="ARNO — Agent Repository Navigation & Operations" width="520">
 </picture>
 
-[![julianbei/arno MCP server](https://glama.ai/mcp/servers/julianbei/arno/badges/score.svg)](https://glama.ai/mcp/servers/julianbei/arno)
+[![ARNO MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/julianbei/ARNO/badges/card.svg)](https://glama.ai/mcp/servers/julianbei/ARNO)
 
 ## The IDE for agents
 
-Arno gives coding agents what an IDE gives you, served over MCP. Read by symbol,
+ARNO gives coding agents what an IDE gives you, served over MCP. Read by symbol,
 edit against a known revision, get the compiler's diagnostics back with the
 edit, validate with the repository's own commands, see what changed, and
 revert to a checkpoint — each step one tool call, none of it through the shell.
 
-Symbol-aware reading is how Arno finds its way around; the transaction is what
+Symbol-aware reading is how ARNO finds its way around; the transaction is what
 it is for. Where the shell is still the better tool, use it — the question
-Arno has to answer is whether an agent gets more done, at acceptable cost,
+ARNO has to answer is whether an agent gets more done, at acceptable cost,
 with it than without ([docs/benchmark.md](docs/benchmark.md)).
 
 **Half the tokens, more issues fixed.** Claude Code on 12 real closed issues
@@ -26,15 +26,15 @@ by each upstream fix's own hidden tests:
 | Claude Code with… | Issues fixed | Tokens per task | Time per task |
 |---|---|---|---|
 | its built-in tools | 10 of 12 | 1.38M | 215s |
-| **Arno in their place** | **12 of 12** | **0.68M (−51%)** | **163s (−24%)** |
+| **ARNO in their place** | **12 of 12** | **0.68M (−51%)** | **163s (−24%)** |
 
 Not just a shorter tool list: against a shell trimmed to Bash, Read, Edit and
-Write, Arno still used 18–25% fewer tokens and fewer turns, in two separate
+Write, ARNO still used 18–25% fewer tokens and fewer turns, in two separate
 runs. Sonnet 5, one run per task, four languages —
 [results and caveats](docs/benchmark-results.md) ·
 [how to set it up](#let-arno-replace-the-built-in-tools).
 
-**Status:** 0.0.11 shipped as Jade; 0.0.12 is the first release called Arno — early, usable, and looking for feedback. **Testing it?**
+**Status:** 0.0.11 shipped as Jade; 0.0.12 is the first release called ARNO — early, usable, and looking for feedback. **Testing it?**
 Start with [the tester guide](#trying-arno-a-guide-for-testers).
 
 ```bash
@@ -48,8 +48,8 @@ Run it again to update. [Other ways to install](#other-ways-to-install).
 
 ## Table of contents
 
-- [Trying Arno: a guide for testers](#trying-arno-a-guide-for-testers)
-- [Why Arno exists](#why-arno-exists)
+- [Trying ARNO: a guide for testers](#trying-arno-a-guide-for-testers)
+- [Why ARNO exists](#why-arno-exists)
 - [Install](#install)
 - [Configure your MCP client](#configure-your-mcp-client)
 - [Use it in a container](#use-it-in-a-container)
@@ -58,7 +58,7 @@ Run it again to update. [Other ways to install](#other-ways-to-install).
 - [Language support](#language-support)
 - [Design principles](#design-principles)
 - [When the shell is still the right tool](#when-the-shell-is-still-the-right-tool)
-- [What Arno does not do yet](#what-arno-does-not-do-yet)
+- [What ARNO does not do yet](#what-arno-does-not-do-yet)
 - [Stability and versioning](#stability-and-versioning)
 - [Telemetry](#telemetry)
 - [Reporting problems](#reporting-problems)
@@ -66,13 +66,13 @@ Run it again to update. [Other ways to install](#other-ways-to-install).
 
 ---
 
-## Trying Arno: a guide for testers
+## Trying ARNO: a guide for testers
 
 Thanks for testing. Half an hour gets you set up; the useful part is a week or
 two of your normal work with it switched on, and then telling us how it went —
 **including if you turned it off.**
 
-### 1. Install Arno and your language servers
+### 1. Install ARNO and your language servers
 
 **macOS and Linux:**
 
@@ -93,9 +93,9 @@ absolute path to use as `command` in your MCP client config. On a first install 
 `arno-mcp install`, a menu that installs the language servers you pick, or
 shows how to install them by hand; Enter skips it, and you can run it again
 any time. **Run the same command again to
-update** — Arno tells you when a new release is out (see
+update** — ARNO tells you when a new release is out (see
 [Update check](#update-check)). (Prefer Go? `go install
-github.com/julianbei/arno/cmd/arno-mcp@latest` works too.) Arno reads
+github.com/julianbei/arno/cmd/arno-mcp@latest` works too.) ARNO reads
 structure in every language with nothing else installed; exact references,
 cross-file rename and type errors on edit need the language's server —
 `arno-mcp install` installs these for you, or by hand:
@@ -107,7 +107,7 @@ cross-file rename and type errors on edit need the language's server —
 | Scala | `cs install metals` ([coursier](https://get-coursier.io)) | Set `ARNO_METALS_IMPORT=1` so metals may import the sbt build (it creates `.bloop/` and `.metals/`). First answer about 22s. |
 | Kotlin | — | No grammar or server yet: text search only. Tell us if you need it. |
 
-A missing server is never an error: Arno says which answers are approximate.
+A missing server is never an error: ARNO says which answers are approximate.
 
 ### 2. Point your agent at a real repository
 
@@ -128,15 +128,15 @@ work in (other hosts: [Codex CLI, goose, OpenCode](#other-hosts)):
 ```
 
 That keeps Claude Code's own tools too. For the clearest signal, run some
-sessions with Arno **in place of** them: `claude --tools ""` with the same
+sessions with ARNO **in place of** them: `claude --tools ""` with the same
 config ([why and trade-offs](#let-arno-replace-the-built-in-tools)). Restart
-or reconnect the client (`/mcp`) after installing or upgrading Arno.
+or reconnect the client (`/mcp`) after installing or upgrading ARNO.
 
 ### 3. Check it came up
 
 Ask the agent: *"call arno.capabilities"*. You should see your languages, each
 with `server … (not started)` or `no server (… not installed)`, plus the build
-and test commands Arno found (`mvn`, `gradle`, `sbt`, `go test`). If a server
+and test commands ARNO found (`mvn`, `gradle`, `sbt`, `go test`). If a server
 you installed shows as not installed, that is a bug report.
 
 ### 4. What to try
@@ -160,10 +160,10 @@ Work as you normally would. If you want a checklist for the first sessions:
 
 | When | File this |
 |---|---|
-| After a week or two — or when you turn Arno off | [**Feedback**](https://github.com/julianbei/arno/issues/new?template=feedback.yml) |
-| The agent used the shell although a Arno tool existed | [Friction](https://github.com/julianbei/arno/issues/new?template=friction.yml) |
+| After a week or two — or when you turn ARNO off | [**Feedback**](https://github.com/julianbei/arno/issues/new?template=feedback.yml) |
+| The agent used the shell although a ARNO tool existed | [Friction](https://github.com/julianbei/arno/issues/new?template=friction.yml) |
 | A tool gave a wrong answer or failed | [Bug](https://github.com/julianbei/arno/issues/new?template=bug.yml) |
-| Something you wish Arno did | [Feature wish](https://github.com/julianbei/arno/issues/new?template=feature.yml) |
+| Something you wish ARNO did | [Feature wish](https://github.com/julianbei/arno/issues/new?template=feature.yml) |
 
 The templates ask for the output of `arno.capabilities` and, optionally,
 `arno.telemetry`. Neither contains source code; telemetry is
@@ -176,7 +176,7 @@ has no support yet.
 
 ---
 
-## Why Arno exists
+## Why ARNO exists
 
 An agent that falls back to `grep`, `sed` and `cat` is operating outside any
 tooling you control. No revision tracking, no guardrails, no telemetry, no way
@@ -189,7 +189,7 @@ more flexible. So the only durable fix is to make the structural tool the
 cheaper option, and then measure whether you succeeded.
 
 That is the entire bet, and it is testable. On this repository's own benchmark,
-Arno answers seven realistic engineering questions in **0.85x** the tokens of
+ARNO answers seven realistic engineering questions in **0.85x** the tokens of
 the equivalent shell commands. It was **5.63x** before responses became plain
 text instead of JSON — see [docs/response-style.md](docs/response-style.md) for
 what changed and why.
@@ -199,12 +199,12 @@ unrelated repository came out at **1.36x** — worse than the shell — because 
 ambiguous symbol name forced an extra disambiguation call. Seven scenarios at
 home and one away disagree, both are honest, and the second is the one that
 predicts outside use. The 0.0.4 pilot on four outside repositories answers
-it at a larger scale: used in place of Claude Code's built-in tools, Arno
+it at a larger scale: used in place of Claude Code's built-in tools, ARNO
 solved 12 of 12 real issues with 51% fewer tokens, and 18–25% fewer than a
 shell trimmed to four tools
-([docs/benchmark-results.md](docs/benchmark-results.md)). Arno is not finished.
+([docs/benchmark-results.md](docs/benchmark-results.md)). ARNO is not finished.
 
-Arno's own development log ([docs/feedback.md](docs/feedback.md)) records every
+ARNO's own development log ([docs/feedback.md](docs/feedback.md)) records every
 time its author reached for bash instead, and why. The pattern it found was
 blunt: the fallbacks that survived longest each closed within two tasks of
 being *named in the log* — not when the tool shipped.
@@ -241,7 +241,7 @@ arno-mcp install --servers go,java,scala   # install these, no questions
 arno-mcp install --all                     # every missing server this machine can install
 ```
 
-The menu lists each language server Arno can use, whether it is installed, and
+The menu lists each language server ARNO can use, whether it is installed, and
 the exact command it would run — `go install` for gopls, `brew install jdtls`,
 `cs install metals`, `npm install -g` for TypeScript and Pyright, `rustup
 component add rust-analyzer`, `gem install ruby-lsp` — and confirms before
@@ -253,7 +253,7 @@ install; `ARNO_SKIP_SETUP=1` skips it.
 same steps come without questions:
 
 ```bash
-# install Arno and chosen servers in one go
+# install ARNO and chosen servers in one go
 curl -fsSL https://raw.githubusercontent.com/julianbei/arno/main/install.sh | ARNO_SERVERS=go,java sh
 
 arno-mcp install --list --json                   # state of every server, as JSON
@@ -296,7 +296,7 @@ config instead of the bare `arno-mcp` shown below.
 Prebuilt binaries for linux and darwin on amd64 and arm64 are attached to each
 [GitHub release](https://github.com/julianbei/arno/releases), with a
 `checksums.txt` alongside them. Each is built natively on its own platform —
-Arno links tree-sitter through cgo, so the linux builds need a reasonably
+ARNO links tree-sitter through cgo, so the linux builds need a reasonably
 current glibc. On an older distro, build from source or use the container
 image, which is statically linked against musl.
 
@@ -314,7 +314,7 @@ sudo mv "arno-mcp_${VERSION}_${OS}_${ARCH}" /usr/local/bin/arno-mcp
 Since 0.0.11, each [GitHub release](https://github.com/julianbei/arno/releases)
 also carries `arno-mcp_<version>.mcpb`, one bundle with the binaries for macOS
 and Linux on Intel and ARM. Open it with Claude Desktop, pick the repository
-Arno should work on, and it runs with the core tools; no terminal and no
+ARNO should work on, and it runs with the core tools; no terminal and no
 Docker. Language servers still come from `arno-mcp install`, or run without
 them on tree-sitter alone.
 
@@ -344,7 +344,7 @@ are installed and installs the rest ([Language servers](#language-servers-arno-m
 
 ## Configure your MCP client
 
-Arno is a stdio MCP server. Point your client at the binary:
+ARNO is a stdio MCP server. Point your client at the binary:
 
 ```json
 {
@@ -361,36 +361,36 @@ Arno is a stdio MCP server. Point your client at the binary:
 }
 ```
 
-`ARNO_WORKSPACE_ROOT` is the repository Arno inspects and edits. It does **not**
-have to be the Arno checkout — pointing it somewhere else is the entire point.
+`ARNO_WORKSPACE_ROOT` is the repository ARNO inspects and edits. It does **not**
+have to be the ARNO checkout — pointing it somewhere else is the entire point.
 A `--root /path/to/repo` flag takes precedence over the environment variable,
-and Arno prints which of the three sources it used (flag, env, working
+and ARNO prints which of the three sources it used (flag, env, working
 directory) at startup, so an agent can never quietly operate on the wrong
 repository.
 
-Arno works on a non-git directory and on a repository with no commits yet. In
+ARNO works on a non-git directory and on a repository with no commits yet. In
 both cases it says what is degraded — `changes`, `diff`, `history` and
 `checkpoint` need git — and everything else keeps working.
 
-### Let Arno replace the built-in tools
+### Let ARNO replace the built-in tools
 
-Arno saves tokens when it *replaces* the agent's own tools, not when it is
+ARNO saves tokens when it *replaces* the agent's own tools, not when it is
 added next to them. Every turn resends the whole tool list, and in Claude Code
-the built-in tools are about 38k tokens of it. In Arno's pilot benchmark (12 real
+the built-in tools are about 38k tokens of it. In ARNO's pilot benchmark (12 real
 issues in cobra, ky, requests and ripgrep, one run each):
 
 | Tools | Tasks solved | Tokens per run | Time per run |
 |---|---|---|---|
 | Claude Code's built-in tools | 10 of 12 | 1.38M | 215s |
 | Built-in tools trimmed to Bash, Read, Edit, Write | 10 of 12 | 0.90M | 213s |
-| Arno only, core profile | 12 of 12 | 0.68M | 163s |
-| Both, all built-in tools and Arno | 11 of 12 | 1.50M | 191s |
+| ARNO only, core profile | 12 of 12 | 0.68M | 163s |
+| Both, all built-in tools and ARNO | 11 of 12 | 1.50M | 191s |
 
-Trimming the built-in list is most of the saving on its own. Arno on top of
+Trimming the built-in list is most of the saving on its own. ARNO on top of
 that used 25% fewer tokens and 24% less time than the trimmed shell, and solved
-the two tasks both shell setups failed. Given both Arno and every built-in
+the two tasks both shell setups failed. Given both ARNO and every built-in
 tool, the agent used Bash for four calls in five and paid for both lists.
-To run Arno in place of the built-in tools:
+To run ARNO in place of the built-in tools:
 
 ```sh
 claude --tools "" --mcp-config arno.json
@@ -424,7 +424,7 @@ a rerun after the pilot's fixes, and the caveats.
 ### Other hosts
 
 Verified with a live session — find a declaration, insert beside it, run
-`check` — using only Arno's tools:
+`check` — using only ARNO's tools:
 
 **Codex CLI** (0.154), in `~/.codex/config.toml`:
 
@@ -435,7 +435,7 @@ args = ["--root", "/absolute/path/to/the/repo", "--tools", "core"]
 ```
 
 Codex asks before every MCP tool call. With `approval_policy = "never"` it
-refuses them outright; run `codex exec --approve-for-me` or approve Arno's
+refuses them outright; run `codex exec --approve-for-me` or approve ARNO's
 tools interactively.
 
 **goose** (1.50), for one run:
@@ -472,23 +472,23 @@ Cline and Gemini CLI are not verified yet.
 
 ### Three things that will confuse you once
 
-**Without `"alwaysLoad": true`, Claude Code may never use Arno.** Claude Code
+**Without `"alwaysLoad": true`, Claude Code may never use ARNO.** Claude Code
 hides MCP tools behind a tool search by default: the agent sees their names but
 not their definitions, and has to search before it can call one. With its own
-shell and file tools right there, it does not. In Arno's benchmark, an agent
-given both Arno and the shell made no Arno call in three of three runs; the
-same setup with `alwaysLoad` called Arno directly. Other hosts may have their
-own equivalent — check that Arno's tools are actually being called.
+shell and file tools right there, it does not. In ARNO's benchmark, an agent
+given both ARNO and the shell made no ARNO call in three of three runs; the
+same setup with `alwaysLoad` called ARNO directly. Other hosts may have their
+own equivalent — check that ARNO's tools are actually being called.
 
 **The MCP tool catalog is fixed at connection time.** A newly added tool does
-not appear until the client reconnects. If you upgrade Arno mid-session and a
+not appear until the client reconnects. If you upgrade ARNO mid-session and a
 tool seems missing, reconnect before investigating.
 
 **Use the binary, not `go run ./cmd/arno-mcp`.** A `go run` stanza recompiles at
 every process start: measured here at 284–584ms to first handshake against 14ms
 for the binary, with a *warm* build cache. A cold one is seconds. It also means
 the server silently changes whenever the source does — useful while hacking on
-Arno itself, confusing everywhere else. This repository's own `.mcp.json`
+ARNO itself, confusing everywhere else. This repository's own `.mcp.json`
 deliberately still uses `go run` for that reason.
 
 ### Environment variables
@@ -517,8 +517,8 @@ The [install script](#with-the-install-script) reads its own:
 
 ## Use it in a container
 
-Arno is a child process, not a service, so the useful shape is to copy the
-binary into your own image rather than run Arno's:
+ARNO is a child process, not a service, so the useful shape is to copy the
+binary into your own image rather than run ARNO's:
 
 ```dockerfile
 FROM ghcr.io/julianbei/arno-mcp:latest AS arno
@@ -531,11 +531,11 @@ ENV ARNO_WORKSPACE_ROOT=/workspace
 Or build it yourself from the included [Dockerfile](Dockerfile).
 
 The published image is `distroless/static`, so it carries no git, no gopls and
-no language toolchains. Arno detects each of those at runtime and degrades with
+no language toolchains. ARNO detects each of those at runtime and degrades with
 an explicit message rather than failing, so this still works — you get the
 textual `references` fallback, and `changes`/`diff`/`history`/`checkpoint` are
 off. If you want the full surface, install `git` and `gopls` in *your* image;
-Arno will find them.
+ARNO will find them.
 
 ---
 
@@ -549,13 +549,13 @@ when you ask for it.
 `arno.replace_symbol`, and so on. The tables below use the bare name for
 readability. Most MCP clients show you the prefixed name already, often with
 the dot rewritten (Claude Code displays `mcp__arno__arno_find`). Over the wire
-Arno accepts both `arno.find` and `arno_find`.
+ARNO accepts both `arno.find` and `arno_find`.
 
 ### Inspect
 
 | Tool | What it does |
 |---|---|
-| `capabilities` | What Arno can do in this workspace: per language, grammar or text scan, language server state, formatter; git, validation commands, declared commands. Call it first. |
+| `capabilities` | What ARNO can do in this workspace: per language, grammar or text scan, language server state, formatter; git, validation commands, declared commands. Call it first. |
 | `outline` | File structure — declarations grouped by kind, without reading bodies. |
 | `read_range` | Verbatim lines, or a whole file. `lines: "280-400"` picks a range; `ranges` reads several files or ranges in one call; an end line past the file reads to the end. `dep:<name>/<path>` reads a dependency's source, read-only, at the locked version — `grep` and `find` take `dependency` to search it. |
 | `find` | Locate a declaration **and** get its body in one call. `queries` finds several names at once. |
@@ -609,10 +609,10 @@ exits non-zero fails.
 | `changes` | What moved — by file and by symbol, not just by path. |
 | `diff` | The patch, including untracked files. `since` takes any git revision. |
 | `history` | Which commits touched one symbol, via `git log -L`. |
-| `checkpoint` | Mark a revertible point: snapshots the files Arno edited and records git's `HEAD`. Not a commit. |
+| `checkpoint` | Mark a revertible point: snapshots the files ARNO edited and records git's `HEAD`. Not a commit. |
 | `revert` | Restore those files to a checkpoint. Never moves git, and refuses if a commit landed since the checkpoint. |
 | `events` | The workspace event stream. |
-| `telemetry` | How Arno's own tools have been used in this workspace. |
+| `telemetry` | How ARNO's own tools have been used in this workspace. |
 
 ---
 
@@ -663,7 +663,7 @@ for you to review and commit; it never overwrites an existing one.
 
 Beyond build and test, every repository has its own verbs — lint, codegen,
 migrate, release-gate — and an agent that does not know them reaches for the
-shell. So Arno lets it record them instead:
+shell. So ARNO lets it record them instead:
 
 ```text
 declare_command(name: "lint", run: "golangci-lint run ./...")
@@ -680,7 +680,7 @@ teaches rather than fails.
 ### A validation chain
 
 Repository rules — Semgrep, a custom linter, a licence check — belong in
-validation, and they need no integration in Arno. Declare one command that
+validation, and they need no integration in ARNO. Declare one command that
 runs the steps in order, joined with `&&`:
 
 ```json
@@ -694,7 +694,7 @@ runs the steps in order, joined with `&&`:
 
 or, without editing the file, `declare_command(name: "validate", run: "…")`.
 
-`run_command(name: "validate")` runs it inside Arno, so the run is part of the
+`run_command(name: "validate")` runs it inside ARNO, so the run is part of the
 session's record. Exit status decides: a rule that fails fails the run, the
 steps after it do not run, and the summary leads with the failing output.
 Use `semgrep scan --error` or the equivalent flag of your tool — a tool that
@@ -737,7 +737,7 @@ or why nothing did (`not checked: app.py: pyright-langserver is not installed`).
 
 **Scala needs one opt-in.** metals reports errors only after importing the sbt
 build, and it asks permission first, because importing runs sbt and creates
-`.bloop/` and `.metals/` in the repository. Arno declines unless
+`.bloop/` and `.metals/` in the repository. ARNO declines unless
 `ARNO_METALS_IMPORT=1` is set, and says so in the edit response. A repository
 an editor has already imported needs no setting.
 
@@ -745,26 +745,26 @@ an editor has already imported needs no setting.
 "Semantics" is exact `references`, cross-file `rename`, and type-level
 diagnostics on edit.
 
-Arno looks for servers on `PATH` and in the places toolchains actually install
+ARNO looks for servers on `PATH` and in the places toolchains actually install
 them — `~/go/bin`, `~/.cargo/bin`, `~/.local/bin`, `~/.coursier/bin` — because
 `go install` puts `gopls` somewhere that is not on `PATH` by default, and a
 client that only checked `PATH` would report Go as unsupported on a machine
 that has a working `gopls`.
 
-A missing server is never an error. Arno degrades to the behaviour above and
+A missing server is never an error. ARNO degrades to the behaviour above and
 says which answer you got.
 
 ## Design principles
 
 1. **Structure before source.** Return the minimum sufficient representation
    first — outline before full source, summary before raw logs.
-2. **Deterministic tools before model reasoning.** Arno orchestrates
+2. **Deterministic tools before model reasoning.** ARNO orchestrates
    tree-sitter, git, gopls and the project's own build tooling. It does not
    reimplement them, and does not guess where they could answer.
 3. **Every edit has a precondition and returns consequences.** An edit can
-   name the revision it expects and is refused if Arno's revision has moved;
+   name the revision it expects and is refused if ARNO's revision has moved;
    it returns the revision transition, what changed and the diagnostics — not
-   "success". Changes made outside Arno do not yet move the revision (release
+   "success". Changes made outside ARNO do not yet move the revision (release
    plan Phase 5).
 4. **Conclusions before logs.** The verdict leads. Raw output expands on
    request.
@@ -775,20 +775,20 @@ says which answer you got.
 7. **Validation waits by default, backgrounds on request.** `check`,
    `run_tests` and `run_command` return the verdict; a long run can return a
    job to poll instead.
-8. **An approximation must announce itself.** When Arno falls back to a text
+8. **An approximation must announce itself.** When ARNO falls back to a text
    scan or a name-matched graph, the caveat travels *with the data*, in the
    response — not in documentation the agent will never read.
-9. **Arno is model- and harness-independent.** MCP is an adapter, not the
+9. **ARNO is model- and harness-independent.** MCP is an adapter, not the
    architecture.
 10. **Measure agent outcomes, not infrastructure sophistication.** Tokens and
     turns per completed task — and token reduction is worthless if the success
     rate drops with it.
 11. **Repository-native execution.** Builds, tests and lint run through the
     repository's own commands — discovered, or declared in
-    `.arno/commands.json` — inside Arno, so validation is part of the record
+    `.arno/commands.json` — inside ARNO, so validation is part of the record
     instead of a shell side trip.
 12. **Cheaper than the escape hatch.** If the shell is easier, faster and
-    cheaper for a workflow, Arno has failed that workflow. The benchmark, not
+    cheaper for a workflow, ARNO has failed that workflow. The benchmark, not
     opinion, says which ([docs/benchmark.md](docs/benchmark.md)).
 
 The longer design document is [docs/scope.md](docs/scope.md).
@@ -797,10 +797,10 @@ The longer design document is [docs/scope.md](docs/scope.md).
 
 ## When the shell is still the right tool
 
-Arno does not try to match the shell's composability. Using the shell is a
+ARNO does not try to match the shell's composability. Using the shell is a
 decision, not a leak, when the work is one of these:
 
-- **Git operations**: commit, branch, rebase, push, blame. Arno reads git
+- **Git operations**: commit, branch, rebase, push, blame. ARNO reads git
   state (`changes`, `diff`, `history`) and never moves it.
 - **One-off probes**: `curl` a local server, inspect a process, check a port,
   read an environment variable.
@@ -810,14 +810,14 @@ decision, not a leak, when the work is one of these:
   `pip install`.
 - **Network access** of any kind.
 
-What stays on Arno's side of the line, even though a shell could do it:
+What stays on ARNO's side of the line, even though a shell could do it:
 
 - **Builds, typechecks, tests, lint and codegen.** Run them with `check`,
   `run_tests` or a declared command (`declare_command`, then `run_command`).
   Validation run from the shell is validation the change transaction cannot
   see: no verdict in the edit record, no scoped test runner, no failure
   summary.
-- **Reading and searching code**, and **editing it**. That is where Arno's
+- **Reading and searching code**, and **editing it**. That is where ARNO's
   revisions, diagnostics and provenance apply.
 
 A command you keep running from the shell for validation belongs in
@@ -826,11 +826,11 @@ command.
 
 ---
 
-## What Arno does not do yet
+## What ARNO does not do yet
 
-**Windows.** Arno is built and tested for macOS and Linux only, and we'd
+**Windows.** ARNO is built and tested for macOS and Linux only, and we'd
 rather do those two really well than three halfway. Until further notice we
-don't build, test or look at Windows. If you'd like Arno on Windows, please 👍
+don't build, test or look at Windows. If you'd like ARNO on Windows, please 👍
 [issue #2](https://github.com/julianbei/arno/issues/2) — and if you think
 this is the wrong call, say so there; honest feedback is welcome. WSL 2 runs
 Linux, so the Linux build may work there, but it isn't tested.
@@ -844,16 +844,16 @@ reporting and what is already known. What is planned is in
   parsed properly. Anything else (Kotlin, Swift, C/C++, C#, PHP, …) is served
   by a heuristic that finds some declarations and misses others — and the
   amount it misses varies enormously by language, so treat those outlines as
-  a hint rather than an inventory. Arno always says which you got
+  a hint rather than an inventory. ARNO always says which you got
   (`! no kotlin grammar — …`).
 - **Semantic features need a language server installed for that language.**
-  Arno speaks LSP to whatever is on the machine (see
+  ARNO speaks LSP to whatever is on the machine (see
   [Language support](#language-support)). With a server, `references` and
   `rename` are compiler-exact and cross-file. Without one, `references`
   degrades to a textual approximation that says so, and `rename` refuses
   rather than guessing — an approximate reference list is still useful to a
   reader, but an approximate edit is corruption.
-- **No completion, hover or code actions.** Arno's LSP client implements what
+- **No completion, hover or code actions.** ARNO's LSP client implements what
   the tools need — references, rename, diagnostics — not the whole protocol.
 - **No blame, no cross-repo work, no remote execution.**
 - **Formatting runs only where it is safe.** gofmt and rustfmt always run.
@@ -862,27 +862,27 @@ reporting and what is already known. What is planned is in
   Python the project's own binary — because a formatter the project did not
   choose turns a one-line edit into a whole-file diff. Ruby, Java, JSON and
   Markdown are left as edited.
-- **Revision tracking is Arno's own counter, not git's.** It detects concurrent
-  edits within a session. It is not a VCS. A checkpoint snapshots the files Arno
+- **Revision tracking is ARNO's own counter, not git's.** It detects concurrent
+  edits within a session. It is not a VCS. A checkpoint snapshots the files ARNO
   has edited and records git's `HEAD`; `revert` restores those files and
   nothing else, never moves git, and refuses once a commit has landed since the
   checkpoint — undoing committed work is git's job. Checkpoints do not survive
   a restart of the server.
 - **Not hardened for untrusted input.** It runs shell commands you declare and
   edits files you point it at. Treat it as a development tool, and do not point
-  it at a repository you would not run `make` in. What running Arno inside a
+  it at a repository you would not run `make` in. What running ARNO inside a
   sandbox or container does and does not cover:
-  - **Covered by Arno itself:** reads and writes stay inside the workspace root,
+  - **Covered by ARNO itself:** reads and writes stay inside the workspace root,
     symlinks included; dependency sources are read-only; a repository cannot
-    make Arno launch a binary it ships (declared commands run through the
+    make ARNO launch a binary it ships (declared commands run through the
     shell you already trust, and a `.arno/project.json` interpreter is a path
     you review in the diff).
   - **Covered only by the sandbox:** what a declared command, a Makefile
     target, an npm script or a test suite does when `check`, `run_tests` or
     `run_command` runs it — network access, files outside the workspace,
-    credentials in the environment. Arno runs the repository's own commands
+    credentials in the environment. ARNO runs the repository's own commands
     with your environment; a malicious repository's `make test` is as
-    dangerous under Arno as in your shell.
+    dangerous under ARNO as in your shell.
   - **Not covered at all:** an agent asked to declare a harmful command, and
     language servers, which execute project configuration of their own
     (build scripts, plugins) when they index a workspace.
@@ -907,7 +907,7 @@ machine-readable output if you need to parse something.
 
 ## Telemetry
 
-Arno records how its own tools are used — call counts, response sizes, timing,
+ARNO records how its own tools are used — call counts, response sizes, timing,
 and the failure classes that most often precede a caller giving up and using
 the shell.
 
@@ -917,17 +917,17 @@ error text — only a 10-character hash of each call's target (path, symbol or
 query), so the confusion report can tell a second tool asked about the same
 thing. `ARNO_TELEMETRY=0` turns it off; `telemetry(reset: true)` clears it.
 
-Arno tries not to leave files in a repository it was only asked to work in:
+ARNO tries not to leave files in a repository it was only asked to work in:
 
-- In a git repository, before creating the log, Arno adds it to
+- In a git repository, before creating the log, ARNO adds it to
   `.git/info/exclude` — the clone-local ignore file, never committed — unless
   git already ignores it. `.gitignore` is never touched. The log does not show
   up as untracked, so a harness that commits every untracked file does not
   commit it.
 - `ARNO_STATE_DIR=/some/dir` moves the log out of the workspace entirely, into
-  a subdirectory per workspace. Use it when Arno is rooted at a checkout that
+  a subdirectory per workspace. Use it when ARNO is rooted at a checkout that
   something else commits or reviews wholesale.
-- A call Arno rejects outright (an unknown tool name) never creates the log.
+- A call ARNO rejects outright (an unknown tool name) never creates the log.
 
 `.arno/commands.json` is different: it is the repository's declared command
 vocabulary, meant to be committed, and is only created when you declare a
@@ -935,9 +935,9 @@ command.
 
 ### Update check
 
-Separate from telemetry, Arno looks up the newest release tag on GitHub — one
+Separate from telemetry, ARNO looks up the newest release tag on GitHub — one
 unauthenticated request for `releases/latest`, carrying nothing about your
-workspace or how you use Arno — at most once a day, in the background, with a
+workspace or how you use ARNO — at most once a day, in the background, with a
 three-second timeout. A failed or offline check also waits a day. When a newer
 release exists, it says so only where you asked what you are running:
 
@@ -969,7 +969,7 @@ are four issue templates:
 
 If you are unsure which, pick friction. It is the cheapest to write and the
 easiest to act on, and **"it was just habit" is a real answer** — we want it.
-Every shell fallback is a place Arno was not worth reaching for, and that is
+Every shell fallback is a place ARNO was not worth reaching for, and that is
 the only signal that reliably improves it.
 
 Before filing a bug, check whether your client has reconnected since the
@@ -998,7 +998,7 @@ Layout:
 |---|---|
 | [cmd/arno-mcp](cmd/arno-mcp) | The MCP stdio server — the entry point that matters. |
 | [cmd/arno](cmd/arno) | A small CLI for driving the internal API directly. |
-| [cmd/arno-bench](cmd/arno-bench) | The token benchmark: Arno against equivalent shell commands. |
+| [cmd/arno-bench](cmd/arno-bench) | The token benchmark: ARNO against equivalent shell commands. |
 | [internal/workspace](internal/workspace) | Revisions, change sets, checkpoints, git. |
 | [internal/code](internal/code) | Symbol index, outlines, search, grep, references. |
 | [internal/edit](internal/edit) | Mutation, atomic apply, formatting. |
