@@ -1,19 +1,19 @@
-# jade feedback — why the agent reached for bash
+# arno feedback — why the agent reached for bash
 
 Kept by the agent doing the work, updated at the end of each task loop.
 Consolidated 2026-09-12 after Phase 12 closed.
 
-**Why this file exists.** If jade does not cover a need, or covers it more
+**Why this file exists.** If arno does not cover a need, or covers it more
 expensively than the shell, the model silently falls back to bash — and every
-fallback is a hole in jade's telemetry, guardrails and revision tracking. A
-bash fallback is not a small inefficiency; it is jade not being in the loop at
+fallback is a hole in arno's telemetry, guardrails and revision tracking. A
+bash fallback is not a small inefficiency; it is arno not being in the loop at
 all. So each one is recorded here with its reason, and reasons that recur
 become backlog items.
 
-Honest framing: some fallbacks are jade's fault (missing capability, worse
-ergonomics) and some are mine (habit, when a jade tool existed and I did not
+Honest framing: some fallbacks are arno's fault (missing capability, worse
+ergonomics) and some are mine (habit, when a arno tool existed and I did not
 reach for it). Both are recorded, because "the model defaulted to bash out of
-habit" is also a product problem — it means the jade path was not obviously
+habit" is also a product problem — it means the arno path was not obviously
 better at the moment of choosing.
 
 ---
@@ -22,7 +22,7 @@ better at the moment of choosing.
 
 Phases 7–12 produced sixteen tasks of evidence. Nine recurring bash reasons
 were identified; **seven are now closed**, and the closures are measurable:
-the last four tasks ran every source edit through jade with zero bash edits
+the last four tasks ran every source edit through arno with zero bash edits
 and zero splice repairs.
 
 | # | Fallback | Status |
@@ -41,7 +41,7 @@ and zero splice repairs.
 and both are now closed.** The python3 multi-edit produced the session's only
 outage — a replace that hit the wrong anchor left a duplicate `fmt` import and
 took the MCP server down mid-reconnect. And `grep -rn` was the most frequent
-single reason to leave jade, recurring in every task that touched unfamiliar
+single reason to leave arno, recurring in every task that touched unfamiliar
 code, for three tasks running after `find` shipped and did not close it.
 
 **What replaced them is now the load-bearing surface**, so its quality matters
@@ -76,7 +76,7 @@ field that reports failure in band; it is now read at `jsonResult` and counted.
 Everything else that fails returns a real error.
 
 Two exclusions the metric depends on, worth not re-litigating: a `Passed=false`
-check is a **verdict, not a fallback** (a red build is jade working, and
+check is a **verdict, not a fallback** (a red build is arno working, and
 counting it would swamp the signal with ordinary broken code), and an empty
 `grep`/`find` result is a correct answer, not a failure. Both have tests.
 
@@ -90,7 +90,7 @@ tool is `unavailable`.
 
 `read_range` now takes only `path`. Unset start means line 1, unset end means
 EOF, so neither set reads the whole file. Clamped at 20,000 bytes. Verified
-live: `jade_read_range("go.mod")` returned the file that was a `cat` in the
+live: `arno_read_range("go.mod")` returned the file that was a `cat` in the
 three preceding entries of this log.
 
 ### ~~3. `check` success output looks like a partial run~~ — **shipped 13.4**
@@ -133,13 +133,13 @@ the working-tree diff cannot once any work is committed.
 `blame` deliberately not built: `history` already answers the question blame
 gets used for, with commit messages attached, and per-line authorship rarely
 changes what an agent should do. Its output is also verbose, and 13.8 had just
-established response cost as jade's least-noticed failure mode. Recorded as a
+established response cost as arno's least-noticed failure mode. Recorded as a
 decision for the user to overturn, not a silent drop.
 
 ### 7. Habit, not capability
 
 Recurring and worth stating separately because no feature fixes it: several
-fallbacks happened while a working jade tool sat unused. The clearest case is
+fallbacks happened while a working arno tool sat unused. The clearest case is
 the shell validation trio, which kept winning for three tasks *after* `check`
 shipped and was verified — because the loop prompt names `go build && go vet
 && go test` literally, and whatever names the command wins. A tool being
@@ -151,7 +151,7 @@ not naming shell commands in prompts that have tool equivalents.
 
 ## Trend across tasks
 
-**Once `replace_text` (12.1) existed, every source edit went through jade and
+**Once `replace_text` (12.1) existed, every source edit went through arno and
 landed first try** — no line numbers, no re-reads, no splice repairs. Every
 earlier multi-file task needed at least one fix-up edit.
 
@@ -211,12 +211,12 @@ tool is clearly not reaching for itself.
 | 11.10 | 3 | isolating why the release gate exited non-zero |
 
 **11.10's calls are the honest kind of shell use**: bisecting a shell script's
-behaviour under `set -e`. jade runs commands; it does not debug them, and it
+behaviour under `set -e`. arno runs commands; it does not debug them, and it
 should not try to. The finding was worth the calls — `gofmt -l … | (! grep .)`
 aborts the whole script under `set -e`, so the release gate had been exiting 1
 while reporting `pass`. The false-green bug was hiding a genuinely broken gate.
 
-**11.8 found a false-green in jade's own validation surface**, and found it by
+**11.8 found a false-green in arno's own validation surface**, and found it by
 using that surface: a `release-gate` command printed `pass` alongside
 `exit status 1`. `run_command` decides pass/fail by scanning output text and
 never looks at the process exit status, so any command that exits non-zero
@@ -231,27 +231,27 @@ is fixed.
 **11.7's first call prevented a data loss.** The task said to write
 `FEEDBACK.md`; `ls` showed it already resolving to this file, because the
 filesystem is case-insensitive. Creating it would have silently overwritten
-sixteen tasks of log. Nothing in jade's surface answers "does this path already
+sixteen tasks of log. Nothing in arno's surface answers "does this path already
 exist under a different case" — `create_file` would have refused, which is the
 right behaviour and would also have been the first warning. Not filed as a gap:
 the guardrail worked, it just was not the thing that caught it first.
 
-## First outside test — jade lost, 2026-09-12
+## First outside test — arno lost, 2026-09-12
 
-11.6 ran jade against an unrelated private Go repository — a real codebase,
+11.6 ran arno against an unrelated private Go repository — a real codebase,
 not this one — on a real question ("is the CAS store's write atomic?").
 
 | | calls | est. tokens |
 |---|---|---|
-| jade | 3 | ~646 |
+| arno | 3 | ~646 |
 | shell | 2 | ~476 |
 
 **1.36x, against the 0.85x this project quotes.** Both numbers are honest: the
-0.85x came from seven scenarios in jade's own repo, this from one scenario in a
+0.85x came from seven scenarios in arno's own repo, this from one scenario in a
 foreign one. The quoted figure should carry that caveat from now on.
 
 The cause was an ambiguous-symbol round trip — two `Put` methods on different
-receivers — where jade returned bare IDs and forced a third call. Fixed in
+receivers — where arno returned bare IDs and forced a third call. Fixed in
 **11.9**: candidates now carry their declaration line, so the receiver is
 visible without another call.
 
@@ -261,11 +261,11 @@ trip; it is `read_symbol` returning a 60-line body (which `grep -A 60` returned
 too) plus `find Store` answering with two Store types when one was wanted.
 Worth fixing on turns alone, but the token claim was mine and it was wrong. Worth noting the shell arm only *looked* cleaner because I had typed
 the receiver into the pattern; an agent grepping `func.*Put` would have read
-one of two candidates without knowing there was a choice. jade paid a turn for
+one of two candidates without knowing there was a choice. arno paid a turn for
 a correctness property grep did not have, which is defensible — but paying it
 was avoidable, which is the bug.
 
-**The other finding is about me, not the tool.** My first jade attempt used
+**The other finding is about me, not the tool.** My first arno attempt used
 `grep` with 18 lines of context across five matches, and was worse than my
 second attempt with `find` + `read_symbol`. The tool that fits is not the one
 that comes to hand first — even for the caller who wrote the tools. Every
@@ -273,31 +273,31 @@ remaining entry in this log's "habit" section is the same shape.
 
 **11.5's second call is one this log should record approvingly.** Deliberately
 breaking the new contract test to watch it fail, then restoring — a guard
-nobody has seen fail is not yet a guard. jade has no way to do that to itself
+nobody has seen fail is not yet a guard. arno has no way to do that to itself
 and should not.
 
 **11.4's call found a documentation bug and then became a tool.** Diffing the
 binary's `tools/list` against the README caught `insert` documented as a tool
 it is not, and `search_nudge` missing. That check is now a declared
-`docs-check` command, so the one-off bash became a repeatable jade call —
+`docs-check` command, so the one-off bash became a repeatable arno call —
 which is the intended lifecycle for this whole log: bash reveals the gap, the
 gap becomes a command.
 
-**Phase 11's bash calls are all one category: verifying jade against a
-repository that is not this one.** jade structurally cannot do this for itself
+**Phase 11's bash calls are all one category: verifying arno against a
+repository that is not this one.** arno structurally cannot do this for itself
 — it only ever sees the workspace it was launched against — so this is not a
 gap and should not be closed. It is also, twice running, where the real bugs
 were: 11.2 found a silently truncated Python outline, 11.3 found four lines of
 German git stderr prefixing every response in a fresh repo. Neither was
-reachable from inside jade's own checkout.
+reachable from inside arno's own checkout.
 
 **11.2's call is the same non-gap category as 11.1's**: verifying the shipped
-artifact against a repository outside this one, which jade structurally cannot
+artifact against a repository outside this one, which arno structurally cannot
 do for itself — it only ever sees the workspace it was launched against.
 
 **11.1's two calls are a category this log has not had before, and they are
 not a gap.** Timing a binary's startup and probing its JSON-RPC catalog are
-things jade should not do — it would mean jade measuring jade, which is
+things arno should not do — it would mean arno measuring arno, which is
 circular, and the whole point was checking the artifact independently of the
 running server. Recorded so the count stays honest, but nothing to build.
 
@@ -319,7 +319,7 @@ frequent fallback, and it is now gone — not because a tool finally existed,
 but because `run_command` let the repo name the commands the prompt names.
 
 **13.7 note:** the grep was an audit sweep across the protocol types — "which
-responses carry a status field" — which `jade_grep` will cover once live. The
+responses carry a status field" — which `arno_grep` will cover once live. The
 other two were the validation trio again, now genuinely closable via
 `run_command`. Worth watching whether the telemetry log agrees with these
 hand-counts once a reconnect lands; that comparison is the first real test of
@@ -328,7 +328,7 @@ whether this file has been accurate.
 **13.2 note:** one of the four was a throwaway `go test` probe written to a
 temp file to inspect a function's return values — it failed on a package-name
 mismatch and was abandoned. A scratch-evaluation path ("call this function,
-show me what it returns") has no jade equivalent and is the second time a
+show me what it returns") has no arno equivalent and is the second time a
 one-off probe has appeared in this log. Not yet frequent enough to file.
 
 ---
@@ -341,15 +341,15 @@ The instrument is running. First session after the reconnect that made
 ```
 7 calls across 6 tools, 1 errors
 fallback risk: not_found 1
-jade.run_command  2 calls  372B  avg 94ms
-jade.changes      1 calls  4.6KB avg 704ms
-jade.grep         1 calls  990B  avg 19ms
-jade.read_range   1 calls  144B  avg 16ms
-jade.read_symbol  1 calls  30B   avg 19ms  1 errors (not_found 1)
-jade.telemetry    1 calls  172B  avg 0ms
+arno.run_command  2 calls  372B  avg 94ms
+arno.changes      1 calls  4.6KB avg 704ms
+arno.grep         1 calls  990B  avg 19ms
+arno.read_range   1 calls  144B  avg 16ms
+arno.read_symbol  1 calls  30B   avg 19ms  1 errors (not_found 1)
+arno.telemetry    1 calls  172B  avg 0ms
 ```
 
-**What the log says that this file did not.** `jade.changes` costs 4.6KB and
+**What the log says that this file did not.** `arno.changes` costs 4.6KB and
 704ms — roughly 5x the bytes and 35x the latency of anything else. Sixteen
 tasks of hand-written feedback never mentioned it, because response cost is
 invisible when you are the one reading the response. Filed as **13.8**.
@@ -361,9 +361,9 @@ the ones that annoy it, not the ones that cost the most.
 
 ## Standing note for future loops
 
-At the end of each task, append: which bash commands were run, whether a jade
+At the end of each task, append: which bash commands were run, whether a arno
 tool could have done it, and if so why it was not used. "Habit" is a valid and
-important answer — it means the jade path was not the obvious one at the
+important answer — it means the arno path was not the obvious one at the
 moment of choosing, which is a design problem, not a discipline problem.
 
 Keep this file consolidated. It is a backlog input, not an append-only log:

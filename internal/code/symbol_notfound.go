@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // symbolNotFoundError builds the error for an ID that matched no symbol.

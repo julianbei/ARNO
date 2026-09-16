@@ -3,7 +3,7 @@ package diagnostics
 import (
 	"testing"
 
-	"github.com/julianbei/jade/internal/toolchain"
+	"github.com/julianbei/arno/internal/toolchain"
 )
 
 func TestParseGoplsCheckOutputExtractsDiagnostics(t *testing.T) {

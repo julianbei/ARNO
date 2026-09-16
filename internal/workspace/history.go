@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/textutil"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/textutil"
 )
 
 // maxHistoryPatchBytes bounds the optional patch body, for the same reason
 // 8.1 bounds job output: a long-lived symbol's full history is unbounded and
-// would be the largest response jade can produce.
+// would be the largest response arno can produce.
 const maxHistoryPatchBytes = 6000
 
 // defaultHistoryLimit keeps the common case cheap. docs/scope.md §18's framing is

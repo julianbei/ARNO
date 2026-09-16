@@ -1,5 +1,5 @@
-// Package setup installs what Jade can use but does not ship — language
-// servers today, plugins later — behind `jade-mcp install`.
+// Package setup installs what Arno can use but does not ship — language
+// servers today, plugins later — behind `arno-mcp install`.
 //
 // Nothing runs without being shown first: every component lists the exact
 // command it would run, a menu asks which to install and confirms once, and a
@@ -16,10 +16,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/julianbei/jade/internal/lsp"
+	"github.com/julianbei/arno/internal/lsp"
 )
 
-// Component is one thing Jade can install.
+// Component is one thing Arno can install.
 type Component struct {
 	// Key selects it on the command line: go, java, scala…
 	Key string
@@ -28,7 +28,7 @@ type Component struct {
 	Name string
 	// For is who it serves, as the menu shows it.
 	For string
-	// Languages are the Jade language identifiers it provides a server for.
+	// Languages are the Arno language identifiers it provides a server for.
 	Languages []string
 	// Detect reports where it is installed.
 	Detect func() (string, bool)
@@ -86,7 +86,7 @@ func located(language string) func() (string, bool) {
 	}
 }
 
-// LanguageServers lists the language servers Jade can use, JVM and Go first.
+// LanguageServers lists the language servers Arno can use, JVM and Go first.
 func LanguageServers() []Component {
 	const kind = "language server"
 	return []Component{
@@ -148,8 +148,8 @@ type Menu struct {
 
 // List prints each component, whether it is installed, and how it would be.
 func (m Menu) List() {
-	fmt.Fprintln(m.Out, "Language servers give Jade exact references, cross-file rename and type errors on edit.")
-	fmt.Fprintln(m.Out, "Jade works without them and says when an answer is approximate.")
+	fmt.Fprintln(m.Out, "Language servers give Arno exact references, cross-file rename and type errors on edit.")
+	fmt.Fprintln(m.Out, "Arno works without them and says when an answer is approximate.")
 	fmt.Fprintln(m.Out)
 	for i, component := range m.Components {
 		fmt.Fprintf(m.Out, "  %d) %-11s %-27s %s\n", i+1, component.Key, component.Name, m.status(component))
@@ -158,7 +158,7 @@ func (m Menu) List() {
 }
 
 // Status is one component's state as an agent reads it from
-// `jade-mcp install --list --json`.
+// `arno-mcp install --list --json`.
 type Status struct {
 	Key       string   `json:"key"`
 	Kind      string   `json:"kind"`
@@ -222,7 +222,7 @@ func (m Menu) Run() error {
 		}
 	}
 	if len(picked) == 0 {
-		fmt.Fprintln(m.Out, "Nothing installed. Run jade-mcp install any time.")
+		fmt.Fprintln(m.Out, "Nothing installed. Run arno-mcp install any time.")
 		return nil
 	}
 	return m.install(picked, reader, false)
@@ -301,13 +301,13 @@ func (m Menu) install(picked []Component, confirm *bufio.Reader, dryRun bool) er
 		if path, ok := s.component.Detect(); ok {
 			fmt.Fprintf(m.Out, "%s installed at %s\n", s.component.Name, path)
 		} else {
-			fmt.Fprintf(m.Out, "%s installed, but not where Jade looks yet; open a new shell or add its bin directory to PATH\n", s.component.Name)
+			fmt.Fprintf(m.Out, "%s installed, but not where Arno looks yet; open a new shell or add its bin directory to PATH\n", s.component.Name)
 		}
 		if s.component.Note != "" {
 			fmt.Fprintf(m.Out, "note: %s\n", s.component.Note)
 		}
 	}
-	fmt.Fprintln(m.Out, "\nReconnect your MCP client (/mcp in Claude Code) so Jade picks the servers up.")
+	fmt.Fprintln(m.Out, "\nReconnect your MCP client (/mcp in Claude Code) so Arno picks the servers up.")
 	if failed > 0 {
 		return ErrInstallFailed
 	}

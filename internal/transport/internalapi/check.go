@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // defaultCheckTimeout bounds a waited check. Longer than the runner's own
@@ -26,7 +26,7 @@ const maxCheckTimeout = 300 * time.Second
 // the job runner. What was missing is that none of it could be *asked for* —
 // validation only ever ran as a side effect of an edit. `go build ./...` and
 // `go vet ./...` were the most frequent native shell commands across this
-// whole project's dogfooding precisely because jade had no way to run them.
+// whole project's dogfooding precisely because arno had no way to run them.
 //
 // Waits by default. Returning a job ID for a two-second vet, and making the
 // caller poll for it, is the async-tax that kept the native command winning.

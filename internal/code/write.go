@@ -1,6 +1,6 @@
 package code
 
-import "github.com/julianbei/jade/internal/writes"
+import "github.com/julianbei/arno/internal/writes"
 
 // writeFile and writeFiles are the index's only way to change a file: atomic,
 // and all or nothing across files (internal/writes).

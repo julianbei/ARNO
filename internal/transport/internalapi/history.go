@@ -1,14 +1,14 @@
 package internalapi
 
 import (
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // History reports which commits touched a symbol — docs/scope.md §18.
 //
-// The line range comes from jade's current parse of the file, and git's -L
+// The line range comes from arno's current parse of the file, and git's -L
 // then follows that range backwards through history itself. That ordering
-// matters: jade never has to guess where the symbol lived in an older
+// matters: arno never has to guess where the symbol lived in an older
 // revision, which is the part a naive implementation gets wrong.
 // historyAll answers history with its patch whole beside the response.
 // History pages the patch.

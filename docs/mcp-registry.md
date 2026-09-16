@@ -1,11 +1,11 @@
 # Publishing to the MCP Registry
 
-Jade is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io)
-as `io.github.julianbei/jade`. Clients and directories that read the registry
+Arno is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io)
+as `io.github.julianbei/arno`. Clients and directories that read the registry
 pick it up from there. The listing offers two packages:
 
 - **The container image** on ghcr.io, for clients that run servers in Docker.
-- **The MCP bundle** (`jade-mcp_<version>.mcpb`) attached to the GitHub
+- **The MCP bundle** (`arno-mcp_<version>.mcpb`) attached to the GitHub
   release, for Claude Desktop and other clients that install bundles. It
   carries the macOS and Linux binaries for Intel and ARM; the sources are in
   [packaging/mcpb](../packaging/mcpb).
@@ -54,7 +54,7 @@ releasing a new version.
 These list open-source MCP servers without a popularity requirement. They are
 worth updating when the description or install steps change:
 
-- [Glama](https://glama.ai/mcp/servers/julianbei/jade) — indexes GitHub on
+- [Glama](https://glama.ai/mcp/servers/julianbei/arno) — indexes GitHub on
   its own and builds a new release after ours, from the build spec on its
   Dockerfile page (it installs the latest release with the install script).
   Nothing to do per release; [glama.json](../glama.json) names the maintainer.

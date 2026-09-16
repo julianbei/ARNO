@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/julianbei/jade/internal/lsp"
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/toolchain"
+	"github.com/julianbei/arno/internal/lsp"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/toolchain"
 )
 
 // Capability providers (release plan 0.0.6, "Providers behind a registry").
@@ -149,7 +149,7 @@ type renameRequest struct {
 // renameProvider renames a symbol across files. Unlike references, a provider
 // that handled the request ends it, success or refusal: a server that declined
 // a rename has answered, and a weaker provider guessing past it would be the
-// approximate edit Jade refuses to make. There is deliberately no text-index
+// approximate edit Arno refuses to make. There is deliberately no text-index
 // provider.
 type renameProvider interface {
 	ID() string

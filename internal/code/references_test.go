@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/toolchain"
+	"github.com/julianbei/arno/internal/toolchain"
 )
 
 func writeGoFile(t *testing.T, dir string, name string, body string) {

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/jade/internal/commands"
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/commands"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // RunCommand invokes one command from the repo's declared registry.

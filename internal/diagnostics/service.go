@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // Service normalizes parser, LSP, and lint diagnostics.

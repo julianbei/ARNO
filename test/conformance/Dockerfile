@@ -1,11 +1,11 @@
-# A machine with every language server jade supports, so the conformance
+# A machine with every language server arno supports, so the conformance
 # suite can prove the semantic path against the real thing rather than a fake.
 #
-# No developer machine has all eight installed, and jade's own CI machine
+# No developer machine has all eight installed, and arno's own CI machine
 # certainly does not. That gap is exactly where the interesting bugs live: a
-# server whose startup needs an option jade does not send, one that answers
+# server whose startup needs an option arno does not send, one that answers
 # rename in the DocumentChanges shape rather than Changes, one that reports
-# positions jade converts wrongly. None of those are reachable without the
+# positions arno converts wrongly. None of those are reachable without the
 # server present, and all of them ship silently otherwise.
 #
 # The image is large and slow to build. That is the price of the answer being
@@ -17,7 +17,7 @@ FROM golang:1.24-bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/root/go/bin:/root/.cargo/bin:/root/.local/bin:/opt/jdtls/bin:/root/.local/share/coursier/bin:${PATH}"
 
-# Base toolchains. build-essential is required regardless of language: jade
+# Base toolchains. build-essential is required regardless of language: arno
 # itself needs cgo for tree-sitter.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
@@ -47,11 +47,11 @@ RUN npm install -g typescript@5 typescript-language-server
 
 # --- Python: pyright -------------------------------------------------------
 # The npm distribution is used rather than pip's because it ships the
-# `pyright-langserver` stdio entry point jade launches.
+# `pyright-langserver` stdio entry point arno launches.
 RUN npm install -g pyright
 
 # --- Ruby ------------------------------------------------------------------
-# ruby-lsp is jade's first choice; solargraph is its configured alternative,
+# ruby-lsp is arno's first choice; solargraph is its configured alternative,
 # so installing both exercises the alternative-resolution path too.
 RUN gem install --no-document bundler ruby-lsp solargraph
 
@@ -60,7 +60,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         | sh -s -- -y --profile minimal --default-toolchain stable \
     && rustup component add rust-analyzer \
     # rustup exposes rust-analyzer through a proxy shim that is not on PATH
-    # under the name jade looks for, so link the real binary. The shim being
+    # under the name arno looks for, so link the real binary. The shim being
     # present while the binary is missing is precisely the failure seen on the
     # development machine, where `rust-analyzer --version` reported
     # "Unknown binary in official toolchain".
@@ -88,22 +88,22 @@ RUN ARCH="$(uname -m)" \
     && cs install metals --install-dir /usr/local/bin \
     && metals --version 2>&1 | head -1
 
-WORKDIR /jade
+WORKDIR /arno
 COPY . .
 
 # Build once at image build time so a test run is not also a compile.
-RUN go build -o /usr/local/bin/jade-mcp ./cmd/jade-mcp
-ENV JADE_MCP_BINARY=/usr/local/bin/jade-mcp
+RUN go build -o /usr/local/bin/arno-mcp ./cmd/arno-mcp
+ENV ARNO_MCP_BINARY=/usr/local/bin/arno-mcp
 
 # metals reports errors only after importing the sbt build, which it asks
-# permission for. jade declines by default — importing runs sbt and writes
+# permission for. arno declines by default — importing runs sbt and writes
 # .bloop/ and .metals/ — so the suite opts in to exercise the Scala path.
-ENV JADE_METALS_IMPORT=1
+ENV ARNO_METALS_IMPORT=1
 
 # Prepare the fixture repositories the way a real checkout would be prepared.
 #
 # This is not convenience. Two servers refuse to start against a bare source
-# tree, and each refusal was initially mistaken for a jade bug:
+# tree, and each refusal was initially mistaken for a arno bug:
 #
 #   typescript-language-server: "Could not find a valid TypeScript
 #   installation" unless typescript is resolvable from the workspace. A real
@@ -112,7 +112,7 @@ ENV JADE_METALS_IMPORT=1
 #   ruby-lsp: "Project contains a Gemfile, but no Gemfile.lock. Run
 #   `bundle install`" — and then exits.
 #
-# jade degrades correctly in both cases, which the suite proves separately.
+# arno degrades correctly in both cases, which the suite proves separately.
 # What it cannot prove against an unprepared fixture is that the semantic
 # path works, which is the thing being tested here.
 # typescript@5 specifically: typescript-language-server drives tsserver.js,

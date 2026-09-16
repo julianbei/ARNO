@@ -1,6 +1,6 @@
 ## What and why
 
-<!-- What does this change, and what problem does it solve for someone using Jade? -->
+<!-- What does this change, and what problem does it solve for someone using Arno? -->
 
 ## Checklist
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/julianbei/jade/internal/events"
+	"github.com/julianbei/arno/internal/events"
 )
 
 func writeFile(t *testing.T, dir string, name string, content string, mode os.FileMode) {

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/code"
-	"github.com/julianbei/jade/internal/commands"
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/workspace"
+	"github.com/julianbei/arno/internal/code"
+	"github.com/julianbei/arno/internal/commands"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/workspace"
 )
 
 // commandServer builds the smallest Server that can run a declared command.
@@ -219,7 +219,7 @@ func TestChangesSkipsSymbolDeltaOnALargeBranch(t *testing.T) {
 	// summary is worse than none — it reads like the whole answer.
 	server, root := commandServer(t)
 
-	// Seeded through jade's own edit ledger rather than git, so the test does
+	// Seeded through arno's own edit ledger rather than git, so the test does
 	// not need a repository to exercise a cutoff that is about file count.
 	names := make([]string, 0, maxSymbolDeltaFiles+5)
 	for i := 0; i < maxSymbolDeltaFiles+5; i++ {
@@ -326,7 +326,7 @@ func TestRunCommandFailsWhenOutputSaysSoDespiteCleanExit(t *testing.T) {
 	}
 }
 func TestAmbiguousReadSymbolCarriesSignaturesEndToEnd(t *testing.T) {
-	// Reproduces the case that cost jade a benchmark head-to-head: two
+	// Reproduces the case that cost arno a benchmark head-to-head: two
 	// methods with the same name in one file, distinguishable only by receiver.
 	// The signature has to be read off disk, so this is driven through the real
 	// index rather than a constructed response.

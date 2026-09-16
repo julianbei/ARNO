@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/jade/internal/project"
+	"github.com/julianbei/arno/internal/project"
 )
 
 // manifestDiscoveryTimeout bounds the ecosystem probes (`npm run`,
@@ -48,7 +48,7 @@ var cargoArgsByKind = map[string][]string{
 // These are manifest-verified only, like the cargo path: the manifest proves
 // the ecosystem, and the tool's own subcommands are built in rather than
 // project-declared, so there is nothing further worth probing. A project that
-// wants something else declares a Makefile target or a jade command, both of
+// wants something else declares a Makefile target or a arno command, both of
 // which are consulted first.
 var ecosystemCommands = []struct {
 	manifest string
@@ -134,7 +134,7 @@ var npmScriptLine = regexp.MustCompile(`(?m)^ {2}([A-Za-z0-9:_-]+)$`)
 // `npm run`) → cargo (manifest-verified only) → the Go default. Returns
 // ok=false only when kind itself is unrecognized everywhere.
 func discoverCommand(dir string, kind string) (name string, args []string, ok bool) {
-	// The repository's own .jade/project.json wins over every guess.
+	// The repository's own .arno/project.json wins over every guess.
 	if config, err := project.Load(dir); err == nil && config != nil {
 		if command, found := config.Command(kind); found {
 			return "sh", []string{"-c", command}, true

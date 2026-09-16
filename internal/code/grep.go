@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // Grep is literal or regex text search across the workspace, returning
@@ -201,7 +201,7 @@ func grepFile(absolute string, rel string, matcher func(string) bool, context in
 	defer file.Close()
 
 	// Binary files are skipped, as grep -I and ripgrep do. isTextLike only
-	// knows extensions, so a built binary with none (bin/jade-mcp) was
+	// knows extensions, so a built binary with none (bin/arno-mcp) was
 	// searched and returned kilobytes of runtime strings. A NUL byte in the
 	// first block is the same test git uses.
 	head := make([]byte, 8000)

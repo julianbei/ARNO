@@ -1,7 +1,7 @@
-// Package telemetry records how jade's tools are actually used.
+// Package telemetry records how arno's tools are actually used.
 //
-// Why this exists. jade's design bet is that giving a coding agent a wide
-// enough tool surface keeps it inside jade, where edits are revision-tracked,
+// Why this exists. arno's design bet is that giving a coding agent a wide
+// enough tool surface keeps it inside arno, where edits are revision-tracked,
 // validated and guarded — and that every gap sends the agent to bash, where
 // none of that applies. That bet has been evaluated so far by the agent
 // hand-writing docs/feedback.md from recollection, which is exactly the unreliable
@@ -10,7 +10,7 @@
 // The question it is built to answer is narrower than "usage stats": which
 // tool errors plausibly send a caller back to the shell. An ambiguous anchor,
 // a symbol that was not found, a stale revision, a timeout — each is a moment
-// where the jade path failed and bash was one keystroke away. Those are
+// where the arno path failed and bash was one keystroke away. Those are
 // classified and counted separately from ordinary usage for that reason.
 //
 // # What is deliberately not recorded
@@ -21,7 +21,7 @@
 // Arguments carry source code, file paths and search queries; an error message
 // routinely quotes the source line it failed on. A telemetry file containing
 // those is a copy of the repository by another name — it could not be attached
-// to a bug report, shared with the jade authors, or committed, which would
+// to a bug report, shared with the arno authors, or committed, which would
 // defeat the entire purpose of collecting it. Keeping it content-free is what
 // makes it shareable, and shareable is the point.
 package telemetry
@@ -39,13 +39,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/compat"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
-// Dir and File name the log's location. It shares .jade/ with the command
-// registry, so a repo has exactly one jade-owned directory.
+// Dir and File name the log's location. It shares .arno/ with the command
+// registry, so a repo has exactly one arno-owned directory.
 const (
-	Dir  = ".jade"
+	Dir  = ".arno"
 	File = "telemetry.jsonl"
 )
 
@@ -73,7 +74,7 @@ const (
 
 	// NotFound: a symbol, file or anchor the caller named does not exist.
 	NotFound Outcome = "not_found"
-	// Ambiguous: an anchor or name matched more than once, so jade refused
+	// Ambiguous: an anchor or name matched more than once, so arno refused
 	// rather than guessing.
 	Ambiguous Outcome = "ambiguous"
 	// StaleRevision: the workspace moved under a preconditioned edit.
@@ -110,7 +111,7 @@ type Record struct {
 // call. A telemetry write that errors is dropped silently: losing a
 // measurement is a small cost, while failing a working edit because the
 // measurement could not be written would be an absurd trade — and would make
-// jade less reliable than the bash it is competing with.
+// arno less reliable than the bash it is competing with.
 type Recorder struct {
 	mu       sync.Mutex
 	root     string
@@ -123,29 +124,31 @@ type Recorder struct {
 	inWorkspace bool
 }
 
-// StateDirEnv names the environment variable that moves Jade's telemetry out
+// StateDirEnv names the environment variable that moves Arno's telemetry out
 // of the workspace.
-const StateDirEnv = "JADE_STATE_DIR"
+const StateDirEnv = "ARNO_STATE_DIR"
 
 // New builds a Recorder for the workspace at root.
 //
-// Setting JADE_TELEMETRY=0 disables recording entirely. An off switch is not
+// Setting ARNO_TELEMETRY=0 disables recording entirely. An off switch is not
 // optional for something that writes a file into the user's repository on
 // every call.
 //
-// Setting JADE_STATE_DIR puts the log under that directory instead of the
+// Setting ARNO_STATE_DIR puts the log under that directory instead of the
 // workspace, in a subdirectory per workspace so several can share one state
 // directory without mixing their measurements. This is the setting for a
-// harness that roots Jade at a worktree it later commits wholesale.
+// harness that roots Arno at a worktree it later commits wholesale.
 func New(root string) *Recorder {
 	recorder := &Recorder{
 		root:     root,
-		disabled: strings.TrimSpace(os.Getenv("JADE_TELEMETRY")) == "0",
+		disabled: strings.TrimSpace(compat.Getenv("ARNO_TELEMETRY")) == "0",
 	}
-	if stateDir := strings.TrimSpace(os.Getenv(StateDirEnv)); stateDir != "" {
+	if stateDir := strings.TrimSpace(compat.Getenv(StateDirEnv)); stateDir != "" {
 		recorder.path = filepath.Join(stateDir, workspaceKey(root), File)
 	} else {
-		recorder.path = filepath.Join(root, RelPath)
+		// compat.StatePath keeps writing to a .jade/ log that already exists,
+		// so a session's history is not split in two by the rename.
+		recorder.path = compat.StatePath(root, File)
 		recorder.inWorkspace = true
 	}
 	return recorder
@@ -160,7 +163,7 @@ func (r *Recorder) DisplayPath() string {
 	return r.path
 }
 
-// workspaceKey names a workspace's subdirectory under JADE_STATE_DIR. The base
+// workspaceKey names a workspace's subdirectory under ARNO_STATE_DIR. The base
 // name keeps it readable; the hash keeps two checkouts both called "app" apart.
 func workspaceKey(root string) string {
 	absolute, err := filepath.Abs(root)
@@ -218,11 +221,11 @@ func (r *Recorder) RecordCall(tool string, target string, duration time.Duration
 	r.appendLocked(append(line, '\n'))
 }
 
-// RecordRejected records a call Jade refused before running anything — an
+// RecordRejected records a call Arno refused before running anything — an
 // unknown tool name — but only into a log that already exists.
 //
 // An unknown name is still a gap signal worth keeping: the agent expected a
-// capability Jade lacks. But creating state in a workspace for a call that did
+// capability Arno lacks. But creating state in a workspace for a call that did
 // nothing is exactly the stray file a harness then commits as part of someone
 // else's change, so a rejected call never creates the log itself.
 func (r *Recorder) RecordRejected(tool string, outcome Outcome) {
@@ -307,7 +310,7 @@ type FailureCount struct {
 type Summary struct {
 	Tools []ToolStats
 	// Fallbacks counts failure classes across all tools — the headline
-	// number, since each is a moment the jade path failed and the shell was
+	// number, since each is a moment the arno path failed and the shell was
 	// available.
 	Fallbacks   []FailureCount
 	TotalCalls  int
@@ -401,7 +404,7 @@ func (r *Recorder) Reset() error {
 // ClassifyResponse inspects a typed response for a failure reported *in band*
 // — as a field on a successful response rather than as an error.
 //
-// Some jade tools report failure this way by design. read_symbol resolves a
+// Some arno tools report failure this way by design. read_symbol resolves a
 // name to "exact", "ambiguous" or "not_found" and returns the candidates
 // alongside, which is more useful than an error that throws them away. But the
 // call still failed from the caller's point of view, and counting it as a
@@ -415,7 +418,7 @@ func (r *Recorder) Reset() error {
 // # What is deliberately not treated as a failure
 //
 // A check, test run or declared command that reports Passed=false is a
-// *verdict*, not a jade failure: the build is broken, and jade did its job by
+// *verdict*, not a arno failure: the build is broken, and arno did its job by
 // saying so clearly. Counting it here would swamp the fallback signal with
 // ordinary red builds and make the number meaningless.
 //
@@ -464,7 +467,7 @@ func validationClass(outcome protocol.ValidationOutcome) (Outcome, bool) {
 
 // Classify maps an error to a failure class.
 //
-// It matches on message text because jade's errors cross package boundaries
+// It matches on message text because arno's errors cross package boundaries
 // as wrapped strings rather than as a single sentinel hierarchy. That is
 // fragile by nature, which is why Other exists as an explicit bucket: a rising
 // Other count is the signal that this function has fallen behind the errors
@@ -509,7 +512,7 @@ func contains(message string, needles ...string) bool {
 
 // ErrDisabled reports that telemetry is switched off, so a caller asking for a
 // summary gets an explanation rather than a confusing empty one.
-var ErrDisabled = errors.New("telemetry is disabled (JADE_TELEMETRY=0)")
+var ErrDisabled = errors.New("telemetry is disabled (ARNO_TELEMETRY=0)")
 
 // SummaryLine renders the one-line headline used in responses.
 func SummaryLine(s Summary) string {

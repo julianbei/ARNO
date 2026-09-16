@@ -6,12 +6,12 @@ import (
 	"strings"
 )
 
-// The subset of LSP jade actually uses. Kept minimal on purpose: every field
-// here is one jade reads or sends, so an unused field is a question about
+// The subset of LSP arno actually uses. Kept minimal on purpose: every field
+// here is one arno reads or sends, so an unused field is a question about
 // whether something was forgotten rather than decoration.
 
 type Position struct {
-	// Line is 0-based, unlike every line number jade shows a caller.
+	// Line is 0-based, unlike every line number arno shows a caller.
 	Line int `json:"line"`
 	// Character is 0-based and counted in UTF-16 code units by default, not
 	// bytes and not runes. See utf16Column.
@@ -119,7 +119,7 @@ type DidChangeTextDocumentParams struct {
 	ContentChanges []TextDocumentContentChangeEvent `json:"contentChanges"`
 }
 
-// TextDocumentContentChangeEvent carries a whole-document replacement. jade
+// TextDocumentContentChangeEvent carries a whole-document replacement. arno
 // edits files on disk and re-reads them, so it never has an incremental delta
 // to send; full sync is both simpler and the honest description of what
 // happened.

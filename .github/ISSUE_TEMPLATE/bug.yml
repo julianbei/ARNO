@@ -1,5 +1,5 @@
 name: "Bug — a tool did the wrong thing"
-description: A Jade tool returned a wrong answer, failed when it should not have, or changed something it should not have.
+description: A Arno tool returned a wrong answer, failed when it should not have, or changed something it should not have.
 title: "bug: "
 labels: ["bug"]
 body:
@@ -24,7 +24,7 @@ body:
       description: Tool name and arguments. Shorten or redact code if you need to.
       render: json
       placeholder: |
-        {"name": "jade.rename", "arguments": {"path": "src/main/java/app/Order.java", "symbolName": "total", "newName": "grandTotal"}}
+        {"name": "arno.rename", "arguments": {"path": "src/main/java/app/Order.java", "symbolName": "total", "newName": "grandTotal"}}
     validations:
       required: true
 
@@ -32,7 +32,7 @@ body:
     id: response
     attributes:
       label: What came back
-      description: Paste the response verbatim. Jade's responses are plain text and usually short.
+      description: Paste the response verbatim. Arno's responses are plain text and usually short.
       render: text
     validations:
       required: true
@@ -67,8 +67,8 @@ body:
     attributes:
       label: Capabilities (very helpful for language problems)
       description: |
-        Output of the `jade.capabilities` tool: which grammar and language
-        server Jade used, and the build and test commands it found. No source
+        Output of the `arno.capabilities` tool: which grammar and language
+        server Arno used, and the build and test commands it found. No source
         code in it.
       render: text
 
@@ -77,7 +77,7 @@ body:
     attributes:
       label: Telemetry (optional)
       description: |
-        Output of the `jade.telemetry` tool. It records **no arguments, no
+        Output of the `arno.telemetry` tool. It records **no arguments, no
         response bodies and no error text** — only tool names, sizes, timings
         and failure classes — so it is safe to paste from a private repo.
       render: text
@@ -101,7 +101,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: Output of `jade-mcp --version`.
-      placeholder: jade-mcp v0.0.8
+      description: Output of `arno-mcp --version`.
+      placeholder: arno-mcp v0.0.8
     validations:
       required: true

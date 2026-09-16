@@ -36,15 +36,15 @@ func TargetOf(args map[string]interface{}) string {
 // Switching between two of them on one target is the confusion signal; moving
 // from a read to an edit on the same file is ordinary work and not counted.
 var inspectTools = map[string]bool{
-	"jade.find":           true,
-	"jade.grep":           true,
-	"jade.retrieve":       true,
-	"jade.context":        true,
-	"jade.read_range":     true,
-	"jade.outline":        true,
-	"jade.references":     true,
-	"jade.workspace_tree": true,
-	"jade.history":        true,
+	"arno.find":           true,
+	"arno.grep":           true,
+	"arno.retrieve":       true,
+	"arno.context":        true,
+	"arno.read_range":     true,
+	"arno.outline":        true,
+	"arno.references":     true,
+	"arno.workspace_tree": true,
+	"arno.history":        true,
 }
 
 // ToolSwitch counts one inspect tool followed by a different one on the same

@@ -1,6 +1,6 @@
 // Package agent runs the release plan's external benchmark: a real agent
-// (Claude Code headless) solving real tasks in a repository Jade was not built
-// in, once per arm — shell tools only, Jade only, and Jade plus shell.
+// (Claude Code headless) solving real tasks in a repository Arno was not built
+// in, once per arm — shell tools only, Arno only, and Arno plus shell.
 //
 // internal/bench measures what one answer costs with no agent in the loop.
 // This package measures what that cannot: whether the task got done, and what
@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/jade/internal/pathguard"
+	"github.com/julianbei/arno/internal/pathguard"
 )
 
 // Arm is one configuration of the agent's tools.
@@ -36,18 +36,18 @@ const (
 	ArmShell Arm = "shell"
 	// ArmShellLean is the four built-in tools a coding task uses — Bash,
 	// Read, Edit, Write — and no MCP server. The full built-in list costs
-	// 38k tokens of prompt on every turn; this arm separates what Jade saves
+	// 38k tokens of prompt on every turn; this arm separates what Arno saves
 	// from what a shorter tool list saves.
 	ArmShellLean Arm = "shell-lean"
-	// ArmJade is Jade's tools and nothing else.
-	ArmJade Arm = "jade"
-	// ArmJadeShell is both. The plan expects this may be the practical winner.
-	ArmJadeShell Arm = "jade+shell"
+	// ArmArno is Arno's tools and nothing else.
+	ArmArno Arm = "arno"
+	// ArmArnoShell is both. The plan expects this may be the practical winner.
+	ArmArnoShell Arm = "arno+shell"
 )
 
-// UsesJade reports an arm that runs the Jade MCP server.
-func (a Arm) UsesJade() bool {
-	return a == ArmJade || a == ArmJadeShell
+// UsesArno reports an arm that runs the Arno MCP server.
+func (a Arm) UsesArno() bool {
+	return a == ArmArno || a == ArmArnoShell
 }
 
 // ParseArms reads a comma-separated arm list.
@@ -55,11 +55,11 @@ func ParseArms(list string) ([]Arm, error) {
 	var arms []Arm
 	for _, name := range strings.Split(list, ",") {
 		switch arm := Arm(strings.TrimSpace(name)); arm {
-		case ArmShell, ArmShellLean, ArmJade, ArmJadeShell:
+		case ArmShell, ArmShellLean, ArmArno, ArmArnoShell:
 			arms = append(arms, arm)
 		case "":
 		default:
-			return nil, fmt.Errorf("unknown arm %q (want shell, shell-lean, jade or jade+shell)", name)
+			return nil, fmt.Errorf("unknown arm %q (want shell, shell-lean, arno or arno+shell)", name)
 		}
 	}
 	if len(arms) == 0 {
@@ -154,18 +154,18 @@ type Config struct {
 	// across repositories — every repository once, then again — and a budget
 	// that runs out still leaves complete rounds.
 	RepeatStart int
-	// JadeMCP is the jade-mcp binary for the Jade arms.
-	JadeMCP string
-	// JadeTools is passed to jade-mcp as --tools (all or core); empty keeps
-	// jade-mcp's default.
-	JadeTools string
+	// ArnoMCP is the arno-mcp binary for the Arno arms.
+	ArnoMCP string
+	// ArnoTools is passed to arno-mcp as --tools (all or core); empty keeps
+	// arno-mcp's default.
+	ArnoTools string
 	// Claude is the agent binary; "claude" when empty.
 	Claude string
 	// WorkDir holds the per-run clones; the system temp directory when empty.
 	WorkDir string
 	// Env is added to the agent's environment.
 	Env []string
-	// TelemetryDir keeps Jade's telemetry from each Jade-arm run, one
+	// TelemetryDir keeps Arno's telemetry from each Arno-arm run, one
 	// subdirectory per run, so tool confusion can be reported after the
 	// workspace is gone. Empty keeps nothing.
 	TelemetryDir string
@@ -206,7 +206,7 @@ type RunResult struct {
 	LinesChanged int      `json:"linesChanged"`
 	FilesChanged []string `json:"filesChanged,omitempty"`
 
-	// TelemetryDir is where this run's Jade telemetry was kept, for Jade arms.
+	// TelemetryDir is where this run's Arno telemetry was kept, for Arno arms.
 	TelemetryDir string `json:"telemetryDir,omitempty"`
 	// Transcript is the run's saved agent transcript, one JSON event per line.
 	Transcript string `json:"transcript,omitempty"`
@@ -280,7 +280,7 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 		Repeat:     repeat,
 	}
 
-	parent, err := os.MkdirTemp(cfg.WorkDir, "jade-bench-*")
+	parent, err := os.MkdirTemp(cfg.WorkDir, "arno-bench-*")
 	if err != nil {
 		result.AgentError = err.Error()
 		return result
@@ -298,9 +298,9 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 	}
 
 	mcpConfig := ""
-	if arm.UsesJade() {
+	if arm.UsesArno() {
 		mcpConfig = filepath.Join(parent, "mcp.json")
-		if err := writeMCPConfig(mcpConfig, cfg.JadeMCP, cfg.JadeTools, workspace); err != nil {
+		if err := writeMCPConfig(mcpConfig, cfg.ArnoMCP, cfg.ArnoTools, workspace); err != nil {
 			result.AgentError = err.Error()
 			return result
 		}
@@ -316,11 +316,11 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 	cmd := exec.CommandContext(runCtx, cfg.Claude, AgentArgs(task.Prompt, arm, cfg.Model, capUSD, mcpConfig)...)
 	cmd.Dir = workspace
 	env := append(os.Environ(), cfg.Env...)
-	if arm.UsesJade() && cfg.TelemetryDir != "" {
-		// jade-mcp inherits the agent's environment, so its telemetry log
+	if arm.UsesArno() && cfg.TelemetryDir != "" {
+		// arno-mcp inherits the agent's environment, so its telemetry log
 		// lands outside the workspace and survives the run.
 		result.TelemetryDir = filepath.Join(cfg.TelemetryDir, fmt.Sprintf("%s-%s-%s-%d", result.Repository, task.ID, arm, repeat))
-		env = append(env, "JADE_STATE_DIR="+result.TelemetryDir)
+		env = append(env, "ARNO_STATE_DIR="+result.TelemetryDir)
 	}
 	cmd.Env = env
 	var stdout, stderr bytes.Buffer
@@ -417,9 +417,9 @@ func AgentArgs(prompt string, arm Arm, model string, capUSD float64, mcpConfig s
 		args = append(args, "--tools", "default")
 	case ArmShellLean:
 		args = append(args, "--tools", "Bash,Read,Edit,Write")
-	case ArmJade:
+	case ArmArno:
 		args = append(args, "--tools", "", "--mcp-config", mcpConfig)
-	case ArmJadeShell:
+	case ArmArnoShell:
 		args = append(args, "--tools", "default", "--mcp-config", mcpConfig)
 	}
 	return args
@@ -495,7 +495,7 @@ func prepareWorkspace(ctx context.Context, repo string, commit string, setup str
 	for _, args := range [][]string{
 		{"init", "-q"},
 		{"add", "-A"},
-		{"-c", "user.name=jade-bench", "-c", "user.email=bench@localhost", "commit", "-q", "--no-verify", "--allow-empty", "-m", "baseline"},
+		{"-c", "user.name=arno-bench", "-c", "user.email=bench@localhost", "commit", "-q", "--no-verify", "--allow-empty", "-m", "baseline"},
 	} {
 		if out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput(); err != nil {
 			return fmt.Errorf("baseline git %v: %v: %s", args, err, tail(string(out), 300))
@@ -539,22 +539,22 @@ func writeVerifyFiles(dir string, files map[string]string) error {
 	return nil
 }
 
-func writeMCPConfig(path string, jadeMCP string, jadeTools string, workspace string) error {
-	if jadeMCP == "" {
-		return fmt.Errorf("a Jade arm needs the jade-mcp binary")
+func writeMCPConfig(path string, arnoMCP string, arnoTools string, workspace string) error {
+	if arnoMCP == "" {
+		return fmt.Errorf("a Arno arm needs the arno-mcp binary")
 	}
 	args := []string{"--root", workspace}
-	if jadeTools != "" {
-		args = append(args, "--tools", jadeTools)
+	if arnoTools != "" {
+		args = append(args, "--tools", arnoTools)
 	}
 	config := map[string]interface{}{
 		"mcpServers": map[string]interface{}{
-			"jade": map[string]interface{}{
+			"arno": map[string]interface{}{
 				"type":    "stdio",
-				"command": jadeMCP,
+				"command": arnoMCP,
 				"args":    args,
 				// Claude Code hides MCP tools behind tool search by default.
-				// Without this, the jade+shell arm never loaded one Jade tool
+				// Without this, the arno+shell arm never loaded one Arno tool
 				// in three pilot runs: it measured the shell arm twice. The
 				// README tells users to set it for the same reason.
 				"alwaysLoad": true,
@@ -578,7 +578,7 @@ func verify(ctx context.Context, dir string, command string) (bool, string) {
 }
 
 // diffStats counts lines added plus removed and the files touched, new files
-// included. Jade's telemetry log is excluded through .git/info/exclude, so it
+// included. Arno's telemetry log is excluded through .git/info/exclude, so it
 // never counts as a change the agent made.
 func diffStats(dir string) (int, []string) {
 	_ = exec.Command("git", "-C", dir, "add", "--all", "--intent-to-add").Run()

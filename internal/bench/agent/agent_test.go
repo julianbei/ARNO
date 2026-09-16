@@ -16,9 +16,9 @@ import (
 const fakeClaude = `#!/bin/sh
 { echo "=== run"; for arg in "$@"; do printf '[%s]\n' "$arg"; done; } >> "$FAKE_ARGS_LOG"
 echo "[history $(git rev-list --all --count)]" >> "$FAKE_ARGS_LOG"
-if [ -n "$JADE_STATE_DIR" ]; then
-  mkdir -p "$JADE_STATE_DIR/ws"
-  printf '%s\n' '{"tool":"jade.read_range","target":"t1","outcome":"ok"}' '{"tool":"jade.outline","target":"t1","outcome":"ok"}' '{"tool":"jade.find","outcome":"not_found"}' '{"tool":"jade.find","outcome":"ok"}' > "$JADE_STATE_DIR/ws/telemetry.jsonl"
+if [ -n "$ARNO_STATE_DIR" ]; then
+  mkdir -p "$ARNO_STATE_DIR/ws"
+  printf '%s\n' '{"tool":"arno.read_range","target":"t1","outcome":"ok"}' '{"tool":"arno.outline","target":"t1","outcome":"ok"}' '{"tool":"arno.find","outcome":"not_found"}' '{"tool":"arno.find","outcome":"ok"}' > "$ARNO_STATE_DIR/ws/telemetry.jsonl"
 fi
 echo solved > answer.txt
 echo tampered > check.txt
@@ -82,8 +82,8 @@ func TestRunMeasuresEveryArmAndVerifiesIndependently(t *testing.T) {
 	var out bytes.Buffer
 
 	results, err := Run(context.Background(), Config{
-		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmJade, ArmJadeShell},
-		Model: "sonnet", BudgetUSD: 5, PerRunUSD: 1, JadeMCP: "/opt/jade-mcp", Claude: claude, Out: &out,
+		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmArno, ArmArnoShell},
+		Model: "sonnet", BudgetUSD: 5, PerRunUSD: 1, ArnoMCP: "/opt/arno-mcp", Claude: claude, Out: &out,
 	})
 	if err != nil {
 		t.Fatalf("run: %v", err)
@@ -116,15 +116,15 @@ func TestRunMeasuresEveryArmAndVerifiesIndependently(t *testing.T) {
 	if len(runs) != 3 {
 		t.Fatalf("expected three agent invocations, got %d", len(runs))
 	}
-	shell, jade, both := runs[0], runs[1], runs[2]
+	shell, arno, both := runs[0], runs[1], runs[2]
 	if strings.Contains(shell, "[--mcp-config]") || !strings.Contains(shell, "[--tools]\n[default]") {
 		t.Errorf("shell arm should have built-in tools and no MCP:\n%s", shell)
 	}
-	if !strings.Contains(jade, "[--tools]\n[]") || !strings.Contains(jade, "[--mcp-config]") {
-		t.Errorf("jade arm should have no built-in tools and Jade's MCP server:\n%s", jade)
+	if !strings.Contains(arno, "[--tools]\n[]") || !strings.Contains(arno, "[--mcp-config]") {
+		t.Errorf("arno arm should have no built-in tools and Arno's MCP server:\n%s", arno)
 	}
 	if !strings.Contains(both, "[--tools]\n[default]") || !strings.Contains(both, "[--mcp-config]") {
-		t.Errorf("jade+shell arm should have both:\n%s", both)
+		t.Errorf("arno+shell arm should have both:\n%s", both)
 	}
 	for _, invocation := range runs {
 		for _, shared := range []string{"[--output-format]\n[stream-json]\n[--verbose]", "[--strict-mcp-config]", "[--model]\n[sonnet]", "[--max-budget-usd]\n[1.00]", "[--setting-sources]\n[project]"} {
@@ -225,8 +225,8 @@ func TestRunStopsBeforeExceedingTheBudget(t *testing.T) {
 	t.Setenv("FAKE_COST", "0.40")
 
 	results, err := Run(context.Background(), Config{
-		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmJade, ArmJadeShell},
-		BudgetUSD: 1.0, PerRunUSD: 0.5, Repeats: 5, JadeMCP: "/opt/jade-mcp", Claude: claude,
+		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmArno, ArmArnoShell},
+		BudgetUSD: 1.0, PerRunUSD: 0.5, Repeats: 5, ArnoMCP: "/opt/arno-mcp", Claude: claude,
 	})
 	if !errors.Is(err, ErrBudgetExhausted) {
 		t.Fatalf("expected the budget to stop the run, got %v", err)
@@ -263,8 +263,8 @@ func TestReadResultsRoundTripsWhatRunWrites(t *testing.T) {
 	repo, claude, _ := setup(t)
 	var out bytes.Buffer
 	written, err := Run(context.Background(), Config{
-		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmJade}, BudgetUSD: 5, PerRunUSD: 1,
-		JadeMCP: "/opt/jade-mcp", Claude: claude, Out: &out,
+		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmArno}, BudgetUSD: 5, PerRunUSD: 1,
+		ArnoMCP: "/opt/arno-mcp", Claude: claude, Out: &out,
 	})
 	if err != nil {
 		t.Fatalf("run: %v", err)
@@ -279,22 +279,22 @@ func TestReadResultsRoundTripsWhatRunWrites(t *testing.T) {
 	}
 }
 
-// Jade arms keep their telemetry outside the workspace, and the report reads
+// Arno arms keep their telemetry outside the workspace, and the report reads
 // tool confusion per run, never joining one run's last call to the next run's
 // first.
-func TestJadeTelemetrySurvivesTheRunAndReportsConfusion(t *testing.T) {
+func TestArnoTelemetrySurvivesTheRunAndReportsConfusion(t *testing.T) {
 	repo, claude, _ := setup(t)
 	telemetryDir := t.TempDir()
 
 	results, err := Run(context.Background(), Config{
-		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmJade, ArmJadeShell}, BudgetUSD: 5, PerRunUSD: 1,
-		JadeMCP: "/opt/jade-mcp", Claude: claude, TelemetryDir: telemetryDir,
+		Repo: repo, Tasks: taskFile(), Arms: []Arm{ArmShell, ArmArno, ArmArnoShell}, BudgetUSD: 5, PerRunUSD: 1,
+		ArnoMCP: "/opt/arno-mcp", Claude: claude, TelemetryDir: telemetryDir,
 	})
 	if err != nil {
 		t.Fatalf("run: %v", err)
 	}
 	if results[0].TelemetryDir != "" {
-		t.Errorf("the shell arm runs no Jade, so it keeps no telemetry: %q", results[0].TelemetryDir)
+		t.Errorf("the shell arm runs no Arno, so it keeps no telemetry: %q", results[0].TelemetryDir)
 	}
 	for _, result := range results[1:] {
 		if result.TelemetryDir == "" {
@@ -304,9 +304,9 @@ func TestJadeTelemetrySurvivesTheRunAndReportsConfusion(t *testing.T) {
 
 	report := ConfusionText(results)
 	for _, want := range []string{
-		"jade tool calls: jade.find 4, jade.outline 2, jade.read_range 2",
-		"switched tools on the same target: jade.read_range→jade.outline 2",
-		"retried after a failed answer: jade.find after not_found 2",
+		"arno tool calls: arno.find 4, arno.outline 2, arno.read_range 2",
+		"switched tools on the same target: arno.read_range→arno.outline 2",
+		"retried after a failed answer: arno.find after not_found 2",
 	} {
 		if !strings.Contains(report, want) {
 			t.Errorf("expected %q in:\n%s", want, report)
@@ -321,12 +321,12 @@ func TestScoreAppliesTheFixedScorecard(t *testing.T) {
 		candidate ArmSummary
 		pass      bool
 	}{
-		{"cheaper and as good", ArmSummary{Arm: ArmJade, SuccessRate: 0.60, MeanTokens: 900}, true},
-		{"less successful however cheap", ArmSummary{Arm: ArmJade, SuccessRate: 0.55, MeanTokens: 500}, false},
-		{"costlier with no gain", ArmSummary{Arm: ArmJade, SuccessRate: 0.60, MeanTokens: 1050}, false},
-		{"+10% tokens for +5 points", ArmSummary{Arm: ArmJade, SuccessRate: 0.65, MeanTokens: 1100}, true},
-		{"+20% tokens for +9 points", ArmSummary{Arm: ArmJade, SuccessRate: 0.69, MeanTokens: 1200}, false},
-		{"+20% tokens for +10 points", ArmSummary{Arm: ArmJade, SuccessRate: 0.70, MeanTokens: 1200}, true},
+		{"cheaper and as good", ArmSummary{Arm: ArmArno, SuccessRate: 0.60, MeanTokens: 900}, true},
+		{"less successful however cheap", ArmSummary{Arm: ArmArno, SuccessRate: 0.55, MeanTokens: 500}, false},
+		{"costlier with no gain", ArmSummary{Arm: ArmArno, SuccessRate: 0.60, MeanTokens: 1050}, false},
+		{"+10% tokens for +5 points", ArmSummary{Arm: ArmArno, SuccessRate: 0.65, MeanTokens: 1100}, true},
+		{"+20% tokens for +9 points", ArmSummary{Arm: ArmArno, SuccessRate: 0.69, MeanTokens: 1200}, false},
+		{"+20% tokens for +10 points", ArmSummary{Arm: ArmArno, SuccessRate: 0.70, MeanTokens: 1200}, true},
 	}
 	for _, tc := range cases {
 		if got := Score(shell, tc.candidate); got.Pass != tc.pass {

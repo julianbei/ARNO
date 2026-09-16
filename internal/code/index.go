@@ -13,14 +13,14 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/julianbei/jade/internal/events"
-	"github.com/julianbei/jade/internal/lsp"
-	"github.com/julianbei/jade/internal/pathguard"
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/textutil"
+	"github.com/julianbei/arno/internal/events"
+	"github.com/julianbei/arno/internal/lsp"
+	"github.com/julianbei/arno/internal/pathguard"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/textutil"
 )
 
-const parserModeEnv = "JADE_GO_SYMBOL_PARSER"
+const parserModeEnv = "ARNO_GO_SYMBOL_PARSER"
 
 // Symbol is the minimum structural unit surfaced to agents.
 type Symbol struct {
@@ -49,7 +49,7 @@ type Index struct {
 	bus  *events.Bus
 
 	// servers provides real language servers for references, rename and
-	// semantic diagnostics. Nil is a supported state and means jade behaves
+	// semantic diagnostics. Nil is a supported state and means arno behaves
 	// as it did before the LSP client existed: gopls CLI for Go, approximate
 	// name matching elsewhere, rename refused. Every use of this field must
 	// therefore tolerate nil rather than assume a server.
@@ -144,7 +144,7 @@ func (i *Index) Outline(path string) ([]Symbol, error) {
 	return symbols, nil
 }
 
-// grammarLanguages maps the extensions jade has a real tree-sitter grammar
+// grammarLanguages maps the extensions arno has a real tree-sitter grammar
 // for. Anything absent here is served by the heuristic scanner.
 var grammarLanguages = map[string]string{
 	".go":    "go",
@@ -162,7 +162,7 @@ var grammarLanguages = map[string]string{
 	".cjs":   "javascript",
 }
 
-// knownLanguages names extensions jade recognises but does not parse with a
+// knownLanguages names extensions arno recognises but does not parse with a
 // grammar, so the heuristic's note can say which language it is guessing at
 // rather than the unhelpful "this file".
 var knownLanguages = map[string]string{
@@ -189,8 +189,8 @@ var knownLanguages = map[string]string{
 	".zig":   "zig",
 }
 
-// LanguageOf names path's language and whether Jade parses it with a
-// grammar; "" for a file type Jade does not recognise.
+// LanguageOf names path's language and whether Arno parses it with a
+// grammar; "" for a file type Arno does not recognise.
 func LanguageOf(path string) (string, bool) {
 	ext := strings.ToLower(filepath.Ext(path))
 	if language := grammarLanguages[ext]; language != "" {
@@ -221,7 +221,7 @@ func ParserFor(path string, mode string) protocol.ParserInfo {
 	case language == "":
 		info.Note = "no grammar for this file type — declarations were found by a text scan and some may be missing"
 	case grammarLanguages[ext] != "":
-		// A language jade *does* have a grammar for, which nonetheless did not
+		// A language arno *does* have a grammar for, which nonetheless did not
 		// parse. Worth distinguishing: this usually means a syntax error, not
 		// an unsupported language.
 		info.Note = fmt.Sprintf("%s grammar did not parse this file (often a syntax error) — fell back to a text scan, some declarations may be missing", language)
@@ -1578,8 +1578,8 @@ func shouldSkipPath(path string) bool {
 		".git": true, "node_modules": true, "vendor": true, "dist": true,
 		"build": true, "target": true, ".next": true, ".cache": true,
 		"coverage": true, ".idea": true, ".vscode": true,
-		// Jade's own telemetry directory is never repository content.
-		".jade": true,
+		// Arno's own telemetry directory is never repository content.
+		".arno": true,
 	}
 	for _, segment := range strings.Split(filepath.ToSlash(path), "/") {
 		if skipNames[strings.ToLower(segment)] {

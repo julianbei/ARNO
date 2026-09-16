@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // SymbolDelta reports which symbols were added, removed or modified between
@@ -15,8 +15,8 @@ import (
 // numstat summary answers "how much"; this answers "what", which is the
 // question an agent returning to a file actually has.
 //
-// Both sides are parsed with the same extractor the rest of jade uses, so a
-// language jade cannot parse yields no symbol-level detail rather than a
+// Both sides are parsed with the same extractor the rest of arno uses, so a
+// language arno cannot parse yields no symbol-level detail rather than a
 // wrong one — the file-level counts still stand on their own.
 //
 // A nil or empty oldSource means the file is new: every symbol in it is

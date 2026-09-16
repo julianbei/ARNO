@@ -14,10 +14,10 @@ func TestStateDirKeepsTheWorkspaceClean(t *testing.T) {
 	t.Setenv(StateDirEnv, state)
 
 	recorder := New(root)
-	recorder.Record("jade.find", 0, 10, nil)
+	recorder.Record("arno.find", 0, 10, nil)
 
 	if _, err := os.Stat(filepath.Join(root, Dir)); !os.IsNotExist(err) {
-		t.Fatalf("JADE_STATE_DIR is set, but .jade/ was created in the workspace: %v", err)
+		t.Fatalf("ARNO_STATE_DIR is set, but .arno/ was created in the workspace: %v", err)
 	}
 	records, err := recorder.Read()
 	if err != nil || len(records) != 1 {
@@ -42,9 +42,9 @@ func TestStateDirSeparatesWorkspaces(t *testing.T) {
 		}
 	}
 
-	New(first).Record("jade.find", 0, 1, nil)
-	New(second).Record("jade.grep", 0, 1, nil)
-	New(second).Record("jade.grep", 0, 1, nil)
+	New(first).Record("arno.find", 0, 1, nil)
+	New(second).Record("arno.grep", 0, 1, nil)
+	New(second).Record("arno.grep", 0, 1, nil)
 
 	if records, _ := New(first).Read(); len(records) != 1 {
 		t.Fatalf("first workspace sees %d records, want 1", len(records))
@@ -76,13 +76,13 @@ func run(t *testing.T, dir string, name string, args ...string) string {
 }
 
 // The harness failure this exists for: an agent's worktree committed
-// wholesale, with Jade's log in it.
+// wholesale, with Arno's log in it.
 func TestLogInAGitWorkspaceIsNotUntracked(t *testing.T) {
 	root := gitRepo(t)
 	recorder := New(root)
 
-	recorder.Record("jade.find", 0, 1, nil)
-	recorder.Record("jade.find", 0, 1, nil)
+	recorder.Record("arno.find", 0, 1, nil)
+	recorder.Record("arno.find", 0, 1, nil)
 
 	if status := run(t, root, "git", "status", "--porcelain", "--untracked-files=all"); strings.Contains(status, "telemetry") {
 		t.Fatalf("the telemetry log shows as untracked:\n%s", status)
@@ -91,11 +91,11 @@ func TestLogInAGitWorkspaceIsNotUntracked(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if count := strings.Count(string(exclude), "/.jade/telemetry.jsonl"); count != 1 {
+	if count := strings.Count(string(exclude), "/.arno/telemetry.jsonl"); count != 1 {
 		t.Fatalf("expected the pattern exactly once, found %d:\n%s", count, exclude)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".gitignore")); !os.IsNotExist(err) {
-		t.Fatal(".gitignore is tracked; Jade must not create or edit it")
+		t.Fatal(".gitignore is tracked; Arno must not create or edit it")
 	}
 }
 
@@ -106,7 +106,7 @@ func TestWorkspaceBelowTheRepositoryRootIsExcludedAtItsOwnPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	New(root).Record("jade.find", 0, 1, nil)
+	New(root).Record("arno.find", 0, 1, nil)
 
 	if status := run(t, repo, "git", "status", "--porcelain", "--untracked-files=all"); strings.Contains(status, "telemetry") {
 		t.Fatalf("a nested workspace's log shows as untracked:\n%s", status)
@@ -115,13 +115,13 @@ func TestWorkspaceBelowTheRepositoryRootIsExcludedAtItsOwnPath(t *testing.T) {
 
 func TestAlreadyIgnoredLogLeavesExcludeAlone(t *testing.T) {
 	root := gitRepo(t)
-	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(".jade/telemetry.jsonl\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(".arno/telemetry.jsonl\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	excludePath := filepath.Join(root, ".git", "info", "exclude")
 	before, _ := os.ReadFile(excludePath)
 
-	New(root).Record("jade.find", 0, 1, nil)
+	New(root).Record("arno.find", 0, 1, nil)
 
 	after, _ := os.ReadFile(excludePath)
 	if string(before) != string(after) {
@@ -132,7 +132,7 @@ func TestAlreadyIgnoredLogLeavesExcludeAlone(t *testing.T) {
 func TestNonGitWorkspaceStillRecords(t *testing.T) {
 	root := t.TempDir()
 	recorder := New(root)
-	recorder.Record("jade.find", 0, 1, nil)
+	recorder.Record("arno.find", 0, 1, nil)
 	if records, _ := recorder.Read(); len(records) != 1 {
 		t.Fatalf("expected recording to work outside git, got %d records", len(records))
 	}

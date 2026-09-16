@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/events"
+	"github.com/julianbei/arno/internal/events"
 )
 
 func TestEditsWithoutALanguageServerGetASyntaxCheck(t *testing.T) {

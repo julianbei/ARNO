@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // renderedResponses is every protocol response type that has a renderer.

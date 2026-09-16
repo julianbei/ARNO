@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/julianbei/jade/internal/jobs"
+	"github.com/julianbei/arno/internal/jobs"
 )
 
 // TestRunTestsWaitReturnsARealVerdictInOneCall is the point of 12.3: the

@@ -9,11 +9,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/julianbei/jade/internal/telemetry"
+	"github.com/julianbei/arno/internal/telemetry"
 )
 
-// ConfusionText reports, across every Jade-arm run that kept telemetry, how
-// often each Jade tool was called, which inspect tools were switched on the
+// ConfusionText reports, across every Arno-arm run that kept telemetry, how
+// often each Arno tool was called, which inspect tools were switched on the
 // same target, and which tools were retried after a failed answer. Release
 // plan Phase 3 merges and cuts tools from this.
 //
@@ -50,8 +50,8 @@ func ConfusionText(results []RunResult) string {
 	}
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "\ntool confusion across %d Jade-arm runs:\n", runs)
-	fmt.Fprintf(&b, "jade tool calls: %s\n", joinCounts(calls))
+	fmt.Fprintf(&b, "\ntool confusion across %d Arno-arm runs:\n", runs)
+	fmt.Fprintf(&b, "arno tool calls: %s\n", joinCounts(calls))
 	if len(switches) > 0 {
 		fmt.Fprintf(&b, "switched tools on the same target: %s\n", joinCounts(switches))
 	}
@@ -62,7 +62,7 @@ func ConfusionText(results []RunResult) string {
 }
 
 // readTelemetry reads every telemetry log under dir. A missing or unreadable
-// log yields nothing: a run whose agent never called Jade has no log at all.
+// log yields nothing: a run whose agent never called Arno has no log at all.
 func readTelemetry(dir string) []telemetry.Record {
 	var records []telemetry.Record
 	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {

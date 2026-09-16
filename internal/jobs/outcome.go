@@ -3,7 +3,7 @@ package jobs
 import (
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // killedMarker is what RunCommandWithTimeout appends to a command it killed.

@@ -1,31 +1,31 @@
-# Contributing to Jade
+# Contributing to Arno
 
-Thanks for your interest! Jade is small and early, so every report and every
+Thanks for your interest! Arno is small and early, so every report and every
 change is read.
 
 ## The most useful contribution: tell us how it went
 
-You don't need to write code to help. After using Jade for real work, the
-[feedback template](https://github.com/julianbei/jade/issues/new?template=feedback.yml)
+You don't need to write code to help. After using Arno for real work, the
+[feedback template](https://github.com/julianbei/arno/issues/new?template=feedback.yml)
 takes a few minutes — and "I turned it off" is the report we most want. If
-your agent reached for the shell although a Jade tool existed, file
-[friction](https://github.com/julianbei/jade/issues/new?template=friction.yml).
+your agent reached for the shell although a Arno tool existed, file
+[friction](https://github.com/julianbei/arno/issues/new?template=friction.yml).
 [docs/reporting.md](docs/reporting.md) says what makes a report easy to act on.
 
 Questions and ideas that aren't a bug or a wish fit in
-[Discussions](https://github.com/julianbei/jade/discussions).
+[Discussions](https://github.com/julianbei/arno/discussions).
 
 ## Changing the code
 
-Jade is written in Go and supports macOS and Linux (Windows is not supported;
-see [issue #2](https://github.com/julianbei/jade/issues/2)).
+Arno is written in Go and supports macOS and Linux (Windows is not supported;
+see [issue #2](https://github.com/julianbei/arno/issues/2)).
 
 ```bash
-git clone https://github.com/julianbei/jade.git
-cd jade
+git clone https://github.com/julianbei/arno.git
+cd arno
 make build      # go build ./...
 make test       # go test ./...
-make binary     # bin/jade-mcp, version-stamped
+make binary     # bin/arno-mcp, version-stamped
 ```
 
 Before opening a pull request, run the release gate — build, vet, tests and a
@@ -44,7 +44,7 @@ container; run it when you change language support.
   approximate answer, the response has to say so.
 - **It comes with a test** that fails without the change.
 - **It adds a CHANGELOG entry** under `## Unreleased` (create the heading if
-  it isn't there): what changed, and why it matters to someone using Jade.
+  it isn't there): what changed, and why it matters to someone using Arno.
 - **Tool names, required arguments and response vocabulary** are covered by
   [docs/tool-contract.md](docs/tool-contract.md). Changing them needs a
   reason, and the contract updated in the same change.

@@ -14,7 +14,7 @@ const avaFailureOutput = `  ✘ [fail]: probe assertion differs
 
   probe assertion differs
 
-  test/zz-jade-probe.ts:4
+  test/zz-arno-probe.ts:4
 
    3: test('probe assertion differs', t => {
    4:   t.is('actual-value', 'expected-value');
@@ -25,7 +25,7 @@ const avaFailureOutput = `  ✘ [fail]: probe assertion differs
   - 'actual-value'
   + 'expected-value'
 
-  › <anonymous> (test/zz-jade-probe.ts:4:4)
+  › <anonymous> (test/zz-arno-probe.ts:4:4)
 
 
 
@@ -38,7 +38,7 @@ const avaFailureOutput = `  ✘ [fail]: probe assertion differs
   }
 
   TypeError: Illegal invocation
-      at <anonymous> (/repo/test/zz-jade-probe.ts:8:8)
+      at <anonymous> (/repo/test/zz-arno-probe.ts:8:8)
       at Test.callFn (file:///repo/node_modules/ava/lib/test.js:525:26)
 
   ─
@@ -68,7 +68,7 @@ func TestJavaScriptFailureSummaryKeepsTheReason(t *testing.T) {
 				t.Errorf("%s: missing %q in:\n%s", name, want, got)
 			}
 		}
-		for _, noise := range []string{"t.is(", "at Test.callFn", "zz-jade-probe.ts:4\n"} {
+		for _, noise := range []string{"t.is(", "at Test.callFn", "zz-arno-probe.ts:4\n"} {
 			if strings.Contains(got, noise) {
 				t.Errorf("%s: code frame or stack %q kept in:\n%s", name, noise, got)
 			}

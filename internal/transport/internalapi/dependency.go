@@ -8,11 +8,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/julianbei/jade/internal/pathguard"
+	"github.com/julianbei/arno/internal/pathguard"
 
-	"github.com/julianbei/jade/internal/code"
-	"github.com/julianbei/jade/internal/deps"
-	"github.com/julianbei/jade/internal/events"
+	"github.com/julianbei/arno/internal/code"
+	"github.com/julianbei/arno/internal/deps"
+	"github.com/julianbei/arno/internal/events"
 )
 
 // DependencyPrefix marks a path inside a dependency's source rather than the

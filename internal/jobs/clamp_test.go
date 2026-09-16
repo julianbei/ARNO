@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/diagnostics"
+	"github.com/julianbei/arno/internal/diagnostics"
 )
 
 func TestClampLeavesSmallOutputUntouched(t *testing.T) {
-	output := "ok  \tgithub.com/julianbei/jade/internal/code\t0.248s\n"
+	output := "ok  \tgithub.com/julianbei/arno/internal/code\t0.248s\n"
 	clamped, omitted := clampRawOutput(output)
 	if clamped != output {
 		t.Fatalf("expected small output to pass through unchanged, got %q", clamped)

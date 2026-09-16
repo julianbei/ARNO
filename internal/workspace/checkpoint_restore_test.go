@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/julianbei/jade/internal/writes"
+	"github.com/julianbei/arno/internal/writes"
 )
 
 func readOrMissing(t *testing.T, path string) string {

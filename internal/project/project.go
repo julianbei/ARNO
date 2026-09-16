@@ -1,5 +1,5 @@
-// Package project reads .jade/project.json: a repository's own statement of
-// how Jade should build, check and test it, committed next to the code the
+// Package project reads .arno/project.json: a repository's own statement of
+// how Arno should build, check and test it, committed next to the code the
 // way an editor keeps its settings in .vscode/.
 //
 // Discovery guesses from manifests, and the pilot benchmark showed where
@@ -11,6 +11,8 @@
 package project
 
 import (
+	"github.com/julianbei/arno/internal/compat"
+
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -22,12 +24,12 @@ import (
 
 // Dir and File locate the config inside the workspace, beside commands.json.
 const (
-	Dir  = ".jade"
+	Dir  = ".arno"
 	File = "project.json"
 )
 
 // Source names the config in responses that say where a command came from.
-const Source = ".jade/project.json"
+const Source = ".arno/project.json"
 
 // RelPath is the config's path relative to the workspace root.
 var RelPath = filepath.Join(Dir, File)
@@ -55,7 +57,7 @@ type Env struct {
 	Vars   map[string]string `json:"vars,omitempty"`
 }
 
-// Config is a parsed .jade/project.json.
+// Config is a parsed .arno/project.json.
 type Config struct {
 	Areas []Area `json:"areas"`
 	Env   Env    `json:"env,omitzero"`
@@ -70,7 +72,7 @@ type Config struct {
 // a path outside the workspace is, because acting on half a config would run
 // commands nobody declared.
 func Load(root string) (*Config, error) {
-	data, err := os.ReadFile(filepath.Join(root, RelPath))
+	data, err := os.ReadFile(compat.StatePath(root, File))
 	if os.IsNotExist(err) {
 		return nil, nil
 	}

@@ -1,25 +1,25 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.julianbei/jade",
-  "title": "Jade",
+  "name": "io.github.julianbei/arno",
+  "title": "Arno",
   "description": "The IDE for agents: read by symbol, edit against a revision, validate with your own build, revert.",
   "repository": {
-    "url": "https://github.com/julianbei/jade",
+    "url": "https://github.com/julianbei/arno",
     "source": "github"
   },
-  "websiteUrl": "https://github.com/julianbei/jade#trying-jade-a-guide-for-testers",
+  "websiteUrl": "https://github.com/julianbei/arno#trying-arno-a-guide-for-testers",
   "version": "0.0.11",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/julianbei/jade-mcp:v0.0.11",
+      "identifier": "ghcr.io/julianbei/arno-mcp:v0.0.11",
       "transport": {
         "type": "stdio"
       },
       "runtimeArguments": [
         {
           "type": "named",
-          "description": "Mount the repository Jade should work on at /workspace",
+          "description": "Mount the repository Arno should work on at /workspace",
           "name": "--mount",
           "value": "type=bind,src={workspace},dst=/workspace",
           "isRequired": true,

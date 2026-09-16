@@ -1,12 +1,12 @@
-name: "Feedback — how it went after using Jade"
-description: A tester's report after some days of real work with Jade. Also the place to say why you turned it off.
+name: "Feedback — how it went after using Arno"
+description: A tester's report after some days of real work with Arno. Also the place to say why you turned it off.
 title: "feedback: "
 labels: ["feedback"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for trying Jade. This report is for the overall picture after
+        Thanks for trying Arno. This report is for the overall picture after
         some real sessions — a few days to a couple of weeks. For one specific
         problem, a **bug** or **friction** report is quicker.
 
@@ -16,7 +16,7 @@ body:
   - type: dropdown
     id: still-on
     attributes:
-      label: Is Jade still enabled?
+      label: Is Arno still enabled?
       options:
         - Yes, and I plan to keep it
         - Yes, but I am not sure it helps
@@ -51,7 +51,7 @@ body:
   - type: dropdown
     id: mode
     attributes:
-      label: How was Jade set up?
+      label: How was Arno set up?
       options:
         - In place of the host's built-in tools (--tools core)
         - Alongside the host's built-in tools
@@ -97,7 +97,7 @@ body:
     id: worked
     attributes:
       label: What worked well?
-      description: A task where Jade clearly helped — fewer steps, a rename that just worked, a check that caught something.
+      description: A task where Arno clearly helped — fewer steps, a rename that just worked, a check that caught something.
 
   - type: textarea
     id: broke
@@ -112,9 +112,9 @@ body:
     attributes:
       label: Language servers
       description: |
-        Paste the output of the `jade.capabilities` tool (ask your agent to call
+        Paste the output of the `arno.capabilities` tool (ask your agent to call
         it). It lists each language, whether its server ran, and the build and
-        test commands Jade found. It contains no source code.
+        test commands Arno found. It contains no source code.
       render: text
 
   - type: textarea
@@ -122,7 +122,7 @@ body:
     attributes:
       label: Telemetry (optional, very helpful)
       description: |
-        Output of the `jade.telemetry` tool. It records no arguments, no
+        Output of the `arno.telemetry` tool. It records no arguments, no
         response bodies and no error text — only tool names, sizes, timings and
         failure classes — so it is safe to paste from a private repository.
       render: text
@@ -131,7 +131,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: Output of `jade-mcp --version`.
-      placeholder: jade-mcp v0.0.8
+      description: Output of `arno-mcp --version`.
+      placeholder: arno-mcp v0.0.8
     validations:
       required: true

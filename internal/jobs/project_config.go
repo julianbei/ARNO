@@ -4,10 +4,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/julianbei/jade/internal/project"
+	"github.com/julianbei/arno/internal/project"
 )
 
-// configuredTestCommand is the test command .jade/project.json declares for a
+// configuredTestCommand is the test command .arno/project.json declares for a
 // scope, if it declares one. An invalid config is an error rather than a
 // fallback to discovery: it would run commands nobody declared.
 func configuredTestCommand(dir string, scope TestScope) (string, bool, error) {
@@ -30,7 +30,7 @@ func configuredTestCommand(dir string, scope TestScope) (string, bool, error) {
 }
 
 // DraftProjectArea describes the workspace at dir as one area, from what
-// discovery finds, for `jade-mcp init` to write as a starting config.
+// discovery finds, for `arno-mcp init` to write as a starting config.
 func DraftProjectArea(dir string) project.Area {
 	area := project.Area{Path: ".", Language: detectLanguage(dir)}
 	for kind, field := range map[string]*string{"build": &area.Build, "typecheck": &area.Typecheck, "tests": &area.Test} {

@@ -1,4 +1,4 @@
-module github.com/julianbei/jade
+module github.com/julianbei/arno
 
 go 1.24
 

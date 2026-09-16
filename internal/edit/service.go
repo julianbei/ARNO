@@ -4,11 +4,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/julianbei/jade/internal/code"
-	"github.com/julianbei/jade/internal/diagnostics"
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/workspace"
+	"github.com/julianbei/arno/internal/code"
+	"github.com/julianbei/arno/internal/diagnostics"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/workspace"
 )
 
 // ErrStaleRevision is returned by ReplaceRange when expectedRevision no
@@ -132,8 +132,8 @@ func (s *Service) ReplaceText(path string, expectedRevision string, oldText stri
 // It existed only as an `apply` op until now, which meant additive work (a new
 // test function, a section appended to a document) had no tool of its own and
 // was reported as faster to do with a plain file edit. That is the same
-// failure mode the op was written for: when jade has no cheap way to add
-// something, adding it happens somewhere jade cannot see.
+// failure mode the op was written for: when arno has no cheap way to add
+// something, adding it happens somewhere arno cannot see.
 func (s *Service) Insert(path string, expectedRevision string, anchor string, position string, text string) (protocol.EditResponse, error) {
 	current := s.workspace.Revision()
 	if expectedRevision != "" && expectedRevision != current {
@@ -255,8 +255,8 @@ func (s *Service) DeleteFile(path string) (protocol.EditResponse, error) {
 }
 
 // Rename renames a symbol repository-wide via gopls (7.2). It differs from
-// every other mutation here in that jade does not compute the edit: the
-// language server does, and jade's job is the revision precondition, the
+// every other mutation here in that arno does not compute the edit: the
+// language server does, and arno's job is the revision precondition, the
 // changed-file accounting and the validation job that follows. Because a
 // rename touches files the caller never named, the revision check matters
 // more here than anywhere else.

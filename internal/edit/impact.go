@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/julianbei/jade/internal/commands"
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/commands"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // maxImpactDeclarations bounds how many touched declarations an impact check
@@ -182,7 +182,7 @@ func impactLine(impact protocol.Impact) string {
 }
 
 // isTestFile recognises test files by the naming conventions of the
-// ecosystems Jade runs tests for.
+// ecosystems Arno runs tests for.
 func isTestFile(path string) bool {
 	base := strings.ToLower(filepath.Base(path))
 	slashed := "/" + filepath.ToSlash(path)

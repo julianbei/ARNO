@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/code"
-	"github.com/julianbei/jade/internal/diagnostics"
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/workspace"
+	"github.com/julianbei/arno/internal/code"
+	"github.com/julianbei/arno/internal/diagnostics"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/workspace"
 )
 
 func newTestService(t *testing.T, root string) *Service {

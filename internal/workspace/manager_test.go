@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 func TestCheckpointRevertRestoresActualFileBytes(t *testing.T) {
@@ -83,7 +83,7 @@ func TestCheckpointRevertRestoresBytesForSymbolReplaceChangedKeys(t *testing.T) 
 	}
 }
 
-func TestChangesIncludesEditsMadeOutsideJade(t *testing.T) {
+func TestChangesIncludesEditsMadeOutsideArno(t *testing.T) {
 	root := t.TempDir()
 	if err := exec.Command("git", "init", root).Run(); err != nil {
 		t.Fatalf("git init: %v", err)
@@ -97,8 +97,8 @@ func TestChangesIncludesEditsMadeOutsideJade(t *testing.T) {
 	m := NewManager(root, nil)
 
 	// No BumpRevision call here at all: this file was never touched through
-	// jade, only through a plain os.WriteFile, simulating an edit made by
-	// the host's own file tools instead of jade's replace_symbol/replace_range.
+	// arno, only through a plain os.WriteFile, simulating an edit made by
+	// the host's own file tools instead of arno's replace_symbol/replace_range.
 	changes := m.Changes()
 
 	found := false
@@ -108,7 +108,7 @@ func TestChangesIncludesEditsMadeOutsideJade(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Fatalf("expected Changes() to include a file modified outside jade via real git state, got %#v", changes)
+		t.Fatalf("expected Changes() to include a file modified outside arno via real git state, got %#v", changes)
 	}
 }
 
@@ -221,10 +221,10 @@ func TestChangesResponseSummarizesFileCountAndTotals(t *testing.T) {
 		t.Fatalf("expected a non-empty summary string")
 	}
 }
-func TestChangesResponseListsJadeTouchedFilesGitSeesNoDeltaFor(t *testing.T) {
+func TestChangesResponseListsArnoTouchedFilesGitSeesNoDeltaFor(t *testing.T) {
 	// The reason ChangesResponse folds the edit ledger into Files rather than
-	// carrying a second Paths list. A file jade wrote and then restored to its
-	// committed content has no git delta, but jade still touched it, and the
+	// carrying a second Paths list. A file arno wrote and then restored to its
+	// committed content has no git delta, but arno still touched it, and the
 	// component that knows that must not report a clean tree.
 	root := t.TempDir()
 	runGit(t, root, "init")
@@ -327,7 +327,7 @@ func TestChangesResponseOmitsDirectoriesFromTheLedger(t *testing.T) {
 }
 
 func TestChangesResponseKeepsALedgerPathThatNoLongerExists(t *testing.T) {
-	// A stat failure must not be read as "directory". A file jade edited and
+	// A stat failure must not be read as "directory". A file arno edited and
 	// that was then deleted is still a file it changed.
 	root := t.TempDir()
 	runGit(t, root, "init")
@@ -355,7 +355,7 @@ func TestChangesResponseKeepsALedgerPathThatNoLongerExists(t *testing.T) {
 }
 func TestHeadCommitOnAFreshRepoSaysSoInOneLine(t *testing.T) {
 	// Freshness puts this error into every inspect and outline response, so on
-	// a brand-new repository jade was emitting four lines of git's "ambiguous
+	// a brand-new repository arno was emitting four lines of git's "ambiguous
 	// argument 'HEAD'" diagnostic at the top of every response — in the
 	// operator's locale, which happened to be German. Found live.
 	root := t.TempDir()

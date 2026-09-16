@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/jade/internal/lsp"
-	"github.com/julianbei/jade/internal/pathguard"
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/lsp"
+	"github.com/julianbei/arno/internal/pathguard"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // This file is the only place internal/code talks to a language server.
@@ -106,10 +106,10 @@ func (i *Index) languageServerReferences(symbol Symbol, line int, column int) ([
 // languageServerRename asks a real language server to rename, returning the
 // workspace-relative paths it changed.
 //
-// The edits are applied here rather than by the server because jade owns the
+// The edits are applied here rather than by the server because arno owns the
 // files: a server that wrote them itself would produce a change with no
 // revision bump, no formatting and no diagnostics, which is precisely the
-// invisible edit jade exists to prevent.
+// invisible edit arno exists to prevent.
 func (i *Index) languageServerRename(symbol Symbol, line int, column int, newName string) ([]string, error) {
 	ctx := context.Background()
 	absolute, pathErr := i.resolvePath(symbol.Path)
@@ -161,7 +161,7 @@ func (i *Index) languageServerRename(symbol Symbol, line int, column int, newNam
 	contents := make(map[string][]string, len(fileEdits))
 	for _, fileEdit := range fileEdits {
 		// The server chooses these paths, not the caller. A server confused
-		// by a symlink or a vendored copy must not get Jade to write outside.
+		// by a symlink or a vendored copy must not get Arno to write outside.
 		if !pathguard.Contains(i.root, fileEdit.Path) {
 			return nil, fmt.Errorf("language server proposed an edit to %s, outside the workspace root %s; nothing was written", fileEdit.Path, i.root)
 		}
@@ -257,7 +257,7 @@ const diagnosticsWait = 4 * time.Second
 // language at all (Markdown, a Dockerfile), for which saying "not checked" on
 // every edit would be noise rather than information.
 // withSyntaxFallback answers for a file whose language server cannot run: a
-// tree-sitter syntax check when Jade has the grammar, otherwise the reason
+// tree-sitter syntax check when Arno has the grammar, otherwise the reason
 // the file went unchecked.
 func (i *Index) withSyntaxFallback(path string, reason string) ([]protocol.Diagnostic, string, string, bool) {
 	if diagnostics, ok := i.syntaxDiagnostics(path); ok {
@@ -338,7 +338,7 @@ func (i *Index) LanguageServerDiagnostics(path string) (diagnostics []protocol.D
 	return i.convertDiagnostics(absolute, published), checker, "", true
 }
 
-// convertDiagnostics maps a server's diagnostics for one file into jade's
+// convertDiagnostics maps a server's diagnostics for one file into arno's
 // 1-based, workspace-relative form.
 func (i *Index) convertDiagnostics(absolute string, published []lsp.Diagnostic) []protocol.Diagnostic {
 	out := make([]protocol.Diagnostic, 0, len(published))
@@ -354,9 +354,9 @@ func (i *Index) convertDiagnostics(absolute string, published []lsp.Diagnostic) 
 	return out
 }
 
-// severityLevel maps LSP's numeric severity onto jade's vocabulary. Hints are
+// severityLevel maps LSP's numeric severity onto arno's vocabulary. Hints are
 // reported as info rather than dropped: a server that bothered to say
-// something about a line is usually worth surfacing, and jade's renderer
+// something about a line is usually worth surfacing, and arno's renderer
 // already orders errors first.
 func severityLevel(severity int) protocol.DiagnosticLevel {
 	switch severity {

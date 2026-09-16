@@ -12,7 +12,7 @@ import (
 
 // excludeMarker is the comment written above the exclude pattern, so a person
 // reading .git/info/exclude can tell where the line came from.
-const excludeMarker = "# added by jade: local tool-usage log, never part of a change"
+const excludeMarker = "# added by arno: local tool-usage log, never part of a change"
 
 // excludeFromGit adds the telemetry log to the repository's local exclude
 // file, so it never shows up as untracked.
@@ -45,7 +45,7 @@ func excludeFromGit(root string) {
 	// --git-path resolves the exclude file correctly for worktrees and
 	// submodules, where .git is a file pointing elsewhere. --show-prefix is
 	// the workspace's position inside the repository: a pattern anchored at
-	// the repository root has to name the subdirectory when Jade is rooted
+	// the repository root has to name the subdirectory when Arno is rooted
 	// below it.
 	query := exec.CommandContext(ctx, git, "rev-parse", "--git-path", "info/exclude", "--show-prefix")
 	query.Dir = root

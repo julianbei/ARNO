@@ -9,16 +9,16 @@ import (
 // breakingEdit is text appended to a fixture file that its language server
 // must report. Syntax errors are used where a server only reports semantic
 // problems after a build or save (metals, rust-analyzer's cargo check), so the
-// test measures jade's diagnostics path rather than a server's build model.
+// test measures arno's diagnostics path rather than a server's build model.
 var breakingEdit = map[string]string{
-	"go":         "\nfunc jadeBroken() { undefinedThing() }\n",
-	"typescript": "\nconst jadeBroken: number = undefinedThing;\n",
+	"go":         "\nfunc arnoBroken() { undefinedThing() }\n",
+	"typescript": "\nconst arnoBroken: number = undefinedThing;\n",
 	"javascript": "\nconst = ;\n",
-	"python":     "\njade_broken = undefined_thing\n",
-	"ruby":       "\ndef jade_broken(\n",
-	"rust":       "\nfn jade_broken( {\n",
-	"java":       "\nclass JadeBroken { void f() { undefinedThing(); } }\n",
-	"scala":      "\nobject JadeBroken { def f( = 1 }\n",
+	"python":     "\narno_broken = undefined_thing\n",
+	"ruby":       "\ndef arno_broken(\n",
+	"rust":       "\nfn arno_broken( {\n",
+	"java":       "\nclass ArnoBroken { void f() { undefinedThing(); } }\n",
+	"scala":      "\nobject ArnoBroken { def f( = 1 }\n",
 }
 
 // TestEditDiagnostics proves the claim every edit response now makes: it names
@@ -28,7 +28,7 @@ var breakingEdit = map[string]string{
 // plainly broken would be worse than the old silence, because it reads as a
 // clean bill of health. So the assertion is on both halves.
 func TestEditDiagnostics(t *testing.T) {
-	binary := jadeBinary(t)
+	binary := arnoBinary(t)
 
 	for _, tc := range cases() {
 		t.Run(tc.name, func(t *testing.T) {
@@ -46,7 +46,7 @@ func TestEditDiagnostics(t *testing.T) {
 
 			// Start the server and let it index before the edit under test,
 			// the same way an agent's first read would.
-			session.call(t, "jade.references", map[string]any{"path": tc.file, "symbolName": tc.symbol})
+			session.call(t, "arno.references", map[string]any{"path": tc.file, "symbolName": tc.symbol})
 
 			// A server still importing the build (metals: bloopInstall, then
 			// connect, then index) says so rather than answering. That is
@@ -56,7 +56,7 @@ func TestEditDiagnostics(t *testing.T) {
 			deadline := time.Now().Add(serverDeadline * 2)
 			for {
 				started := time.Now()
-				out = session.call(t, "jade.insert", map[string]any{"path": tc.file, "text": edit})
+				out = session.call(t, "arno.insert", map[string]any{"path": tc.file, "text": edit})
 				t.Logf("%s edit response after %v:\n%s", tc.name, time.Since(started).Round(time.Millisecond), out)
 				notReady := strings.Contains(out, "is still working") || strings.Contains(out, "has not compiled this change yet")
 				if !notReady || time.Now().After(deadline) {

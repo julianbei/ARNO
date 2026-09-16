@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/julianbei/jade/internal/project"
+	"github.com/julianbei/arno/internal/project"
 )
 
 // RunScopedTests runs tests narrowed per scope with the project's own runner:

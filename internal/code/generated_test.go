@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/julianbei/jade/internal/events"
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/events"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 func TestSearchesSkipPathsTheProjectMarksGenerated(t *testing.T) {
@@ -15,7 +15,7 @@ func TestSearchesSkipPathsTheProjectMarksGenerated(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, content := range map[string]string{
-		".jade/project.json": `{"areas": [], "generated": ["api/gen", "*.pb.go"]}`,
+		".arno/project.json": `{"areas": [], "generated": ["api/gen", "*.pb.go"]}`,
 		"api/gen/client.go":  "package gen // marker\n",
 		"api/user.pb.go":     "package api // marker\n",
 		"api/user.go":        "package api // marker\n",

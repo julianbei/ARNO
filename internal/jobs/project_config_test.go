@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/julianbei/jade/internal/events"
+	"github.com/julianbei/arno/internal/events"
 )
 
 func runJob(t *testing.T, start func(r *Runner, id string)) JobOutput {
@@ -23,12 +23,12 @@ func runJob(t *testing.T, start func(r *Runner, id string)) JobOutput {
 func TestProjectConfigDecidesTestAndCheckCommands(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "go.mod", "module example.com/x\n", 0o644)
-	writeFile(t, dir, ".jade/project.json", `{
+	writeFile(t, dir, ".arno/project.json", `{
 		"areas": [
 			{"path": ".", "language": "go", "test": "echo root-tests", "testName": "echo name {name}"},
 			{"path": "web", "language": "typescript", "testFile": "echo web-file {file}"}
 		],
-		"env": {"vars": {"JADE_PROBE": "from-config"}}
+		"env": {"vars": {"ARNO_PROBE": "from-config"}}
 	}`, 0o644)
 	writeFile(t, dir, "web/src/a.test.ts", "", 0o644)
 
@@ -51,12 +51,12 @@ func TestProjectConfigDecidesTestAndCheckCommands(t *testing.T) {
 		t.Errorf("check tests must use the config over go.mod, got %q", all.Raw)
 	}
 
-	env := runJob(t, func(r *Runner, id string) { r.RunCommand(id, dir, "sh", "-c", "echo $JADE_PROBE") })
+	env := runJob(t, func(r *Runner, id string) { r.RunCommand(id, dir, "sh", "-c", "echo $ARNO_PROBE") })
 	if strings.TrimSpace(env.Raw) != "from-config" {
 		t.Errorf("configured vars must reach commands, got %q", env.Raw)
 	}
 
-	if described, _ := DescribeValidationCommand(dir, "tests"); !strings.Contains(described, "from .jade/project.json") {
+	if described, _ := DescribeValidationCommand(dir, "tests"); !strings.Contains(described, "from .arno/project.json") {
 		t.Errorf("the description must name the config, got %q", described)
 	}
 	if described, _ := DescribeValidationCommand(dir, "build"); strings.Contains(described, "project.json") {
@@ -67,7 +67,7 @@ func TestProjectConfigDecidesTestAndCheckCommands(t *testing.T) {
 func TestInvalidProjectConfigFailsInsteadOfGuessing(t *testing.T) {
 	dir := t.TempDir()
 	writeFile(t, dir, "go.mod", "module example.com/x\n", 0o644)
-	writeFile(t, dir, ".jade/project.json", `{"areas": [{"path": "..", "test": "rm -rf /"}]}`, 0o644)
+	writeFile(t, dir, ".arno/project.json", `{"areas": [{"path": "..", "test": "rm -rf /"}]}`, 0o644)
 
 	output := runJob(t, func(r *Runner, id string) { r.RunValidationCommand(id, dir, "tests") })
 	if !output.Failed || !strings.Contains(output.Raw, "leaves the workspace") {

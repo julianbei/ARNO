@@ -1,4 +1,4 @@
-// Package writes is the one way Jade changes a file in the workspace (release
+// Package writes is the one way Arno changes a file in the workspace (release
 // plan 0.0.7, "One write path"). A write is atomic — a reader or a crash never
 // sees half a file — and a change to several files lands in all of them or in
 // none.
@@ -16,7 +16,7 @@ import (
 
 // Digest names a file's contents: 12 hex characters of its SHA-256. Reads
 // return it, and edits accept it as a precondition that sees every change to
-// the file, not only Jade's.
+// the file, not only Arno's.
 func Digest(data []byte) string {
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:6])
@@ -82,7 +82,7 @@ func File(path string, data []byte) error {
 		mode = info.Mode().Perm()
 	}
 
-	temp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".jade-*")
+	temp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".arno-*")
 	if err != nil {
 		return err
 	}

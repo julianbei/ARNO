@@ -33,7 +33,7 @@ func TestFileKeepsPermissionsAndFollowsSymlinks(t *testing.T) {
 	}
 	entries, _ := os.ReadDir(dir)
 	for _, entry := range entries {
-		if strings.Contains(entry.Name(), ".jade-") {
+		if strings.Contains(entry.Name(), ".arno-") {
 			t.Fatalf("temporary file left behind: %s", entry.Name())
 		}
 	}
@@ -83,7 +83,7 @@ func TestEveryObserverOfARootIsTold(t *testing.T) {
 // package that writes a file itself skips atomicity and all-or-nothing.
 func TestEditsWriteOnlyThroughThisPackage(t *testing.T) {
 	// Every package that changes workspace files: edits, the command registry
-	// (.jade/commands.json), checkpoint restore and the API layer.
+	// (.arno/commands.json), checkpoint restore and the API layer.
 	for _, dir := range []string{"../code", "../edit", "../commands", "../workspace", "../transport/internalapi"} {
 		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil || info.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {

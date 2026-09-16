@@ -4,8 +4,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/julianbei/jade/internal/pathguard"
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/pathguard"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // snippetContext is how many unchanged lines frame an edited region.

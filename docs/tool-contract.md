@@ -1,6 +1,6 @@
 # Tool surface contract — 0.0.1
 
-This is what jade promises to callers, and what it does not.
+This is what arno promises to callers, and what it does not.
 
 ## Why this is frozen at all
 
@@ -20,7 +20,7 @@ Two practical consequences:
 
 ## Enforcement
 
-`cmd/jade-mcp/contract_test.go` holds the frozen list and fails on any drift.
+`cmd/arno-mcp/contract_test.go` holds the frozen list and fails on any drift.
 It is deliberately a golden list rather than a generated one: the point is to
 make a change *deliberate*, and a test that regenerates its own expectation
 cannot do that.
@@ -74,7 +74,7 @@ What is promised:
   diffable.
 
 What is **not** promised: exact wording. Treat responses as text for a model to
-read, not as a format to parse. `JADE_JSON=1` switches every response to JSON
+read, not as a format to parse. `ARNO_JSON=1` switches every response to JSON
 if you need something machine-readable; that JSON mirrors the Go structs in
 `internal/protocol/types.go` and is subject to the same stability table above.
 
@@ -91,42 +91,42 @@ if you need something machine-readable; that JSON mirrors the Go structs in
 
 ## The frozen surface
 
-31 tools. `cmd/jade-mcp/contract_test.go` is the authority; this table is for
+31 tools. `cmd/arno-mcp/contract_test.go` is the authority; this table is for
 reading.
 
 | Tool | Required arguments |
 |---|---|
-| `jade.apply` | `edits` |
-| `jade.changes` | — |
-| `jade.check` | — |
-| `jade.checkpoint` | — |
-| `jade.context` | `path` |
-| `jade.create_file` | `content`, `path` |
-| `jade.declare_command` | `name` |
-| `jade.delete_file` | `path` |
-| `jade.delete_symbol` | `path` |
-| `jade.diff` | — |
-| `jade.events` | — |
-| `jade.find` | — (`query` or `queries`, enforced by the server) |
-| `jade.grep` | — (`query` or `queries`, enforced by the server) |
-| `jade.history` | `path` |
-| `jade.insert` | `path`, `text` |
-| `jade.job_output` | `id` |
-| `jade.job_status` | `id` |
-| `jade.outline` | `path` |
-| `jade.read_range` | — (`path` or `ranges`, enforced by the server) |
-| `jade.references` | `path` |
-| `jade.rename` | `newName`, `path` |
-| `jade.replace_file` | `content`, `path` |
-| `jade.replace_symbol` | `newCode`, `symbolId` |
-| `jade.replace_text` | `newText`, `oldText`, `path` |
-| `jade.retrieve` | `query` |
-| `jade.revert` | `checkpointId` |
-| `jade.run_command` | — |
-| `jade.run_tests` | — |
-| `jade.capabilities` | — |
-| `jade.telemetry` | — |
-| `jade.workspace_tree` | — |
+| `arno.apply` | `edits` |
+| `arno.changes` | — |
+| `arno.check` | — |
+| `arno.checkpoint` | — |
+| `arno.context` | `path` |
+| `arno.create_file` | `content`, `path` |
+| `arno.declare_command` | `name` |
+| `arno.delete_file` | `path` |
+| `arno.delete_symbol` | `path` |
+| `arno.diff` | — |
+| `arno.events` | — |
+| `arno.find` | — (`query` or `queries`, enforced by the server) |
+| `arno.grep` | — (`query` or `queries`, enforced by the server) |
+| `arno.history` | `path` |
+| `arno.insert` | `path`, `text` |
+| `arno.job_output` | `id` |
+| `arno.job_status` | `id` |
+| `arno.outline` | `path` |
+| `arno.read_range` | — (`path` or `ranges`, enforced by the server) |
+| `arno.references` | `path` |
+| `arno.rename` | `newName`, `path` |
+| `arno.replace_file` | `content`, `path` |
+| `arno.replace_symbol` | `newCode`, `symbolId` |
+| `arno.replace_text` | `newText`, `oldText`, `path` |
+| `arno.retrieve` | `query` |
+| `arno.revert` | `checkpointId` |
+| `arno.run_command` | — |
+| `arno.run_tests` | — |
+| `arno.capabilities` | — |
+| `arno.telemetry` | — |
+| `arno.workspace_tree` | — |
 
 ## The edit contract
 
@@ -139,7 +139,7 @@ changing with it.
 
 | Guarantee | Held by |
 |---|---|
-| An edit given `expectedRevision` is refused if Jade's revision moved on | `TestApplyRejectsStaleRevision`, `TestReplaceSymbolRejectsStaleRevision` |
+| An edit given `expectedRevision` is refused if Arno's revision moved on | `TestApplyRejectsStaleRevision`, `TestReplaceSymbolRejectsStaleRevision` |
 | An edit given `expectedDigest` is refused if the file changed since that read, by anyone | `TestAnEditIsRefusedWhenTheFileChangedSinceItsRead` |
 | An anchor must match exactly once; an ambiguous one is refused | `TestReplaceTextRefusesAmbiguousAnchor`, `TestInsertRefusesAmbiguousAnchor`, `TestApplyRejectsAmbiguousAnchorBeforeWritingAnything` |
 | An anchor that is not there is refused | `TestReplaceTextRefusesMissingAnchor`, `TestInsertRefusesMissingAnchorText` |
@@ -180,7 +180,7 @@ changing with it.
 | All of the above hold together in one scripted session through the MCP transport | `TestTheChangeTransactionHoldsAcrossAScriptedSession` |
 
 Not guaranteed yet: that the revision also moves for changes made outside
-Jade or by another session — each session counts its own edits, and only the
+Arno or by another session — each session counts its own edits, and only the
 digest precondition sees the rest — and that `changes` attributes an edit to
 the session that made it.
 
@@ -210,7 +210,7 @@ are redundant.
 
 *Implemented in 0.0.5 for `grep`, `find`, `references`, `read_range` (and its
 `ranges`), `workspace_tree`, `history`, `diff` and
-`job_output`; `cmd/jade-mcp/contract_test.go` holds each to it.* `outline`
+`job_output`; `cmd/arno-mcp/contract_test.go` holds each to it.* `outline`
 stays whole — a file's declarations are a short list. `events` keeps its
 `after` cursor, which already continues. Two conventions that every list- or
 body-returning response will share. Both are additive: new optional
@@ -266,7 +266,7 @@ Tools whose answer has one possible source and cannot be partial — an exact
 `read_range` within budget, `diff`, `checkpoint` — carry no provenance.
 Edit responses keep `checked: <source>`, using the same source names.
 
-In `JADE_JSON=1` output both conventions are new fields — `Provenance`
+In `ARNO_JSON=1` output both conventions are new fields — `Provenance`
 (`Certainty`, `Source`, `Completeness`) and `Continue` — added to the
 response structs, not replacing any.
 
@@ -292,7 +292,7 @@ out in its release notes:
 
 | Surface | What is frozen |
 |---|---|
-| Tool names | Every tool in the 0.1.0 catalog, spelled `jade.<name>` or `jade_<name>` |
+| Tool names | Every tool in the 0.1.0 catalog, spelled `arno.<name>` or `arno_<name>` |
 | Arguments | Required arguments stay required and no optional argument becomes required |
 | Profiles | The names `core` and the full catalog, and that an unlisted tool stays callable |
 | Budgets | `budget` in tokens (four bytes each), cutting at whole items; `continue=<handle>` returning the next page; a handle refused after an edit |
@@ -302,14 +302,14 @@ out in its release notes:
 | The edit contract | Every guarantee in *The edit contract* above, with its test |
 
 Still free to change in 0.1.x: response wording and layout, symbol ID
-spelling, the `.jade/*` file formats (with migration), telemetry fields, and
+spelling, the `.arno/*` file formats (with migration), telemetry fields, and
 anything under `internal/`. New tools, new optional arguments, new provenance
 sources and new capability-report fields may be added.
 
 ## What is explicitly not frozen
 
 - **Response wording**, as above.
-- **`.jade/commands.json` and `.jade/telemetry.jsonl` formats.** Both are
+- **`.arno/commands.json` and `.arno/telemetry.jsonl` formats.** Both are
   local files, neither is a wire format, and telemetry in particular is
   expected to grow fields.
 - **Symbol ID spelling** (`path::Name@line`). Treat it as opaque and obtain it

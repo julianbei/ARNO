@@ -1,12 +1,12 @@
-// Package update tells a user that a newer Jade release exists without getting
+// Package update tells a user that a newer Arno release exists without getting
 // in their way.
 //
 // The rules that keep it quiet: nothing is fetched on the request path — a
 // notice is read from a cache, and the cache is refreshed at most once a day in
 // the background with a short timeout; a failed or offline check also waits a
 // day; and the notice appears only where someone asked what they are running,
-// `jade-mcp --version` and the capabilities report, never in the server
-// instructions an agent reads every session. JADE_UPDATE_CHECK=0, a CI
+// `arno-mcp --version` and the capabilities report, never in the server
+// instructions an agent reads every session. ARNO_UPDATE_CHECK=0, a CI
 // environment or a development build turn it off.
 //
 // The check is one unauthenticated GET of the latest release tag from GitHub.
@@ -26,11 +26,11 @@ import (
 
 const (
 	// DisableEnv set to 0 turns the check off.
-	DisableEnv = "JADE_UPDATE_CHECK"
-	// InstallCommand installs or updates Jade in place.
-	InstallCommand = "curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh"
+	DisableEnv = "ARNO_UPDATE_CHECK"
+	// InstallCommand installs or updates Arno in place.
+	InstallCommand = "curl -fsSL https://raw.githubusercontent.com/julianbei/arno/main/install.sh | sh"
 
-	latestURL    = "https://api.github.com/repos/julianbei/jade/releases/latest"
+	latestURL    = "https://api.github.com/repos/julianbei/arno/releases/latest"
 	checkEvery   = 24 * time.Hour
 	fetchTimeout = 3 * time.Second
 )
@@ -50,7 +50,7 @@ type Checker struct {
 func New(current string) *Checker {
 	path := ""
 	if dir, err := os.UserCacheDir(); err == nil && dir != "" {
-		path = filepath.Join(dir, "jade", "update-check.json")
+		path = filepath.Join(dir, "arno", "update-check.json")
 	}
 	return &Checker{
 		Current:   current,
@@ -112,7 +112,7 @@ func (c *Checker) fetch() (string, error) {
 		return "", err
 	}
 	request.Header.Set("Accept", "application/vnd.github+json")
-	request.Header.Set("User-Agent", "jade-mcp/"+c.Current)
+	request.Header.Set("User-Agent", "arno-mcp/"+c.Current)
 	response, err := c.Client.Do(request)
 	if err != nil {
 		return "", err

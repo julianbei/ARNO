@@ -8,13 +8,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // Section caps. Context is assembled for an agent about to act, not for a
 // reader browsing: a long list of marginal callers costs more than it
 // informs, and Phase 10's benchmark showed exactly what unbounded responses
-// do to jade's value. Every capped section reports its true total.
+// do to arno's value. Every capped section reports its true total.
 const (
 	maxContextCallers = 10
 	maxContextTests   = 10
@@ -31,7 +31,7 @@ var identifierPattern = regexp.MustCompile(`\b[A-Za-z_][A-Za-z0-9_]*\b`)
 // here is not new capability, it is the round trips removed: an agent asking
 // "I want to modify this function" otherwise issues read_symbol, references,
 // a test search, and a diagnostics check, then reconciles four responses
-// itself. This is the same progressive-disclosure move jade already makes
+// itself. This is the same progressive-disclosure move arno already makes
 // for outline(), applied across concepts instead of within one file.
 //
 // Purpose selects which sections are worth their tokens. It narrows; it

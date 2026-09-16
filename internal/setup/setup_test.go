@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/lsp"
+	"github.com/julianbei/arno/internal/lsp"
 )
 
 // fakeMachine has the tools named in available, and records what it ran.
@@ -170,7 +170,7 @@ func TestAnAgentCanReadStatusAndPreviewWithoutRunning(t *testing.T) {
 	}
 }
 
-// Every language Jade has a server for can be installed from the menu.
+// Every language Arno has a server for can be installed from the menu.
 func TestEveryLanguageServerIsInTheMenu(t *testing.T) {
 	covered := map[string]bool{}
 	for _, component := range LanguageServers() {

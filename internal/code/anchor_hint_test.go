@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/events"
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/events"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 const hintSource = `// DisplayName returns the name shown in help.

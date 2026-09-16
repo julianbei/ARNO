@@ -1,4 +1,4 @@
-// Package toolchain locates external developer tools jade shells out to.
+// Package toolchain locates external developer tools arno shells out to.
 package toolchain
 
 import (
@@ -20,7 +20,7 @@ var (
 // PATH alone is not enough: gopls is installed with
 // `go install golang.org/x/tools/gopls@latest`, which writes to GOBIN or
 // $GOPATH/bin, and neither is on PATH by default on a stock macOS or Linux
-// setup. Treating "not on PATH" as "not installed" makes jade report gopls
+// setup. Treating "not on PATH" as "not installed" makes arno report gopls
 // as unavailable on machines where the user has installed it exactly as the
 // Go documentation instructs — which is precisely what happened on this
 // repo's own development machine.

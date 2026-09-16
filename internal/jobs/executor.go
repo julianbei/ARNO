@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/julianbei/jade/internal/project"
+	"github.com/julianbei/arno/internal/project"
 )
 
 // goCommandsByKind maps a job kind to the "go" subcommand arguments that
@@ -126,7 +126,7 @@ func (r *Runner) RunValidationCommand(id string, dir string, kind string) {
 
 // projectEnv is the environment a developer's shell has in dir: the
 // repository's Python virtual environment activated and its local node
-// binaries on PATH. Nil, when there is neither, inherits jade's own.
+// binaries on PATH. Nil, when there is neither, inherits arno's own.
 //
 // Without it a Makefile `test: python -m pytest tests` — requests' — ran the
 // system python, which has neither the project nor pytest installed, and

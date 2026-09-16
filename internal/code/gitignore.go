@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/julianbei/jade/internal/project"
+	"github.com/julianbei/arno/internal/project"
 )
 
 // ignoreRefresh bounds how stale the ignore list may be. One walk asks for
@@ -23,7 +23,7 @@ type ignoreCache struct {
 	mu      sync.Mutex
 	loaded  time.Time
 	ignored map[string]bool
-	// config is the workspace's .jade/project.json, for its generated paths.
+	// config is the workspace's .arno/project.json, for its generated paths.
 	config *project.Config
 }
 

@@ -1,9 +1,9 @@
 // Package bench measures what it costs an agent to answer a question with
-// jade's tools versus with ordinary shell and file tools.
+// arno's tools versus with ordinary shell and file tools.
 //
 // # What this measures, and what it does not
 //
-// docs/scope.md §26 asks whether an agent using jade "completes real tasks more
+// docs/scope.md §26 asks whether an agent using arno "completes real tasks more
 // efficiently and reliably than shell/file tooling", and §42-43 lists
 // tokens, turns and success rate as the metrics. This harness measures the
 // first of those three, deterministically and without an LLM in the loop:
@@ -19,7 +19,7 @@
 // them.
 //
 // The honest reading of a result table is therefore: "answering this
-// question costs N tokens of context through jade and M through shell."
+// question costs N tokens of context through arno and M through shell."
 // That is a real, reproducible comparison, and it is the part of docs/scope.md's
 // question that can be answered without a benchmark agent.
 package bench
@@ -41,7 +41,7 @@ type Scenario struct {
 	// Question is the agent-level task, phrased as an agent would think of
 	// it rather than as a tool invocation.
 	Question string
-	Jade     Arm
+	Arno     Arm
 	Shell    Arm
 }
 
@@ -57,17 +57,17 @@ type ArmResult struct {
 type Result struct {
 	Name     string
 	Question string
-	Jade     ArmResult
+	Arno     ArmResult
 	Shell    ArmResult
 }
 
-// TokenRatio is jade's token cost as a multiple of shell's. Below 1.0 means
-// jade is cheaper. Returns 0 when shell produced nothing to compare against.
+// TokenRatio is arno's token cost as a multiple of shell's. Below 1.0 means
+// arno is cheaper. Returns 0 when shell produced nothing to compare against.
 func (r Result) TokenRatio() float64 {
 	if r.Shell.Tokens == 0 {
 		return 0
 	}
-	return float64(r.Jade.Tokens) / float64(r.Shell.Tokens)
+	return float64(r.Arno.Tokens) / float64(r.Shell.Tokens)
 }
 
 // EstimateTokens approximates tokens from bytes at the widely used ~4
@@ -91,7 +91,7 @@ func Run(scenarios []Scenario) []Result {
 		results = append(results, Result{
 			Name:     scenario.Name,
 			Question: scenario.Question,
-			Jade:     measure(scenario.Jade),
+			Arno:     measure(scenario.Arno),
 			Shell:    measure(scenario.Shell),
 		})
 	}
@@ -112,17 +112,17 @@ func measure(arm Arm) ArmResult {
 }
 
 // Report renders results as plain text. Deliberately not JSON: this output
-// is read by a person deciding whether jade is worth continuing, and it is
-// also the house style Phase 10 is moving every jade response toward.
+// is read by a person deciding whether arno is worth continuing, and it is
+// also the house style Phase 10 is moving every arno response toward.
 func Report(results []Result) string {
 	var b strings.Builder
 
-	b.WriteString("scenario                        jade      shell     ratio   calls (j/s)\n")
+	b.WriteString("scenario                        arno      shell     ratio   calls (j/s)\n")
 	b.WriteString("--------                        ----      -----     -----   -----------\n")
 
-	var totalJade, totalShell int
+	var totalArno, totalShell int
 	for _, r := range results {
-		totalJade += r.Jade.Tokens
+		totalArno += r.Arno.Tokens
 		totalShell += r.Shell.Tokens
 
 		ratio := "n/a"
@@ -132,18 +132,18 @@ func Report(results []Result) string {
 
 		b.WriteString(fmt.Sprintf("%-30s  %-9s %-9s %-7s %d/%d\n",
 			truncate(r.Name, 30),
-			tokensCell(r.Jade),
+			tokensCell(r.Arno),
 			tokensCell(r.Shell),
 			ratio,
-			r.Jade.Calls, r.Shell.Calls))
+			r.Arno.Calls, r.Shell.Calls))
 	}
 
 	b.WriteString("--------------------------------------------------------------------\n")
 	overall := "n/a"
 	if totalShell > 0 {
-		overall = fmt.Sprintf("%.2fx", float64(totalJade)/float64(totalShell))
+		overall = fmt.Sprintf("%.2fx", float64(totalArno)/float64(totalShell))
 	}
-	b.WriteString(fmt.Sprintf("%-30s  %-9d %-9d %-7s\n", "TOTAL", totalJade, totalShell, overall))
+	b.WriteString(fmt.Sprintf("%-30s  %-9d %-9d %-7s\n", "TOTAL", totalArno, totalShell, overall))
 	b.WriteString("\nTokens are estimated at ~4 chars/token and measure tool output only.\n")
 	b.WriteString("Turns and success rate are NOT measured here — both need a real agent.\n")
 
@@ -167,8 +167,8 @@ func tokensCell(r ArmResult) string {
 func collectErrors(results []Result) []string {
 	lines := make([]string, 0)
 	for _, r := range results {
-		if r.Jade.Err != nil {
-			lines = append(lines, fmt.Sprintf("%s [jade]: %v", r.Name, r.Jade.Err))
+		if r.Arno.Err != nil {
+			lines = append(lines, fmt.Sprintf("%s [arno]: %v", r.Name, r.Arno.Err))
 		}
 		if r.Shell.Err != nil {
 			lines = append(lines, fmt.Sprintf("%s [shell]: %v", r.Name, r.Shell.Err))

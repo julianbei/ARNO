@@ -35,11 +35,11 @@ func shortCommit(commit string) string {
 // movedPastCheckpoint refuses a revert when a commit has landed since the
 // checkpoint was taken.
 //
-// A checkpoint snapshots the files Jade had edited. Restoring that snapshot
+// A checkpoint snapshots the files Arno had edited. Restoring that snapshot
 // after a commit writes the pre-commit content back over files git now
 // considers committed — silently undoing work the user deliberately recorded,
 // with nothing in the response to say so. That is why agents avoided revert
-// entirely once commits were being made from the shell alongside Jade's
+// entirely once commits were being made from the shell alongside Arno's
 // revisions. Refusing, and saying why, makes the rule predictable: revert
 // works within the stretch of work since the last commit, and moving past a
 // commit is git's job.
@@ -53,7 +53,7 @@ func movedPastCheckpoint(id string, then string, now string) error {
 			id, shortCommit(now))
 	}
 	return fmt.Errorf("checkpoint %s was taken at commit %s, and HEAD is now %s: "+
-		"reverting would overwrite work committed since. Jade does not undo commits; "+
+		"reverting would overwrite work committed since. Arno does not undo commits; "+
 		"use git (git revert, git reset) to move past one, then checkpoint again",
 		id, shortCommit(then), shortCommit(now))
 }

@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/julianbei/jade/internal/code"
-	"github.com/julianbei/jade/internal/diagnostics"
-	"github.com/julianbei/jade/internal/edit"
-	"github.com/julianbei/jade/internal/events"
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/languages"
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/workspace"
+	"github.com/julianbei/arno/internal/code"
+	"github.com/julianbei/arno/internal/diagnostics"
+	"github.com/julianbei/arno/internal/edit"
+	"github.com/julianbei/arno/internal/events"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/languages"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/workspace"
 )
 
 // Server is the MCP transport facade around internal services.

@@ -8,7 +8,7 @@ import (
 )
 
 func TestLoadMissingRegistryIsEmptyNotAnError(t *testing.T) {
-	// Most repos will never declare commands, and jade has to work in one
+	// Most repos will never declare commands, and arno has to work in one
 	// that has not opted in.
 	registry, err := Load(t.TempDir())
 	if err != nil {

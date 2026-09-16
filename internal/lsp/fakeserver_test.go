@@ -9,7 +9,7 @@ import (
 
 // runFakeServer is a language server that misbehaves on purpose.
 //
-// Each script reproduces one failure jade has to survive. They are written
+// Each script reproduces one failure arno has to survive. They are written
 // here rather than mocked at the Client boundary because the behaviours worth
 // testing live in the framing and the read loop — a mock that returned canned
 // structs would assert nothing about either.
@@ -120,7 +120,7 @@ func runFakeServer(script string) {
 			}
 
 		case "custom/didYouAnswerMe":
-			// Ask jade something first, and only answer once jade answers.
+			// Ask arno something first, and only answer once arno answers.
 			// A client that ignores server-to-client requests never gets past
 			// this point, which is exactly the deadlock being tested for.
 			askParams, _ := json.Marshal(map[string]any{

@@ -16,8 +16,8 @@ const formatTimeout = 20 * time.Second
 // for a batch.
 //
 // Every edit path runs this, because formatting drift was invisible to
-// everything else jade reports: `go build`, `go vet` and `go test` all pass
-// on badly formatted code, so jade said "success" at every step while a
+// everything else arno reports: `go build`, `go vet` and `go test` all pass
+// on badly formatted code, so arno said "success" at every step while a
 // repository's formatting degraded through accumulated edits. Four files in
 // this repo had drifted out of gofmt shape before anyone noticed.
 //

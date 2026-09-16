@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/julianbei/jade/internal/code"
-	"github.com/julianbei/jade/internal/diagnostics"
-	"github.com/julianbei/jade/internal/edit"
-	"github.com/julianbei/jade/internal/events"
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/languages"
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/telemetry"
-	"github.com/julianbei/jade/internal/workspace"
+	"github.com/julianbei/arno/internal/code"
+	"github.com/julianbei/arno/internal/diagnostics"
+	"github.com/julianbei/arno/internal/edit"
+	"github.com/julianbei/arno/internal/events"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/languages"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/telemetry"
+	"github.com/julianbei/arno/internal/workspace"
 )
 
 // Server is a transport-neutral internal API surface for harness integrations.
@@ -62,7 +62,7 @@ func (s *Server) Start(context.Context) error {
 // symbol record, because the record has no receiver and the receiver is
 // usually the whole distinction. A read that fails degrades to no signature
 // rather than failing the response: a candidate list without signatures is
-// still exactly what jade returned before this existed.
+// still exactly what arno returned before this existed.
 func (s *Server) describeCandidates(candidates []code.Symbol) []protocol.SymbolCandidate {
 	out := make([]protocol.SymbolCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -326,7 +326,7 @@ func (s *Server) Rename(req protocol.RenameRequest) (protocol.EditResponse, erro
 
 // resolveSymbolID accepts either an exact symbol ID or a name, reporting
 // ambiguity with the candidate IDs so the caller can retry with one of
-// them rather than having jade pick arbitrarily.
+// them rather than having arno pick arbitrarily.
 func (s *Server) resolveSymbolID(path string, symbolID string, symbolName string) (string, error) {
 	if symbolID != "" {
 		return symbolID, nil
@@ -653,7 +653,7 @@ func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsRespons
 //
 // Computing one means parsing both the committed and working copy of every
 // changed file. On a branch with 88 changed files that measured at 704ms and
-// 4.6KB — roughly 35x the latency and 5x the bytes of any other jade call —
+// 4.6KB — roughly 35x the latency and 5x the bytes of any other arno call —
 // which telemetry surfaced on its first live session and sixteen tasks of
 // hand-written feedback never noticed.
 //

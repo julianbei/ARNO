@@ -1,20 +1,20 @@
 # External benchmark
 
-Does an agent with Jade get more done, at acceptable cost, than the same agent
-with a shell? The release plan's Phase 2 asks this of repositories Jade was
-not built in. `jade-bench agent` runs it.
+Does an agent with Arno get more done, at acceptable cost, than the same agent
+with a shell? The release plan's Phase 2 asks this of repositories Arno was
+not built in. `arno-bench agent` runs it.
 
 ## Method
 
 Each task runs once per arm, per repeat, in a fresh clone of the repository at
 a pinned commit:
 
-| Arm | Built-in tools | Jade MCP server |
+| Arm | Built-in tools | Arno MCP server |
 |---|---|---|
 | `shell` | all | no |
 | `shell-lean` | Bash, Read, Edit, Write | no |
-| `jade` | none | yes |
-| `jade+shell` | all | yes |
+| `arno` | none | yes |
+| `arno+shell` | all | yes |
 
 The agent is Claude Code headless. Every arm gets the same invocation except
 tools and MCP:
@@ -23,13 +23,13 @@ tools and MCP:
 claude -p "<task prompt>" --output-format json --no-session-persistence \
   --permission-mode bypassPermissions --setting-sources project \
   --strict-mcp-config --max-budget-usd <cap> --model sonnet \
-  --tools default|"Bash,Read,Edit,Write"|"" [--mcp-config <jade only>]
+  --tools default|"Bash,Read,Edit,Write"|"" [--mcp-config <arno only>]
 ```
 
 `shell-lean` exists because the tool list is resent on every turn. The pilot
 found that Claude Code's full built-in list is 38k tokens of prompt per turn and
-Jade's core profile 14k, so a comparison against `shell` alone cannot say how
-much of Jade's saving is its tools and how much is a shorter list.
+Arno's core profile 14k, so a comparison against `shell` alone cannot say how
+much of Arno's saving is its tools and how much is a shorter list.
 
 `--strict-mcp-config` keeps the operator's own MCP servers out, and
 `--setting-sources project` keeps user-level hooks and plugins out, so the
@@ -102,17 +102,17 @@ task measures nothing. Check both by hand when adding one.
 
 ```sh
 git clone https://github.com/spf13/cobra /bench/cobra
-jade-bench agent -tasks tasks/cobra.json -repo /bench/cobra \
+arno-bench agent -tasks tasks/cobra.json -repo /bench/cobra \
   -model sonnet -budget 50 -per-run 2 -repeats 1 -out results.jsonl
 ```
 
-**Agents run with permissions bypassed**, so `jade-bench agent` refuses to run
-unless `JADE_BENCH_SANDBOX=1` is set (the benchmark container) or `-allow-host`
+**Agents run with permissions bypassed**, so `arno-bench agent` refuses to run
+unless `ARNO_BENCH_SANDBOX=1` is set (the benchmark container) or `-allow-host`
 is passed. Only use `-allow-host` on a machine where an agent running arbitrary
 shell commands can do no harm.
 
 Results of the 0.0.4 pilot: [benchmark-results.md](benchmark-results.md).
 
 The report prints per arm: runs, success rate, mean tokens, turns, cost,
-seconds, lines and files changed, agent errors — then each Jade arm's
+seconds, lines and files changed, agent errors — then each Arno arm's
 scorecard verdict against `shell`.

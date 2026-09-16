@@ -1,30 +1,42 @@
 #!/bin/sh
-# Install jade-mcp from a GitHub release.
+# Install arno-mcp from a GitHub release.
 #
-#   curl -fsSL https://raw.githubusercontent.com/julianbei/jade/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/julianbei/arno/main/install.sh | sh
 #
 # Picks the build for this OS and CPU, verifies it against the release's
 # checksums.txt and installs it without sudo: /usr/local/bin when that is
-# writable, ~/.local/bin otherwise. Run it again to update: a jade-mcp already
+# writable, ~/.local/bin otherwise. Run it again to update: a arno-mcp already
 # on PATH is replaced where it is, and one already at the release is left alone.
 #
-# JADE_VERSION      a release tag, e.g. v0.0.8 (default: the latest release)
-# JADE_INSTALL_DIR  where to put jade-mcp
-# JADE_RELEASE_URL  base URL of the releases, for mirrors and tests
-# JADE_SERVERS      language servers to install afterwards without a menu:
+# ARNO_VERSION      a release tag, e.g. v0.0.8 (default: the latest release)
+# ARNO_INSTALL_DIR  where to put arno-mcp
+# ARNO_RELEASE_URL  base URL of the releases, for mirrors and tests
+# ARNO_SERVERS      language servers to install afterwards without a menu:
 #                   go,java,scala,typescript,python,rust,ruby, or all
-# JADE_SKIP_SETUP   set to skip the language-server step
-# JADE_ADD_TO_PATH  1 adds the install directory to the shell profile without asking
+# ARNO_SKIP_SETUP   set to skip the language-server step
+# ARNO_ADD_TO_PATH  1 adds the install directory to the shell profile without asking
 set -eu
 
-repo="julianbei/jade"
-version="${JADE_VERSION:-}"
-base="${JADE_RELEASE_URL:-https://github.com/$repo/releases/download}"
-install_dir="${JADE_INSTALL_DIR:-}"
+# Jade's variables keep working for one release. The new name always wins.
+for name in VERSION INSTALL_DIR RELEASE_URL SERVERS SKIP_SETUP ADD_TO_PATH; do
+	eval "current=\${ARNO_$name:-}"
+	eval "legacy=\${JADE_$name:-}"
+	if [ -z "$current" ] && [ -n "$legacy" ]; then
+		eval "ARNO_$name=\$legacy"
+		export "ARNO_$name"
+		printf 'arno: JADE_%s is deprecated, use ARNO_%s\n' "$name" "$name" >&2
+	fi
+done
+unset current legacy
 
-say() { printf 'jade: %s\n' "$*"; }
+repo="julianbei/arno"
+version="${ARNO_VERSION:-}"
+base="${ARNO_RELEASE_URL:-https://github.com/$repo/releases/download}"
+install_dir="${ARNO_INSTALL_DIR:-}"
+
+say() { printf 'arno: %s\n' "$*"; }
 fail() {
-	printf 'jade: %s\n' "$*" >&2
+	printf 'arno: %s\n' "$*" >&2
 	exit 1
 }
 need() { command -v "$1" >/dev/null 2>&1 || fail "$1 is required"; }
@@ -50,27 +62,27 @@ esac
 if [ -z "$version" ]; then
 	version=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" |
 		sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)
-	[ -n "$version" ] || fail "could not look up the latest release; set JADE_VERSION, e.g. JADE_VERSION=v0.0.8"
+	[ -n "$version" ] || fail "could not look up the latest release; set ARNO_VERSION, e.g. ARNO_VERSION=v0.0.8"
 fi
 
 existing=""
 if [ -n "$install_dir" ]; then
-	if [ -x "$install_dir/jade-mcp" ]; then existing="$install_dir/jade-mcp"; fi
+	if [ -x "$install_dir/arno-mcp" ]; then existing="$install_dir/arno-mcp"; fi
 else
-	existing=$(command -v jade-mcp 2>/dev/null || true)
+	existing=$(command -v arno-mcp 2>/dev/null || true)
 	if [ -n "$existing" ]; then install_dir=$(dirname "$existing"); fi
 fi
 current=""
 if [ -n "$existing" ]; then
 	current=$("$existing" --version 2>/dev/null | awk 'NR == 1 { print $2 }')
 	if [ "$current" = "$version" ]; then
-		say "jade-mcp $version is already installed at $existing"
+		say "arno-mcp $version is already installed at $existing"
 		exit 0
 	fi
-	[ -w "$install_dir" ] || fail "$existing is not writable; re-run with sudo, or set JADE_INSTALL_DIR to install elsewhere"
+	[ -w "$install_dir" ] || fail "$existing is not writable; re-run with sudo, or set ARNO_INSTALL_DIR to install elsewhere"
 fi
 
-name="jade-mcp_${version}_${os}_${arch}"
+name="arno-mcp_${version}_${os}_${arch}"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
@@ -101,18 +113,18 @@ if [ -z "$install_dir" ]; then
 	fi
 fi
 mkdir -p "$install_dir"
-mv "$tmp/$name" "$install_dir/jade-mcp"
-chmod 755 "$install_dir/jade-mcp"
+mv "$tmp/$name" "$install_dir/arno-mcp"
+chmod 755 "$install_dir/arno-mcp"
 
-installed=$("$install_dir/jade-mcp" --version 2>/dev/null | awk 'NR == 1 { print $2 }')
+installed=$("$install_dir/arno-mcp" --version 2>/dev/null | awk 'NR == 1 { print $2 }')
 [ -n "$installed" ] || installed="$version"
 if [ -n "$current" ]; then
-	say "updated jade-mcp ${current:-unknown} -> $installed in $install_dir; reconnect your MCP client (/mcp in Claude Code) to use it"
+	say "updated arno-mcp ${current:-unknown} -> $installed in $install_dir; reconnect your MCP client (/mcp in Claude Code) to use it"
 else
-	say "installed jade-mcp $installed to $install_dir/jade-mcp"
+	say "installed arno-mcp $installed to $install_dir/arno-mcp"
 fi
-# Not on PATH means `jade-mcp` is "command not found" right after installing.
-# At a terminal, offer to add it to the shell profile; JADE_ADD_TO_PATH=1 does
+# Not on PATH means `arno-mcp` is "command not found" right after installing.
+# At a terminal, offer to add it to the shell profile; ARNO_ADD_TO_PATH=1 does
 # it without asking. The line is added once, and marked.
 case ":$PATH:" in
 *":$install_dir:"*) ;;
@@ -123,16 +135,16 @@ case ":$PATH:" in
 	*) profile="" ;;
 	esac
 	line="export PATH=\"$install_dir:\$PATH\""
-	add="${JADE_ADD_TO_PATH:-}"
+	add="${ARNO_ADD_TO_PATH:-}"
 	if [ -z "$add" ] && [ -n "$profile" ] && [ -t 1 ] && { : </dev/tty; } 2>/dev/null; then
-		printf 'jade: %s is not on PATH. Add it in %s? [Y/n] ' "$install_dir" "$profile"
+		printf 'arno: %s is not on PATH. Add it in %s? [Y/n] ' "$install_dir" "$profile"
 		answer=n
 		read -r answer </dev/tty || answer=n
 		case "$answer" in "" | y | Y | yes) add=1 ;; esac
 	fi
 	if [ "$add" = 1 ] && [ -n "$profile" ]; then
 		if ! grep -qsF "$line" "$profile"; then
-			printf '\n# added by the Jade installer\n%s\n' "$line" >>"$profile"
+			printf '\n# added by the Arno installer\n%s\n' "$line" >>"$profile"
 		fi
 		say "added $install_dir to PATH in $profile; open a new terminal, or run: $line"
 	else
@@ -140,9 +152,9 @@ case ":$PATH:" in
 	fi
 	;;
 esac
-say "in your MCP client config, use this command: $install_dir/jade-mcp"
+say "in your MCP client config, use this command: $install_dir/arno-mcp"
 
-# has_setup reports whether a release has `jade-mcp install`, added after
+# has_setup reports whether a release has `arno-mcp install`, added after
 # v0.0.8. An older binary would take the word for a server start and wait on
 # the terminal for protocol messages.
 has_setup() {
@@ -152,21 +164,21 @@ has_setup() {
 # After a first install, offer the language-server menu when someone is at a
 # terminal to answer it; curl | sh keeps stdin for the script, so the menu
 # reads the terminal directly.
-servers="${JADE_SERVERS:-}"
-if [ -n "${JADE_SKIP_SETUP:-}" ]; then
+servers="${ARNO_SERVERS:-}"
+if [ -n "${ARNO_SKIP_SETUP:-}" ]; then
 	:
 elif [ -n "$servers" ] && has_setup "$installed"; then
 	# Chosen up front, by a person or an agent: no menu, no questions.
 	if [ "$servers" = "all" ]; then
-		"$install_dir/jade-mcp" install --all || say "some language servers did not install; see above"
+		"$install_dir/arno-mcp" install --all || say "some language servers did not install; see above"
 	else
-		"$install_dir/jade-mcp" install --servers "$servers" || say "some language servers did not install; see above"
+		"$install_dir/arno-mcp" install --servers "$servers" || say "some language servers did not install; see above"
 	fi
 elif [ -z "$current" ] && has_setup "$installed" && [ -t 1 ] && { : </dev/tty; } 2>/dev/null; then
-	"$install_dir/jade-mcp" install </dev/tty || say "language server setup did not finish; run jade-mcp install any time"
+	"$install_dir/arno-mcp" install </dev/tty || say "language server setup did not finish; run arno-mcp install any time"
 elif has_setup "$installed"; then
-	say "add language servers any time: jade-mcp install (menu), or jade-mcp install --list --json and --servers go,java"
+	say "add language servers any time: arno-mcp install (menu), or arno-mcp install --list --json and --servers go,java"
 else
-	say "language servers: https://github.com/$repo#trying-jade-a-guide-for-testers"
+	say "language servers: https://github.com/$repo#trying-arno-a-guide-for-testers"
 fi
-say "next: https://github.com/$repo#trying-jade-a-guide-for-testers"
+say "next: https://github.com/$repo#trying-arno-a-guide-for-testers"

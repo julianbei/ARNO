@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/jade/internal/code"
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/pathguard"
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/code"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/pathguard"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // Apply performs several edits as one unit: all of them land, or none do.
 //
-// jade edits one site per call, and adding a single tool to this repository
+// arno edits one site per call, and adding a single tool to this repository
 // touches six files. That made every such task cost six calls and six
 // revision round trips, so the work got scripted in `python3` instead —
 // bypassing revision checks entirely. That fallback caused the only outage

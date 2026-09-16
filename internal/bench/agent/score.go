@@ -32,10 +32,10 @@ type ArmSummary struct {
 	MeanFilesChanged float64
 }
 
-// Summarize aggregates results per arm, in shell, jade, jade+shell order.
+// Summarize aggregates results per arm, in shell, arno, arno+shell order.
 func Summarize(results []RunResult) []ArmSummary {
 	var summaries []ArmSummary
-	for _, arm := range []Arm{ArmShell, ArmJade, ArmJadeShell} {
+	for _, arm := range []Arm{ArmShell, ArmArno, ArmArnoShell} {
 		summary := ArmSummary{Arm: arm}
 		for _, result := range results {
 			if result.Arm != arm {

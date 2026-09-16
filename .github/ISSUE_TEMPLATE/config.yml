@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Trying Jade? Start with the tester guide
-    url: https://github.com/julianbei/jade#trying-jade-a-guide-for-testers
+  - name: Trying Arno? Start with the tester guide
+    url: https://github.com/julianbei/arno#trying-arno-a-guide-for-testers
     about: Setup for Go, Java and Scala, what to try in the first sessions, and which report to file.
-  - name: What makes a useful jade report
-    url: https://github.com/julianbei/jade/blob/main/docs/reporting.md
+  - name: What makes a useful arno report
+    url: https://github.com/julianbei/arno/blob/main/docs/reporting.md
     about: Two minutes of reading that will save a round trip on your issue.

@@ -1,11 +1,11 @@
-// Package conformance drives jade the way a client does — a real jade-mcp
+// Package conformance drives arno the way a client does — a real arno-mcp
 // process, real MCP framing over stdio, real language servers — against one
 // small repository per supported language.
 //
 // It exists because the unit tests cannot answer the question that matters.
-// They prove jade's own logic; they cannot prove that pyright resolves a
+// They prove arno's own logic; they cannot prove that pyright resolves a
 // Python reference, that jdtls starts at all, or that a rename written by a
-// server jade has never run against lands correctly on disk. Every one of
+// server arno has never run against lands correctly on disk. Every one of
 // those has to be found against the real thing, and the only honest way to
 // have the real thing on hand is a container that installs it.
 //
@@ -56,12 +56,12 @@ type languageCase struct {
 
 	// renameLimitation records a server that advertises renameProvider but
 	// cannot actually rename this kind of symbol. Recorded rather than
-	// skipped: the assertion becomes "jade reports the limitation
+	// skipped: the assertion becomes "arno reports the limitation
 	// accurately", which is the behaviour that matters when a server
 	// declines. Empty means rename is expected to work.
 	renameLimitation string
 
-	// answerBudget bounds the time from starting jade to the first exact
+	// answerBudget bounds the time from starting arno to the first exact
 	// references answer: server start, indexing and the answer itself. About
 	// three times the 2026-09-14 container baseline, so noise passes and a
 	// release that makes a server markedly slower to start fails.
@@ -102,7 +102,7 @@ func cases() []languageCase {
 			// ruby-lsp 0.26 renames classes and modules but returns null for
 			// a method, even fully indexed. The image also has solargraph,
 			// which renames methods, so this case proves the fallback: the
-			// primary declines, jade asks the alternative, both files change.
+			// primary declines, arno asks the alternative, both files change.
 		},
 		{
 			name: "rust", dir: "rust", file: "src/lib.rs", symbol: "put",
@@ -125,10 +125,10 @@ func cases() []languageCase {
 	}
 }
 
-// TestStructure covers what jade does with nothing installed. Grammars are
-// compiled into the binary, so a failure here is jade's alone.
+// TestStructure covers what arno does with nothing installed. Grammars are
+// compiled into the binary, so a failure here is arno's alone.
 func TestStructure(t *testing.T) {
-	binary := jadeBinary(t)
+	binary := arnoBinary(t)
 
 	for _, tc := range cases() {
 		t.Run(tc.name, func(t *testing.T) {
@@ -136,7 +136,7 @@ func TestStructure(t *testing.T) {
 			session := newSession(t, binary, root)
 			defer session.close()
 
-			out := session.call(t, "jade.outline", map[string]any{"path": tc.file})
+			out := session.call(t, "arno.outline", map[string]any{"path": tc.file})
 
 			if strings.Contains(out, "no "+tc.name+" grammar") {
 				t.Fatalf("%s should be parsed by a grammar, got a text-scan caveat:\n%s", tc.name, out)
@@ -154,7 +154,7 @@ func TestStructure(t *testing.T) {
 // cross-file rename. Skipped per language when the server is not installed,
 // which is the whole reason the container exists.
 func TestSemantics(t *testing.T) {
-	binary := jadeBinary(t)
+	binary := arnoBinary(t)
 
 	for _, tc := range cases() {
 		t.Run(tc.name, func(t *testing.T) {
@@ -169,18 +169,18 @@ func TestSemantics(t *testing.T) {
 
 			// A server indexes before it can answer, so retry rather than
 			// sleeping a guessed amount. The failure being guarded against is
-			// a flaky "0 references" that looks like a jade bug.
+			// a flaky "0 references" that looks like a arno bug.
 			var references string
 			deadline := time.Now().Add(serverDeadline)
 			for time.Now().Before(deadline) {
-				references = session.call(t, "jade.references", map[string]any{
+				references = session.call(t, "arno.references", map[string]any{
 					"path": tc.file, "symbolName": tc.symbol,
 				})
 				// Match the wording the renderer actually produces. An earlier
 				// version looked for "(approximate" with a leading paren,
 				// which never matched "2 approximate references" — so the
 				// retry never fired and every language that needed a moment
-				// to index was reported as a jade failure at 0.3s.
+				// to index was reported as a arno failure at 0.3s.
 				if strings.Contains(references, "approximate") || strings.Contains(references, "0 references") {
 					time.Sleep(3 * time.Second)
 					continue
@@ -203,20 +203,20 @@ func TestSemantics(t *testing.T) {
 					tc.name, references)
 			}
 
-			renameOut := session.call(t, "jade.rename", map[string]any{
+			renameOut := session.call(t, "arno.rename", map[string]any{
 				"path": tc.file, "symbolName": tc.symbol, "newName": tc.renamed,
 			})
 
 			if tc.renameLimitation != "" {
-				// The server declined. jade must name the server and repeat
+				// The server declined. arno must name the server and repeat
 				// its reason, never claim no server is available — that
 				// sends someone to install what they already have.
 				if !strings.Contains(renameOut, tc.renameLimitation) {
-					t.Fatalf("%s: expected jade to report the server's own reason (%q), got:\n%s",
+					t.Fatalf("%s: expected arno to report the server's own reason (%q), got:\n%s",
 						tc.name, tc.renameLimitation, renameOut)
 				}
 				if strings.Contains(renameOut, "none is available") {
-					t.Fatalf("%s: jade blamed a missing server for a running one's refusal:\n%s",
+					t.Fatalf("%s: arno blamed a missing server for a running one's refusal:\n%s",
 						tc.name, renameOut)
 				}
 				return
@@ -242,17 +242,17 @@ func TestSemantics(t *testing.T) {
 }
 
 // TestDegraded is every language again with its language server hidden: an
-// empty PATH and home, so neither PATH nor the toolchain directories jade
+// empty PATH and home, so neither PATH nor the toolchain directories arno
 // searches can find one. It runs without the container. What it proves is
 // that a missing server is reported as missing — by the capability report
 // and in the fallback answer itself — rather than silently answered by name
 // matching.
 func TestDegraded(t *testing.T) {
-	binary := jadeBinary(t)
+	binary := arnoBinary(t)
 	empty := t.TempDir()
 	env := []string{
 		"PATH=" + empty, "HOME=" + empty, "GOPATH=" + empty, "GOBIN=",
-		"CARGO_HOME=" + empty, "XDG_CONFIG_HOME=" + empty, "JADE_TELEMETRY=0",
+		"CARGO_HOME=" + empty, "XDG_CONFIG_HOME=" + empty, "ARNO_TELEMETRY=0",
 	}
 
 	for _, tc := range cases() {
@@ -261,12 +261,12 @@ func TestDegraded(t *testing.T) {
 			session := newSessionWithEnv(t, binary, root, env)
 			defer session.close()
 
-			capabilities := session.call(t, "jade.capabilities", map[string]any{})
+			capabilities := session.call(t, "arno.capabilities", map[string]any{})
 			if !strings.Contains(capabilities, "no server ("+tc.server+" not installed)") {
 				t.Fatalf("%s: capabilities should report %s as not installed, got:\n%s", tc.name, tc.server, capabilities)
 			}
 
-			references := session.call(t, "jade.references", map[string]any{"path": tc.file, "symbolName": tc.symbol})
+			references := session.call(t, "arno.references", map[string]any{"path": tc.file, "symbolName": tc.symbol})
 			if !strings.Contains(references, "approximate · text index") {
 				t.Fatalf("%s: references without a server should say it is approximate, got:\n%s", tc.name, references)
 			}
@@ -284,7 +284,7 @@ const serverDeadline = 90 * time.Second
 // hypothetical distinction: rustup puts a `rust-analyzer` shim on PATH whose
 // only behaviour is to report "Unknown binary in official toolchain" unless
 // the component is installed. LookPath finds it, so a test keyed on presence
-// alone tries to use it and reports a jade failure for someone else's
+// alone tries to use it and reports a arno failure for someone else's
 // packaging.
 //
 // Servers absent from this list are assumed usable if present. jdtls and
@@ -330,7 +330,7 @@ func firstLine(text string) string {
 
 // --- harness ---------------------------------------------------------------
 
-// session is one jade-mcp process speaking MCP over stdio. Reused across calls
+// session is one arno-mcp process speaking MCP over stdio. Reused across calls
 // within a test so language servers stay warm, which is also the behaviour
 // worth exercising: a fresh process per call would never test reuse.
 type session struct {
@@ -345,7 +345,7 @@ func newSession(t *testing.T, binary string, root string) *session {
 	return newSessionWithEnv(t, binary, root, nil)
 }
 
-// newSessionWithEnv starts jade with env as its whole environment, or the
+// newSessionWithEnv starts arno with env as its whole environment, or the
 // test's own when env is nil.
 func newSessionWithEnv(t *testing.T, binary string, root string, env []string) *session {
 	t.Helper()
@@ -442,7 +442,7 @@ func (s *session) notify(t *testing.T, method string, params any) {
 //
 // MCP over stdio is newline-delimited JSON, not the Content-Length framing LSP
 // uses — the two protocols are both JSON-RPC and are easy to confuse, and
-// jade's server tolerates stray header lines by skipping what it cannot parse,
+// arno's server tolerates stray header lines by skipping what it cannot parse,
 // so a client that sends the wrong framing appears to work and then hangs
 // waiting for a reply in a shape it is not reading.
 func (s *session) write(t *testing.T, payload any) {
@@ -521,20 +521,20 @@ func fixtureCopy(t *testing.T, name string) string {
 	return destination
 }
 
-// jadeBinary locates the jade-mcp binary under test, building it if needed so
+// arnoBinary locates the arno-mcp binary under test, building it if needed so
 // the suite works from a clean checkout.
-func jadeBinary(t *testing.T) string {
+func arnoBinary(t *testing.T) string {
 	t.Helper()
 
-	if path := os.Getenv("JADE_MCP_BINARY"); path != "" {
+	if path := os.Getenv("ARNO_MCP_BINARY"); path != "" {
 		return path
 	}
 
-	binary := filepath.Join(t.TempDir(), "jade-mcp")
-	build := exec.Command("go", "build", "-o", binary, "../../cmd/jade-mcp")
+	binary := filepath.Join(t.TempDir(), "arno-mcp")
+	build := exec.Command("go", "build", "-o", binary, "../../cmd/arno-mcp")
 	build.Stderr = os.Stderr
 	if err := build.Run(); err != nil {
-		t.Fatalf("build jade-mcp: %v", err)
+		t.Fatalf("build arno-mcp: %v", err)
 	}
 	return binary
 }

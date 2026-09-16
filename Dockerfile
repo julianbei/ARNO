@@ -1,17 +1,17 @@
-# Build jade-mcp for use inside another project's container.
+# Build arno-mcp for use inside another project's container.
 #
-# Jade is not a service — it is a stdio MCP server that an agent harness
+# Arno is not a service — it is a stdio MCP server that an agent harness
 # spawns as a child process. So this image exists to *produce the binary*,
 # not to run as a long-lived container. The intended use is a build stage:
 #
-#   COPY --from=ghcr.io/julianbei/jade-mcp:v0.0.1 /jade-mcp /usr/local/bin/jade-mcp
+#   COPY --from=ghcr.io/julianbei/arno-mcp:v0.0.1 /arno-mcp /usr/local/bin/arno-mcp
 #
 # Running the image directly starts the server on stdio, which is only useful
 # if you are attaching an MCP client to the container's stdin/stdout.
 
 FROM golang:1.24-alpine AS build
 
-# tree-sitter's Go binding is cgo, so a C toolchain is required — jade cannot
+# tree-sitter's Go binding is cgo, so a C toolchain is required — arno cannot
 # be built with CGO_ENABLED=0. git is for the version stamp fallback.
 RUN apk add --no-cache build-base git
 
@@ -33,10 +33,10 @@ ARG VERSION
 RUN VERSION="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo dev)}" && \
     CGO_ENABLED=1 go build -trimpath \
         -ldflags "-s -w -linkmode external -extldflags '-static' -X main.version=${VERSION}" \
-        -o /jade-mcp ./cmd/jade-mcp && \
-    /jade-mcp --version
+        -o /arno-mcp ./cmd/arno-mcp && \
+    /arno-mcp --version
 
-# Runtime stage. Distroless static: jade shells out to git, gopls and the
+# Runtime stage. Distroless static: arno shells out to git, gopls and the
 # project's own build tools when they exist, and degrades with an explicit
 # message when they do not — so a minimal image is a usable image, just with
 # `references`/`rename` in their textual fallback and `changes`/`diff` off.
@@ -44,13 +44,13 @@ RUN VERSION="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || ec
 FROM gcr.io/distroless/static-debian12:nonroot
 
 # Proves to the official MCP Registry that this image belongs to the server
-# published there as io.github.julianbei/jade (see docs/mcp-registry.md).
-LABEL io.modelcontextprotocol.server.name="io.github.julianbei/jade"
+# published there as io.github.julianbei/arno (see docs/mcp-registry.md).
+LABEL io.modelcontextprotocol.server.name="io.github.julianbei/arno"
 
-COPY --from=build /jade-mcp /jade-mcp
+COPY --from=build /arno-mcp /arno-mcp
 
-# JADE_WORKSPACE_ROOT is the repository jade inspects. Mount it here.
-ENV JADE_WORKSPACE_ROOT=/workspace
+# ARNO_WORKSPACE_ROOT is the repository arno inspects. Mount it here.
+ENV ARNO_WORKSPACE_ROOT=/workspace
 WORKDIR /workspace
 
-ENTRYPOINT ["/jade-mcp"]
+ENTRYPOINT ["/arno-mcp"]

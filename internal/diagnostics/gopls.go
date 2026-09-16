@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/toolchain"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/toolchain"
 )
 
 // goplsCheckTimeout bounds how long a single gopls check may run so it

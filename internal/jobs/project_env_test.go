@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/julianbei/jade/internal/events"
+	"github.com/julianbei/arno/internal/events"
 )
 
 func TestProjectEnvActivatesVirtualEnvAndNodeBinaries(t *testing.T) {

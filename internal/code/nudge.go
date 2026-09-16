@@ -7,16 +7,16 @@ import (
 )
 
 // SearchNudge implements the search-nudge idea: rather than trying to make
-// an agent choose jade's search tool over a shell grep/find call,
+// an agent choose arno's search tool over a shell grep/find call,
 // piggyback a few relevant index hits onto the tool call it already made.
 //
-// jade is an MCP server, not the agent harness, so it cannot itself observe
+// arno is an MCP server, not the agent harness, so it cannot itself observe
 // or intercept a Bash/Grep/Glob tool call — that interception has to happen
-// in the harness (e.g. a PostToolUse hook). What jade *can* do, and what
+// in the harness (e.g. a PostToolUse hook). What arno *can* do, and what
 // this provides, is the reusable piece: given the raw command string the
 // harness already saw, decide whether a nudge is warranted and produce the
 // footer text to append. A harness integration calls this (e.g. via the
-// jade.search_nudge MCP tool) after a matching shell command; jade never
+// arno.search_nudge MCP tool) after a matching shell command; arno never
 // sees or needs to see the tool call itself.
 const (
 	nudgeMinOutputChars = 1200
@@ -59,7 +59,7 @@ func (i *Index) SearchNudge(command string, outputLength int, firstInSession boo
 	for _, hit := range resp.Hits {
 		lines = append(lines, fmt.Sprintf("%s:%d-%d", hit.Path, hit.StartLine, hit.EndLine))
 	}
-	return fmt.Sprintf("jade index hits for %q:\n%s", query, strings.Join(lines, "\n")), true
+	return fmt.Sprintf("arno index hits for %q:\n%s", query, strings.Join(lines, "\n")), true
 }
 
 // locateQuery extracts the search pattern from a shell command that invokes

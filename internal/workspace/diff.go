@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/textutil"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/textutil"
 )
 
 // maxDiffBytes bounds a returned patch for the same reason 8.1 bounds job
 // output: this repository's own working diff is already over 8,000 lines, so
-// an unbounded diff() would be the single largest response jade can produce.
+// an unbounded diff() would be the single largest response arno can produce.
 const maxDiffBytes = 8000
 
 // Diff returns the actual patch text for the workspace or one target path —

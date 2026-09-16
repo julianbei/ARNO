@@ -1,7 +1,7 @@
-// Package render turns jade's typed responses into plain text for the MCP
+// Package render turns arno's typed responses into plain text for the MCP
 // transport.
 //
-// The consumer of every jade response is a language model, not a parser. MCP
+// The consumer of every arno response is a language model, not a parser. MCP
 // already delivers tool results as text content, so JSON is a serialization
 // tax paid on every call: braces, quotes, repeated field names, indentation,
 // and nulls for fields nobody populated. The 8.3 benchmark measured that tax
@@ -27,7 +27,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // Text renders a known response type. The bool reports whether a renderer
@@ -191,7 +191,7 @@ func inspect(r protocol.InspectResponse) string {
 	}
 	// Freshness appears on a read only when it is broken. A drift count was
 	// printed on every read — `r34 · drifted: 6 files` — and no read can act
-	// on it: the files changed outside Jade (a build, git, another process)
+	// on it: the files changed outside Arno (a build, git, another process)
 	// and the content returned is already current. `changes` reports what
 	// moved for anyone who needs it.
 	if r.Freshness.Unknown != "" {
@@ -356,7 +356,7 @@ const maxRenderedSymbolChanges = 40
 // maxRenderedChangedFiles bounds the file list. Symbols were capped from the
 // start but the file list never was, so a branch with 88 changed files printed
 // all 88 — the single largest contributor to changes() being the most
-// expensive call jade makes.
+// expensive call arno makes.
 const maxRenderedChangedFiles = 40
 
 func changes(r protocol.ChangesResponse) string {
@@ -480,7 +480,7 @@ func capabilities(r protocol.CapabilitiesResponse) string {
 			}
 			parts = append(parts, "server "+language.Server+" ("+state+")")
 		case language.MissingServer != "":
-			parts = append(parts, "no server ("+language.MissingServer+" not installed) · rename refused · install: jade-mcp install --servers "+installKey(language.Language))
+			parts = append(parts, "no server ("+language.MissingServer+" not installed) · rename refused · install: arno-mcp install --servers "+installKey(language.Language))
 		default:
 			parts = append(parts, "no server known")
 		}
@@ -507,7 +507,7 @@ func capabilities(r protocol.CapabilitiesResponse) string {
 		lines = append(lines, fmt.Sprintf("%s: %s", validation.Kind, validation.Command))
 	}
 	if len(r.Validation) == 0 {
-		lines = append(lines, "build, typecheck, tests: none discovered — declare them in .jade/project.json")
+		lines = append(lines, "build, typecheck, tests: none discovered — declare them in .arno/project.json")
 	}
 	if len(r.Commands) > 0 {
 		lines = append(lines, "declared commands: "+strings.Join(r.Commands, ", "))
@@ -521,7 +521,7 @@ func capabilities(r protocol.CapabilitiesResponse) string {
 	return strings.Join(lines, "\n")
 }
 
-// installKey is the `jade-mcp install --servers` name for a language's server.
+// installKey is the `arno-mcp install --servers` name for a language's server.
 // TSX and JavaScript share TypeScript's.
 func installKey(language string) string {
 	switch language {
@@ -584,7 +584,7 @@ func edit(r protocol.EditResponse) string {
 	// Job IDs are not rendered. Every edit starts a background typecheck, and
 	// its ID appeared on every response while its result was never seen
 	// unless it failed — and the edited file's own errors are already the
-	// diagnostic lines above. The IDs remain in JADE_JSON output for
+	// diagnostic lines above. The IDs remain in ARNO_JSON output for
 	// integrations that follow the event stream.
 	return strings.Join(lines, "\n")
 }

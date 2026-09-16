@@ -77,7 +77,7 @@ type Client struct {
 
 	// capabilities is what the server said it supports, recorded at
 	// initialize. Asking for an unsupported feature costs a round trip and
-	// returns an error that reads like a jade bug rather than an absent one.
+	// returns an error that reads like a arno bug rather than an absent one.
 	capabilities map[string]json.RawMessage
 
 	// progress tracks work-done tokens the server has begun and not ended.
@@ -113,7 +113,7 @@ type Client struct {
 
 // Start launches the server and completes the initialize handshake.
 //
-// A failure here is never fatal to jade: the caller falls back to whatever it
+// A failure here is never fatal to arno: the caller falls back to whatever it
 // did before this package existed. That is why the error is returned rather
 // than logged and swallowed — the caller needs to know to degrade, not to
 // stop.
@@ -199,7 +199,7 @@ func (c *Client) readLoop() {
 		}
 
 		// A response carries an ID and no method. A server-to-client request
-		// carries both; jade answers the few it must and ignores the rest.
+		// carries both; arno answers the few it must and ignores the rest.
 		if len(message.ID) > 0 && message.Method == "" {
 			c.deliver(message)
 			continue
@@ -308,7 +308,7 @@ func (c *Client) handleServerMessage(message Message) {
 
 	case "window/workDoneProgress/create", "client/registerCapability",
 		"client/unregisterCapability":
-		// Accepted with an empty result. These are bookkeeping jade does not
+		// Accepted with an empty result. These are bookkeeping arno does not
 		// act on, but they are requests, so they need an answer.
 		c.respond(message.ID, nil)
 
@@ -317,7 +317,7 @@ func (c *Client) handleServerMessage(message Message) {
 		// wait on it. An unrecognised notification carries no ID and is
 		// correctly dropped here.
 		if len(message.ID) > 0 {
-			c.respondError(message.ID, -32601, "method not supported by jade")
+			c.respondError(message.ID, -32601, "method not supported by arno")
 		}
 	}
 }
@@ -346,7 +346,7 @@ func (c *Client) send(message Message) error {
 // Call makes a request and waits for its response.
 //
 // Every call is bounded. A language server that stops answering must cost one
-// timeout, not a hung tool call: jade's whole proposition is being cheaper
+// timeout, not a hung tool call: arno's whole proposition is being cheaper
 // than the shell, and a tool that sometimes hangs forever is not cheaper at
 // any token count.
 func (c *Client) Call(ctx context.Context, method string, params any, result any) error {
@@ -506,7 +506,7 @@ func (c *Client) WaitSettled(ctx context.Context) {
 
 // Supports reports whether the server advertised a capability. Asking a server
 // for something it does not implement wastes a round trip and produces an
-// error that reads like a jade bug rather than an absent feature.
+// error that reads like a arno bug rather than an absent feature.
 func (c *Client) Supports(capability string) bool {
 	raw, ok := c.capabilities[capability]
 	if !ok {
@@ -704,7 +704,7 @@ func (c *Client) WaitForDiagnostics(ctx context.Context, path string, after int,
 //
 // The sequence is required by the protocol — shutdown, then exit — and the
 // grace period is short because a server that will not leave gets killed
-// anyway. Leaking a language server process per jade session would be
+// anyway. Leaking a language server process per arno session would be
 // noticeable within an afternoon: jdtls holds hundreds of megabytes.
 func (c *Client) Close() error {
 	c.closeOnce.Do(func() {

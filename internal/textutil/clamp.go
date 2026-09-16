@@ -1,4 +1,4 @@
-// Package textutil holds text-shaping helpers shared by jade's response
+// Package textutil holds text-shaping helpers shared by arno's response
 // builders.
 package textutil
 

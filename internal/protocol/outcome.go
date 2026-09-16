@@ -14,7 +14,7 @@ const (
 	// failure.
 	OutcomePassed ValidationOutcome = "passed"
 	// OutcomeFailed: the command finished and reported broken code — a
-	// non-zero exit or failure output. A verdict, not a Jade failure.
+	// non-zero exit or failure output. A verdict, not a Arno failure.
 	OutcomeFailed ValidationOutcome = "failed"
 	// OutcomeUnavailable: nothing was validated. No command was discovered
 	// for this workspace, or the tool the command runs is not installed.

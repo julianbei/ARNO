@@ -3,7 +3,7 @@ package code
 import (
 	"testing"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 func findChange(changes []protocol.SymbolChange, symbol string) (protocol.SymbolChange, bool) {
@@ -122,7 +122,7 @@ func TestSymbolDeltaReportsNothingForIdenticalSource(t *testing.T) {
 }
 
 func TestSymbolDeltaDegradesForUnparseableLanguages(t *testing.T) {
-	// A language jade cannot parse must yield no symbol detail rather than
+	// A language arno cannot parse must yield no symbol detail rather than
 	// wrong detail — the file-level counts still stand on their own.
 	changes := NewIndex(t.TempDir(), nil).SymbolDelta("notes.txt",
 		[]byte("some prose\n"), []byte("different prose\n"))

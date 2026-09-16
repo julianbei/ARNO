@@ -76,7 +76,7 @@ func TestTheCheckRunsAtMostOnceADayEvenWhenItFails(t *testing.T) {
 
 func TestTheCheckIsOffWhenDisabledInCIOrForADevBuild(t *testing.T) {
 	cases := map[string]func(c *Checker){
-		"JADE_UPDATE_CHECK=0": func(c *Checker) {
+		"ARNO_UPDATE_CHECK=0": func(c *Checker) {
 			c.Getenv = func(key string) string {
 				if key == DisableEnv {
 					return "0"

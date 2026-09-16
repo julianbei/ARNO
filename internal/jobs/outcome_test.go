@@ -3,7 +3,7 @@ package jobs
 import (
 	"testing"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 func TestOutcomeClassifiesEveryWayAJobEnds(t *testing.T) {

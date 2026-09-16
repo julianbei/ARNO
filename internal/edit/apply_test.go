@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/commands"
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/commands"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 func writeIn(t *testing.T, dir string, name string, content string) {

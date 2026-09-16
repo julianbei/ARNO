@@ -1,9 +1,9 @@
 // Package pathguard keeps every file operation inside the workspace.
 //
-// Jade is asked to leave running beside an agent. That claim cannot stand
+// Arno is asked to leave running beside an agent. That claim cannot stand
 // while an edit given "../../.ssh/config", an absolute path, or a symlink that
 // points out of the repository writes wherever it lands. Every path a caller or
-// a language server hands to Jade resolves through Resolve before it is read or
+// a language server hands to Arno resolves through Resolve before it is read or
 // written, so the rule lives in one place instead of eighteen.
 package pathguard
 

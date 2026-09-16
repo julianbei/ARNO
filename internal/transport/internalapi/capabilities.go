@@ -5,15 +5,15 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/julianbei/jade/internal/code"
-	"github.com/julianbei/jade/internal/commands"
-	"github.com/julianbei/jade/internal/diagnostics"
-	"github.com/julianbei/jade/internal/edit"
-	"github.com/julianbei/jade/internal/jobs"
-	"github.com/julianbei/jade/internal/lsp"
-	"github.com/julianbei/jade/internal/project"
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/toolchain"
+	"github.com/julianbei/arno/internal/code"
+	"github.com/julianbei/arno/internal/commands"
+	"github.com/julianbei/arno/internal/diagnostics"
+	"github.com/julianbei/arno/internal/edit"
+	"github.com/julianbei/arno/internal/jobs"
+	"github.com/julianbei/arno/internal/lsp"
+	"github.com/julianbei/arno/internal/project"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/toolchain"
 )
 
 // goplsInstalled reports the gopls command the Go references provider runs.
@@ -22,7 +22,7 @@ func goplsInstalled() bool {
 	return ok
 }
 
-// Capabilities reports what Jade can do in this workspace in one answer: per
+// Capabilities reports what Arno can do in this workspace in one answer: per
 // language, how its structure is read, which language server would run or is
 // missing, and which formatter applies; whether git is there; the commands
 // check would run; declared commands. An agent in a container with no language

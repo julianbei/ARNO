@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/jade/internal/protocol"
-	"github.com/julianbei/jade/internal/toolchain"
+	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/toolchain"
 )
 
 // goplsReferencesTimeout bounds a references lookup so it can never block
@@ -53,7 +53,7 @@ func (i *Index) References(path string, symbolID string) (protocol.ReferencesRes
 
 // locateSymbolPosition resolves symbolID to its declaration position,
 // including the 1-based column of the name within its declaring line —
-// gopls addresses positions as file:line:col, but jade's Symbol only
+// gopls addresses positions as file:line:col, but arno's Symbol only
 // carries line ranges.
 func (i *Index) locateSymbolPosition(path string, symbolID string) (Symbol, int, int, error) {
 	absolute, err := i.resolvePath(path)
@@ -175,7 +175,7 @@ func (i *Index) approximateReferences(symbolID string, symbol Symbol) []protocol
 }
 
 // relativePath converts an absolute path gopls reported back into a
-// workspace-relative one, matching the form every other jade response uses.
+// workspace-relative one, matching the form every other arno response uses.
 func (i *Index) relativePath(path string) string {
 	if !filepath.IsAbs(path) {
 		return filepath.ToSlash(path)

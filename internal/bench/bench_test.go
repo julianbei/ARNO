@@ -30,7 +30,7 @@ func TestRunMeasuresBothArms(t *testing.T) {
 	results := Run([]Scenario{{
 		Name:     "example",
 		Question: "?",
-		Jade:     constantArm(strings.Repeat("j", 400), 1),
+		Arno:     constantArm(strings.Repeat("j", 400), 1),
 		Shell:    constantArm(strings.Repeat("s", 100), 2),
 	}})
 
@@ -38,10 +38,10 @@ func TestRunMeasuresBothArms(t *testing.T) {
 		t.Fatalf("expected 1 result, got %d", len(results))
 	}
 	r := results[0]
-	if r.Jade.Bytes != 400 || r.Shell.Bytes != 100 {
+	if r.Arno.Bytes != 400 || r.Shell.Bytes != 100 {
 		t.Fatalf("byte counts wrong: %+v", r)
 	}
-	if r.Jade.Calls != 1 || r.Shell.Calls != 2 {
+	if r.Arno.Calls != 1 || r.Shell.Calls != 2 {
 		t.Fatalf("call counts wrong: %+v", r)
 	}
 	if ratio := r.TokenRatio(); ratio != 4 {
@@ -49,9 +49,9 @@ func TestRunMeasuresBothArms(t *testing.T) {
 	}
 }
 
-func TestTokenRatioBelowOneMeansJadeIsCheaper(t *testing.T) {
+func TestTokenRatioBelowOneMeansArnoIsCheaper(t *testing.T) {
 	r := Result{
-		Jade:  ArmResult{Tokens: 25},
+		Arno:  ArmResult{Tokens: 25},
 		Shell: ArmResult{Tokens: 100},
 	}
 	if ratio := r.TokenRatio(); ratio != 0.25 {
@@ -60,7 +60,7 @@ func TestTokenRatioBelowOneMeansJadeIsCheaper(t *testing.T) {
 }
 
 func TestTokenRatioHandlesEmptyShellOutput(t *testing.T) {
-	r := Result{Jade: ArmResult{Tokens: 10}, Shell: ArmResult{Tokens: 0}}
+	r := Result{Arno: ArmResult{Tokens: 10}, Shell: ArmResult{Tokens: 0}}
 	if ratio := r.TokenRatio(); ratio != 0 {
 		t.Fatalf("expected 0 for an unmeasurable ratio, got %v", ratio)
 	}
@@ -69,24 +69,24 @@ func TestTokenRatioHandlesEmptyShellOutput(t *testing.T) {
 func TestRunRecordsArmFailuresInsteadOfAborting(t *testing.T) {
 	// One broken scenario must not hide the rest of the suite.
 	results := Run([]Scenario{
-		{Name: "broken", Jade: failingArm("boom"), Shell: constantArm("ok", 1)},
-		{Name: "fine", Jade: constantArm("abcd", 1), Shell: constantArm("abcd", 1)},
+		{Name: "broken", Arno: failingArm("boom"), Shell: constantArm("ok", 1)},
+		{Name: "fine", Arno: constantArm("abcd", 1), Shell: constantArm("abcd", 1)},
 	})
 
 	if len(results) != 2 {
 		t.Fatalf("expected both scenarios measured, got %d", len(results))
 	}
-	if results[0].Jade.Err == nil {
+	if results[0].Arno.Err == nil {
 		t.Fatalf("expected the failure to be recorded")
 	}
-	if results[1].Jade.Tokens != 1 {
+	if results[1].Arno.Tokens != 1 {
 		t.Fatalf("expected the second scenario to still be measured, got %+v", results[1])
 	}
 }
 
 func TestRunRecordsMissingArm(t *testing.T) {
-	results := Run([]Scenario{{Name: "no jade arm", Shell: constantArm("x", 1)}})
-	if results[0].Jade.Err == nil {
+	results := Run([]Scenario{{Name: "no arno arm", Shell: constantArm("x", 1)}})
+	if results[0].Arno.Err == nil {
 		t.Fatalf("expected a nil arm to be reported as an error, not counted as 0 tokens")
 	}
 }
@@ -94,7 +94,7 @@ func TestRunRecordsMissingArm(t *testing.T) {
 func TestReportShowsRatiosTotalsAndCaveats(t *testing.T) {
 	report := Report(Run([]Scenario{{
 		Name:  "example",
-		Jade:  constantArm(strings.Repeat("j", 400), 1),
+		Arno:  constantArm(strings.Repeat("j", 400), 1),
 		Shell: constantArm(strings.Repeat("s", 100), 1),
 	}}))
 
@@ -105,7 +105,7 @@ func TestReportShowsRatiosTotalsAndCaveats(t *testing.T) {
 		t.Fatalf("expected a total row, got:\n%s", report)
 	}
 	// The caveat must ship with the numbers. A token-only measurement
-	// presented as a verdict on jade overall would misrepresent it.
+	// presented as a verdict on arno overall would misrepresent it.
 	if !strings.Contains(report, "NOT measured") {
 		t.Fatalf("expected the report to disclose what it does not measure")
 	}
@@ -114,7 +114,7 @@ func TestReportShowsRatiosTotalsAndCaveats(t *testing.T) {
 func TestReportListsErrors(t *testing.T) {
 	report := Report(Run([]Scenario{{
 		Name:  "broken",
-		Jade:  failingArm("boom"),
+		Arno:  failingArm("boom"),
 		Shell: constantArm("x", 1),
 	}}))
 

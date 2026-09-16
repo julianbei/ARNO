@@ -13,7 +13,7 @@ import (
 // point is to catch what a hand-written fake cannot: a real server's startup
 // sequence, its unprompted traffic, and the shape of its answers.
 //
-// gopls is the server used because jade's own tree is a Go workspace, so the
+// gopls is the server used because arno's own tree is a Go workspace, so the
 // test has a real codebase to answer about rather than a fixture.
 func TestAgainstRealGopls(t *testing.T) {
 	if testing.Short() {

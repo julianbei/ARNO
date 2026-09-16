@@ -15,10 +15,10 @@ import (
 // test binary. Real servers are not available on every machine and are slow
 // and non-deterministic where they are — but the behaviours that actually
 // matter here are protocol behaviours (a server that hangs, one that dies
-// mid-request, one that asks jade a question), and those are only reliably
+// mid-request, one that asks arno a question), and those are only reliably
 // producible from a server written to produce them.
 func TestMain(m *testing.M) {
-	if script := os.Getenv("JADE_FAKE_LSP"); script != "" {
+	if script := os.Getenv("ARNO_FAKE_LSP"); script != "" {
 		runFakeServer(script)
 		return
 	}
@@ -33,7 +33,7 @@ func fakeSpec(t *testing.T, script string) ServerSpec {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("JADE_FAKE_LSP", script)
+	t.Setenv("ARNO_FAKE_LSP", script)
 	return ServerSpec{
 		Language:   "fake",
 		Command:    self,
@@ -114,7 +114,7 @@ func TestCallFailsFastWhenTheServerDies(t *testing.T) {
 }
 
 // A server-to-client request left unanswered blocks the server forever, which
-// presents as a hang with no error anywhere. This asserts jade answers.
+// presents as a hang with no error anywhere. This asserts arno answers.
 func TestServerToClientRequestIsAnswered(t *testing.T) {
 	client := startFake(t, "asks")
 
@@ -128,7 +128,7 @@ func TestServerToClientRequestIsAnswered(t *testing.T) {
 		t.Fatalf("call failed: %v", err)
 	}
 	if !reply.Answered {
-		t.Fatal("jade must answer a server-to-client request, or the server waits forever")
+		t.Fatal("arno must answer a server-to-client request, or the server waits forever")
 	}
 }
 

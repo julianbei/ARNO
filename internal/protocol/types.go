@@ -69,7 +69,7 @@ const (
 // Bare IDs were not enough. Two methods named Put in the same file differ only
 // by receiver, and `store.go::Put@48` versus `store.go::Put@72` tells a caller
 // nothing about which is which — so they had to spend a turn fetching one to
-// find out. Measured: that round trip is why jade lost a head-to-head against
+// find out. Measured: that round trip is why arno lost a head-to-head against
 // grep on a real repository (1.36x tokens, 3 calls against 2).
 type SymbolCandidate struct {
 	ID   string
@@ -220,7 +220,7 @@ type Impact struct {
 	Tests        []string
 }
 
-// DeleteSymbolRequest removes one declaration. The range comes from jade's
+// DeleteSymbolRequest removes one declaration. The range comes from arno's
 // own parse, so the caller never has to find the closing brace itself — the
 // hand-rolled brace scanning that motivated this tool.
 type DeleteSymbolRequest struct {
@@ -331,7 +331,7 @@ type TelemetryFailure struct {
 //
 // Fallbacks is the headline: each entry is a class of tool failure that
 // plausibly ended with the caller running a shell command instead, which is
-// the thing jade's whole design bet is about.
+// the thing arno's whole design bet is about.
 type TelemetryResponse struct {
 	Tools     []TelemetryToolStats
 	Fallbacks []TelemetryFailure
@@ -557,7 +557,7 @@ type Freshness struct {
 // ParserInfo says how a file's symbols were obtained, and — crucially —
 // whether the answer can be trusted to be complete.
 //
-// jade ships tree-sitter grammars for Go, TypeScript, TSX and Rust. Everything
+// arno ships tree-sitter grammars for Go, TypeScript, TSX and Rust. Everything
 // else falls back to a line-oriented heuristic that recognises some
 // declaration shapes and misses others. That fallback is fine; presenting its
 // output as if it were a grammar parse is not. Found live against a Python
@@ -672,7 +672,7 @@ type InspectResponse struct {
 	Digest string
 }
 
-// RepositoryMapRequest asks JADE to rank the most relevant files and symbols
+// RepositoryMapRequest asks ARNO to rank the most relevant files and symbols
 // for a query while staying under a context budget.
 type RepositoryMapRequest struct {
 	Query     string
@@ -726,7 +726,7 @@ type WorkspaceTreeResponse struct {
 	Continue string
 }
 
-// CapabilitiesResponse is what Jade can do in this workspace, from one call.
+// CapabilitiesResponse is what Arno can do in this workspace, from one call.
 type CapabilitiesResponse struct {
 	Languages     []LanguageCapability
 	Git           bool
@@ -736,7 +736,7 @@ type CapabilitiesResponse struct {
 	// Truncated says the language counts stopped at the listing bound.
 	Truncated bool
 	// Providers lists each capability's registered providers, in the order
-	// Jade asks them.
+	// Arno asks them.
 	Providers []ProviderCapability
 }
 
@@ -754,7 +754,7 @@ type LanguageCapability struct {
 	// words: structural · tree-sitter, or text fallback · text scan.
 	Structure Provenance
 	// Server is the language server that would start; MissingServer the one
-	// Jade looks for when none is installed. Both empty: none is known.
+	// Arno looks for when none is installed. Both empty: none is known.
 	Server        string
 	MissingServer string
 	Formatter     string
@@ -776,7 +776,7 @@ type ValidationCapability struct {
 	Command string
 }
 
-// RetrievalRequest asks JADE to choose the most relevant symbols/files under a token budget.
+// RetrievalRequest asks ARNO to choose the most relevant symbols/files under a token budget.
 type RetrievalRequest struct {
 	Query     string
 	MaxTokens int
@@ -784,7 +784,7 @@ type RetrievalRequest struct {
 
 // FindRequest locates declarations by name and returns their bodies in one
 // call — the fused search-and-read that `grep -n "func X" -A 30` provides
-// and jade previously needed two calls (outline, then read_symbol) to match.
+// and arno previously needed two calls (outline, then read_symbol) to match.
 type FindRequest struct {
 	// Dependency looks in that dependency's source instead of the workspace.
 	Dependency string
@@ -825,7 +825,7 @@ type FindResponse struct {
 	Continue string
 }
 
-// SearchRequest asks JADE to rank likely symbols/files for a query.
+// SearchRequest asks ARNO to rank likely symbols/files for a query.
 type SearchRequest struct {
 	Query string
 	Mode  string
@@ -852,12 +852,12 @@ type SearchResponse struct {
 	Provenance Provenance
 }
 
-// SearchNudgeRequest asks jade whether a shell search-style command (a raw
+// SearchNudgeRequest asks arno whether a shell search-style command (a raw
 // grep/rg/ag/ack/find/fd invocation the harness already ran) warrants
 // appending index hits below its own output — piggybacking a better answer
 // onto the tool call an agent already chose, rather than trying to make it
 // choose differently.
-// jade cannot observe the tool call itself (it's an MCP server, not the
+// arno cannot observe the tool call itself (it's an MCP server, not the
 // harness); a harness integration supplies Command and the surrounding
 // context after running it.
 type SearchNudgeRequest struct {
@@ -1020,7 +1020,7 @@ type HistoryResponse struct {
 	Continue string
 }
 
-// ContextRequest asks jade to assemble everything needed to act on a symbol.
+// ContextRequest asks arno to assemble everything needed to act on a symbol.
 // Purpose selects which sections are worth their tokens: "modify" (default,
 // widest), "understand", "debug", "test".
 type ContextRequest struct {
@@ -1157,13 +1157,13 @@ type ChangesResponse struct {
 	// Runs are this session's most recent finished validation runs, so edits
 	// and their validation read as one record.
 	Runs []ValidationRun
-	// Files is the single changed-file list. It carries jade's own edit
+	// Files is the single changed-file list. It carries arno's own edit
 	// ledger as well as git's diff, so callers never have to reconcile two
 	// overlapping path lists — see Manager.mergedChangedFiles.
 	Files        []ChangedFile
 	TotalAdded   int
 	TotalRemoved int
-	// Symbols is empty when no changed file is in a language jade can parse;
+	// Symbols is empty when no changed file is in a language arno can parse;
 	// the file-level counts stand on their own in that case rather than the
 	// whole response degrading.
 	Symbols []SymbolChange

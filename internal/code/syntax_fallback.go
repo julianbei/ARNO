@@ -17,14 +17,14 @@ import (
 	tstsx "github.com/smacker/go-tree-sitter/typescript/tsx"
 	tstypescript "github.com/smacker/go-tree-sitter/typescript/typescript"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // maxSyntaxDiagnostics bounds how many syntax errors one file reports. A
 // single missing brace can make a parser flag every line after it.
 const maxSyntaxDiagnostics = 5
 
-// syntaxGrammar is the tree-sitter grammar for path's extension, nil when Jade
+// syntaxGrammar is the tree-sitter grammar for path's extension, nil when Arno
 // has none.
 func syntaxGrammar(path string) *sitter.Language {
 	switch strings.ToLower(filepath.Ext(path)) {

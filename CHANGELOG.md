@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Jade is now Arno
+
+**Arno — Agent Repository Navigation & Operations.** Jade is ambiguous in
+software: other products, a prior trademark conflict, and other MCP projects
+already carry the name, which costs searchability and adds legal risk.
+Renaming now is far cheaper than renaming once the name has spread through
+packages, integrations and user configs.
+
+What changed: the binary is `arno-mcp`, tools are `arno.*`, variables are
+`ARNO_*`, workspace state lives in `.arno/`, the module is
+`github.com/julianbei/arno`, the image is `ghcr.io/julianbei/arno-mcp`, and
+the registry listing is `io.github.julianbei/arno`.
+
+Nothing breaks on update. Until the release after this one, Arno still accepts
+`jade.*` and `jade_*` tool names, reads `JADE_*` variables when the `ARNO_*`
+one is unset, and keeps using an existing `.jade/` directory — each with one
+deprecation line on stderr saying what to change. `tools/list` advertises only
+`arno.*`, so an agent never learns the old names. To finish the move: re-run
+the install script, rename the server entry in your MCP client config, and
+`git mv .jade .arno`.
+
+The Go module and the container image do not have aliases. Versions published
+under the old module path and image name keep working; new ones only appear
+under the new names.
+
 ### Every tool annotated, and TDQS in CI
 
 All 31 tools carry MCP annotations from one table: 16 read-only, 5 that

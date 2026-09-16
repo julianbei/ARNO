@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 jobs:
-  # Jade parses with tree-sitter, whose Go binding is cgo, not pure Go — so
+  # Arno parses with tree-sitter, whose Go binding is cgo, not pure Go — so
   # there is no cross-compiling without arranging a C toolchain per target.
   # Building each target on its own native runner is the cheaper trade: no
   # cross-toolchain to maintain, and each binary is built by the platform it
@@ -48,17 +48,17 @@ jobs:
       - name: Build
         run: |
           set -e
-          name="jade-mcp_${GITHUB_REF_NAME}_${{ matrix.os }}_${{ matrix.arch }}"
+          name="arno-mcp_${GITHUB_REF_NAME}_${{ matrix.os }}_${{ matrix.arch }}"
           mkdir -p dist
           CGO_ENABLED=1 go build -trimpath \
             -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" \
-            -o "dist/${name}" ./cmd/jade-mcp
+            -o "dist/${name}" ./cmd/arno-mcp
           "dist/${name}" --version
           ( cd dist && tar czf "${name}.tar.gz" "${name}" && rm "${name}" )
 
       - uses: actions/upload-artifact@v4
         with:
-          name: jade-mcp_${{ matrix.os }}_${{ matrix.arch }}
+          name: arno-mcp_${{ matrix.os }}_${{ matrix.arch }}
           path: dist/*.tar.gz
           if-no-files-found: error
 
@@ -77,7 +77,7 @@ jobs:
           merge-multiple: true
 
       # One MCP bundle (.mcpb) carries all four binaries, so Claude Desktop and
-      # registry clients install Jade without Docker. MCPB tells operating
+      # registry clients install Arno without Docker. MCPB tells operating
       # systems apart but not architectures; launch.sh picks the binary.
       - name: MCP bundle
         run: |
@@ -87,16 +87,16 @@ jobs:
           for archive in dist/*.tar.gz; do
             tar xzf "$archive" -C "$bundle/server"
           done
-          for bin in "$bundle"/server/jade-mcp_*; do
+          for bin in "$bundle"/server/arno-mcp_*; do
             mv "$bin" "$bundle/server/$(basename "$bin" | sed "s/_${GITHUB_REF_NAME}_/_/")"
           done
-          chmod +x "$bundle"/server/jade-mcp_*
+          chmod +x "$bundle"/server/arno-mcp_*
           cp packaging/mcpb/launch.sh packaging/mcpb/icon.png "$bundle/"
           mv "$bundle/launch.sh" "$bundle/server/launch.sh"
           jq --arg v "${GITHUB_REF_NAME#v}" '.version = $v' packaging/mcpb/manifest.json > "$bundle/manifest.json"
           ls -la "$bundle" "$bundle/server"
           npx -y @anthropic-ai/mcpb@2.1.2 validate "$bundle/manifest.json"
-          npx -y @anthropic-ai/mcpb@2.1.2 pack "$bundle" "dist/jade-mcp_${GITHUB_REF_NAME}.mcpb"
+          npx -y @anthropic-ai/mcpb@2.1.2 pack "$bundle" "dist/arno-mcp_${GITHUB_REF_NAME}.mcpb"
 
       # Checksums are computed once, over everything, after all four
       # architectures have landed — a per-runner checksum file would give four
@@ -154,8 +154,8 @@ jobs:
           push: true
           build-args: VERSION=${{ github.ref_name }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/jade-mcp:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/jade-mcp:latest
+            ghcr.io/${{ github.repository_owner }}/arno-mcp:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/arno-mcp:latest
 
   # The registry listing points at the image, and the registry checks the
   # image's server-name label before accepting it, so this waits for the push.
@@ -177,10 +177,10 @@ jobs:
         run: |
           set -e
           version="${GITHUB_REF_NAME#v}"
-          bundle_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/jade-mcp_${GITHUB_REF_NAME}.mcpb"
+          bundle_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/arno-mcp_${GITHUB_REF_NAME}.mcpb"
           bundle_sha=$(curl -fsSL "$bundle_url" | sha256sum | cut -d' ' -f1)
           jq --arg v "$version" \
-             --arg image "ghcr.io/${{ github.repository_owner }}/jade-mcp:${GITHUB_REF_NAME}" \
+             --arg image "ghcr.io/${{ github.repository_owner }}/arno-mcp:${GITHUB_REF_NAME}" \
              --arg bundle "$bundle_url" --arg sha "$bundle_sha" \
             '.version = $v
              | .packages = [

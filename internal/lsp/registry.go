@@ -10,7 +10,7 @@ import (
 
 // ServerSpec describes how to launch one language server.
 type ServerSpec struct {
-	// Language is jade's own identifier, matching internal/code's grammar
+	// Language is arno's own identifier, matching internal/code's grammar
 	// names so a file's language maps to a server without a second table.
 	Language string
 
@@ -20,7 +20,7 @@ type ServerSpec struct {
 	// Alternatives are other binaries providing the same language, tried in
 	// order when Command is absent. Ecosystems rarely settle on one server —
 	// Python has pyright and pylsp, Ruby has ruby-lsp and solargraph — and
-	// insisting on a favourite means jade goes semantic-blind on a machine
+	// insisting on a favourite means arno goes semantic-blind on a machine
 	// that has the other one installed.
 	Alternatives []AlternativeSpec
 
@@ -51,7 +51,7 @@ type ServerSpec struct {
 // MetalsImportEnv opts in to letting metals import an sbt build. Importing
 // runs `sbt bloopInstall` and creates .bloop/ and .metals/ in the workspace;
 // without it metals cannot compile, so Scala edits report "not checked".
-const MetalsImportEnv = "JADE_METALS_IMPORT"
+const MetalsImportEnv = "ARNO_METALS_IMPORT"
 
 // answerMetalsPrompt accepts metals' build-import prompt when, and only when,
 // the user opted in. Every other metals prompt is declined.
@@ -73,7 +73,7 @@ type AlternativeSpec struct {
 	Args    []string
 }
 
-// specs is the server table, keyed by jade's language identifier.
+// specs is the server table, keyed by arno's language identifier.
 //
 // Every entry is a server that speaks LSP over stdio and needs no
 // configuration file to be useful. Servers requiring a project-specific setup
@@ -141,7 +141,7 @@ var specs = map[string]ServerSpec{
 	},
 }
 
-// SpecFor returns the server spec for a jade language identifier.
+// SpecFor returns the server spec for a arno language identifier.
 func SpecFor(language string) (ServerSpec, bool) {
 	spec, ok := specs[language]
 	return spec, ok
@@ -224,7 +224,7 @@ func (s ServerSpec) Fallbacks() []ServerSpec {
 // directories in addition to PATH.
 //
 // This is not over-engineering: gopls is installed by `go install` into
-// ~/go/bin, which is not on PATH by default — on the machine jade was
+// ~/go/bin, which is not on PATH by default — on the machine arno was
 // developed on, `command -v gopls` finds nothing while gopls is installed and
 // working. A client that only consulted PATH would report Go as having no
 // language server on the very system that has one.

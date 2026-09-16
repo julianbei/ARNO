@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // maxFindBodyLines bounds each returned body. find answers "show me this
@@ -18,7 +18,7 @@ const maxFindBodyLines = 40
 // FindSymbols locates declarations by name and returns their bodies in one
 // call.
 //
-// This closes the most-cited reason to leave jade for the shell. Answering
+// This closes the most-cited reason to leave arno for the shell. Answering
 // "show me the function I have not located yet" took `outline` then
 // `read_symbol` — two round trips — while `grep -n "func X" -A 30` fuses
 // search and read into one. The shell won that comparison every time, and a
@@ -137,7 +137,7 @@ func (i *Index) collectMatches(query string, kind string) ([]findMatch, []findMa
 	return exact, partial, textScan, nil
 }
 
-// kindMatches compares a requested kind against jade's internal vocabulary,
+// kindMatches compares a requested kind against arno's internal vocabulary,
 // which is not what a caller would guess: a Go struct is reported as
 // "class", a Go func as "function". Requiring the caller to know that would
 // make the filter silently return nothing for the natural spellings, so
@@ -249,7 +249,7 @@ func findSummary(query string, total int, shown int) string {
 	return fmt.Sprintf("%d matches for %q", total, query)
 }
 
-// declarationKeywords open a declaration in the languages Jade parses.
+// declarationKeywords open a declaration in the languages Arno parses.
 var declarationKeywords = map[string]bool{
 	"func": true, "fn": true, "def": true, "class": true, "struct": true, "interface": true,
 	"type": true, "function": true, "const": true, "let": true, "var": true, "val": true,

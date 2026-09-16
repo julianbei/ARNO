@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // Budgets and continuation (docs/tool-contract.md): a caller names a budget in

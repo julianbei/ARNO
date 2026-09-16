@@ -62,17 +62,17 @@ jobs:
 
       - name: Build
         run: |
-          CGO_ENABLED=1 go build -o "$RUNNER_TEMP/jade-mcp" ./cmd/jade-mcp
+          CGO_ENABLED=1 go build -o "$RUNNER_TEMP/arno-mcp" ./cmd/arno-mcp
           npm install --global mcp-tdqs@0.2.0
 
       - name: Lint tool definitions
         env:
-          JADE_UPDATE_CHECK: '0'
-          JADE_TELEMETRY: '0'
+          ARNO_UPDATE_CHECK: '0'
+          ARNO_TELEMETRY: '0'
         run: |
           status=0
           for profile in core all; do
-            tdqs lint --command "$RUNNER_TEMP/jade-mcp --root $GITHUB_WORKSPACE --tools $profile" \
+            tdqs lint --command "$RUNNER_TEMP/arno-mcp --root $GITHUB_WORKSPACE --tools $profile" \
               --fail-on error --format markdown --output "tdqs-lint-$profile.md" || status=$?
             { echo "## TDQS lint: --tools $profile"; cat "tdqs-lint-$profile.md"; } >> "$GITHUB_STEP_SUMMARY"
           done
@@ -82,8 +82,8 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           TDQS_API_KEY: ${{ secrets.TDQS_API_KEY }}
-          JADE_UPDATE_CHECK: '0'
-          JADE_TELEMETRY: '0'
+          ARNO_UPDATE_CHECK: '0'
+          ARNO_TELEMETRY: '0'
         run: |
           if [ -z "$TDQS_API_KEY" ]; then
             echo "TDQS_API_KEY is not set; skipping the scored run." >> "$GITHUB_STEP_SUMMARY"
@@ -91,7 +91,7 @@ jobs:
           fi
           status=0
           tdqs score --hosted https://tdqs.dev \
-            --command "$RUNNER_TEMP/jade-mcp --root $GITHUB_WORKSPACE --tools core" \
+            --command "$RUNNER_TEMP/arno-mcp --root $GITHUB_WORKSPACE --tools core" \
             --fail-under B --format markdown --output tdqs-score.md || status=$?
           { echo "## TDQS score: --tools core"; cat tdqs-score.md; } >> "$GITHUB_STEP_SUMMARY"
           exit $status

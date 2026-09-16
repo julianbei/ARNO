@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/jade/internal/project"
+	"github.com/julianbei/arno/internal/project"
 )
 
 // Plan is a command decided for validation, before anything runs: what to
 // run, where, and what decided it (release plan 0.0.7, "Discovery returns
-// plans, core runs them"). Ecosystem discovery, .jade/project.json and
+// plans, core runs them"). Ecosystem discovery, .arno/project.json and
 // declared commands all produce one, and Runner.RunPlan is the single place
 // any of them is executed — with the runner's timeout, process group, output
 // clamp and exit-status verdict.
@@ -19,8 +19,8 @@ type Plan struct {
 	Name string
 	Args []string
 	Dir  string
-	// Source names what decided the command: .jade/project.json, Makefile,
-	// package.json, Cargo.toml, go.mod, .jade/commands.json or discovery.
+	// Source names what decided the command: .arno/project.json, Makefile,
+	// package.json, Cargo.toml, go.mod, .arno/commands.json or discovery.
 	Source string
 	// Timeout bounds the run; zero uses the runner's default.
 	Timeout time.Duration

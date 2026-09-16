@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 func grepFixture(t *testing.T) *Index {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/pathguard"
+	"github.com/julianbei/arno/internal/pathguard"
 )
 
 func TestDependencyHintForCachePaths(t *testing.T) {

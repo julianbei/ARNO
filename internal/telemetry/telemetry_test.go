@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 func TestRecordAndSummarize(t *testing.T) {
 	root := t.TempDir()
 	recorder := New(root)
 
-	recorder.Record("jade.find", 12*time.Millisecond, 300, nil)
-	recorder.Record("jade.find", 8*time.Millisecond, 100, nil)
-	recorder.Record("jade.apply", 50*time.Millisecond, 900, nil)
+	recorder.Record("arno.find", 12*time.Millisecond, 300, nil)
+	recorder.Record("arno.find", 8*time.Millisecond, 100, nil)
+	recorder.Record("arno.apply", 50*time.Millisecond, 900, nil)
 
 	summary, err := recorder.Summarize()
 	if err != nil {
@@ -32,7 +32,7 @@ func TestRecordAndSummarize(t *testing.T) {
 		t.Fatalf("expected 1300 bytes, got %d", summary.TotalBytes)
 	}
 	// Ordered by call count descending, so the ranking leads.
-	if summary.Tools[0].Tool != "jade.find" || summary.Tools[0].Calls != 2 {
+	if summary.Tools[0].Tool != "arno.find" || summary.Tools[0].Calls != 2 {
 		t.Fatalf("expected find first with 2 calls, got %+v", summary.Tools)
 	}
 	if summary.Tools[0].MaxMS != 12 {
@@ -41,14 +41,14 @@ func TestRecordAndSummarize(t *testing.T) {
 }
 
 func TestSummarizeCountsFailureClassesSeparately(t *testing.T) {
-	// The headline number: each of these is a moment the jade path failed and
+	// The headline number: each of these is a moment the arno path failed and
 	// the shell was one keystroke away.
 	root := t.TempDir()
 	recorder := New(root)
 
-	recorder.Record("jade.replace_text", time.Millisecond, 10, errors.New("anchor text is ambiguous: 3 matches"))
-	recorder.Record("jade.replace_text", time.Millisecond, 10, errors.New("anchor text not found in a.go"))
-	recorder.Record("jade.replace_text", time.Millisecond, 10, nil)
+	recorder.Record("arno.replace_text", time.Millisecond, 10, errors.New("anchor text is ambiguous: 3 matches"))
+	recorder.Record("arno.replace_text", time.Millisecond, 10, errors.New("anchor text not found in a.go"))
+	recorder.Record("arno.replace_text", time.Millisecond, 10, nil)
 
 	summary, err := recorder.Summarize()
 	if err != nil {
@@ -78,7 +78,7 @@ func TestRecordsNoArgumentsResponsesOrErrorText(t *testing.T) {
 	recorder := New(root)
 
 	secret := "func TopSecret() { apiKey := \"sk-live-12345\" }"
-	recorder.Record("jade.replace_text", time.Millisecond, len(secret), fmt.Errorf("anchor text not found: %s", secret))
+	recorder.Record("arno.replace_text", time.Millisecond, len(secret), fmt.Errorf("anchor text not found: %s", secret))
 
 	data, err := os.ReadFile(filepath.Join(root, RelPath))
 	if err != nil {
@@ -99,10 +99,10 @@ func TestDisabledRecorderWritesNothing(t *testing.T) {
 	// An off switch is not optional for something that writes into the user's
 	// repository on every call.
 	root := t.TempDir()
-	t.Setenv("JADE_TELEMETRY", "0")
+	t.Setenv("ARNO_TELEMETRY", "0")
 
 	recorder := New(root)
-	recorder.Record("jade.find", time.Millisecond, 10, nil)
+	recorder.Record("arno.find", time.Millisecond, 10, nil)
 
 	if _, err := os.Stat(filepath.Join(root, RelPath)); err == nil {
 		t.Fatalf("expected no log file when telemetry is disabled")
@@ -111,13 +111,13 @@ func TestDisabledRecorderWritesNothing(t *testing.T) {
 
 func TestRecordNeverFailsTheCall(t *testing.T) {
 	// Losing a measurement is cheap; failing a working edit because the
-	// measurement could not be written would make jade less reliable than the
+	// measurement could not be written would make arno less reliable than the
 	// bash it competes with. An unwritable root must be swallowed.
 	root := filepath.Join(t.TempDir(), "does", "not", "exist", "\x00bad")
 	recorder := New(root)
 
 	// Must not panic, must not block, must not return anything to fail on.
-	recorder.Record("jade.find", time.Millisecond, 10, nil)
+	recorder.Record("arno.find", time.Millisecond, 10, nil)
 }
 
 func TestSummarizeReportsAnUnreadableLogRatherThanClaimingItIsEmpty(t *testing.T) {
@@ -147,7 +147,7 @@ func TestReadSkipsAMalformedLine(t *testing.T) {
 	// history unreadable.
 	root := t.TempDir()
 	recorder := New(root)
-	recorder.Record("jade.find", time.Millisecond, 10, nil)
+	recorder.Record("arno.find", time.Millisecond, 10, nil)
 
 	path := filepath.Join(root, RelPath)
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o644)
@@ -159,7 +159,7 @@ func TestReadSkipsAMalformedLine(t *testing.T) {
 	}
 	file.Close()
 
-	recorder.Record("jade.apply", time.Millisecond, 10, nil)
+	recorder.Record("arno.apply", time.Millisecond, 10, nil)
 
 	summary, err := recorder.Summarize()
 	if err != nil {
@@ -173,7 +173,7 @@ func TestReadSkipsAMalformedLine(t *testing.T) {
 func TestResetClearsTheLog(t *testing.T) {
 	root := t.TempDir()
 	recorder := New(root)
-	recorder.Record("jade.find", time.Millisecond, 10, nil)
+	recorder.Record("arno.find", time.Millisecond, 10, nil)
 
 	if err := recorder.Reset(); err != nil {
 		t.Fatalf("Reset: %v", err)
@@ -197,7 +197,7 @@ func TestConcurrentRecordsAllLand(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			recorder.Record("jade.find", time.Millisecond, 10, nil)
+			recorder.Record("arno.find", time.Millisecond, 10, nil)
 		}()
 	}
 	wg.Wait()
@@ -276,8 +276,8 @@ func TestClassifyResponseIgnoresResponsesWithNothingToSay(t *testing.T) {
 }
 
 func TestAFailingBuildIsAVerdictNotAFallback(t *testing.T) {
-	// The distinction the whole metric depends on. A red build is jade doing
-	// its job, not jade failing; counting it would swamp the fallback signal
+	// The distinction the whole metric depends on. A red build is arno doing
+	// its job, not arno failing; counting it would swamp the fallback signal
 	// with ordinary broken code and make the number meaningless.
 	for _, response := range []interface{}{
 		protocol.CheckResponse{Status: "completed", Passed: false},
@@ -307,7 +307,7 @@ func TestAnEmptySearchIsNotAFallback(t *testing.T) {
 func TestRecordOutcomeStoresTheGivenClass(t *testing.T) {
 	root := t.TempDir()
 	recorder := New(root)
-	recorder.RecordOutcome("jade.read_symbol", time.Millisecond, 20, NotFound)
+	recorder.RecordOutcome("arno.read_symbol", time.Millisecond, 20, NotFound)
 
 	summary, err := recorder.Summarize()
 	if err != nil {
@@ -324,7 +324,7 @@ func TestRecordOutcomeStoresTheGivenClass(t *testing.T) {
 func TestRecordOutcomeDefaultsAnEmptyClassToOK(t *testing.T) {
 	root := t.TempDir()
 	recorder := New(root)
-	recorder.RecordOutcome("jade.find", time.Millisecond, 20, "")
+	recorder.RecordOutcome("arno.find", time.Millisecond, 20, "")
 
 	summary, _ := recorder.Summarize()
 	if summary.TotalErrors != 0 {

@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/julianbei/jade/internal/diagnostics"
-	"github.com/julianbei/jade/internal/events"
+	"github.com/julianbei/arno/internal/diagnostics"
+	"github.com/julianbei/arno/internal/events"
 )
 
 // Runner tracks asynchronous validation jobs.
@@ -131,7 +131,7 @@ func (r *Runner) CompleteWithResult(id string, output string, failed bool) {
 	// The summary is computed from the FULL output, before clamping. The
 	// decisive line of a long failure is frequently in the middle — exactly
 	// the part the clamp drops — so summarizing the clamped text would let
-	// the size bound silently degrade the answer jade is best at giving.
+	// the size bound silently degrade the answer arno is best at giving.
 	summary := diagnostics.DecisiveSummary(output)
 	clamped, omitted := clampRawOutput(output)
 

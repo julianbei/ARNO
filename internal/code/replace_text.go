@@ -13,7 +13,7 @@ var ErrTextNotFound = errors.New("anchor text not found")
 
 // ErrTextAmbiguous is returned when the anchor text appears more than once.
 // Editing the first match would be a coin flip on which one the caller
-// meant, so jade refuses and says how many it found — the caller can then
+// meant, so arno refuses and says how many it found — the caller can then
 // extend the anchor with surrounding context to disambiguate.
 var ErrTextAmbiguous = errors.New("anchor text is ambiguous")
 
@@ -21,7 +21,7 @@ var ErrTextAmbiguous = errors.New("anchor text is ambiguous")
 //
 // This exists because line numbers are the wrong address for a sequence of
 // edits: every prior edit shifts them, so each follow-up edit needs a fresh
-// read first. Dogfooding jade through its own development produced several
+// read first. Dogfooding arno through its own development produced several
 // off-by-N splices from exactly that — a case landing inside a struct
 // literal, another replacing an import line instead of inserting above it.
 // An anchor string does not move when the lines around it do.

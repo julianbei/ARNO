@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/julianbei/jade/internal/jobs"
+	"github.com/julianbei/arno/internal/jobs"
 )
 
 func TestNormalizeCheckKindAcceptsSynonyms(t *testing.T) {

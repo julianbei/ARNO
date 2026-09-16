@@ -1,6 +1,6 @@
 package jobs
 
-import "github.com/julianbei/jade/internal/textutil"
+import "github.com/julianbei/arno/internal/textutil"
 
 // maxRawOutputBytes bounds what a job stores and returns as raw output.
 //

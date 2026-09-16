@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // findBatch renders several find answers one after another. Each keeps its own

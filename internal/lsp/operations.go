@@ -10,7 +10,7 @@ import (
 
 // References asks the server for every use of the symbol at a position.
 //
-// Line and column are jade's own 1-based, byte-oriented coordinates; the
+// Line and column are arno's own 1-based, byte-oriented coordinates; the
 // conversion to LSP's 0-based UTF-16 positions happens here so no caller has
 // to know about it.
 func References(ctx context.Context, client *Client, path string, lineText string, line int, column int) ([]Location, bool) {
@@ -53,7 +53,7 @@ var (
 	ErrRenameNoEdits     = errors.New("the language server produced no edits for this symbol")
 )
 
-// FileEdit is one file's worth of a rename, in jade's coordinates.
+// FileEdit is one file's worth of a rename, in arno's coordinates.
 type FileEdit struct {
 	Path string
 	// Edits are ordered last-to-first within the file, so applying them in
@@ -74,7 +74,7 @@ type PositionedEdit struct {
 // edits rather than applying them.
 //
 // Returning edits rather than writing files keeps the decision where it
-// belongs: jade's edit service owns revisions, formatting and validation, and
+// belongs: arno's edit service owns revisions, formatting and validation, and
 // a rename that wrote files behind its back would produce a change with no
 // revision bump and no diagnostics.
 func Rename(ctx context.Context, client *Client, path string, lineText string, line int, column int, newName string) ([]FileEdit, error) {
@@ -175,7 +175,7 @@ func utf16Column(lineText string, byteColumn int) int {
 }
 
 // byteColumn is utf16Column's inverse, for turning a server's answer back into
-// a position jade can use against the file's bytes.
+// a position arno can use against the file's bytes.
 func byteColumn(lineText string, utf16Offset int) int {
 	if utf16Offset <= 0 {
 		return 1

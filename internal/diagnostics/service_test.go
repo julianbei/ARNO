@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/julianbei/jade/internal/protocol"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 func TestImmediateDetectsRealSyntaxErrors(t *testing.T) {
@@ -182,7 +182,7 @@ func TestDecisiveLinesDoesNotTreatOrdinaryColonsAsDiagnostics(t *testing.T) {
 	// A path-like prefix is required; prose with colons and digits must not
 	// masquerade as a compiler diagnostic or every log line would match.
 	notDiagnostics := []string{
-		"ok  \tgithub.com/julianbei/jade/internal/code\t0.248s",
+		"ok  \tgithub.com/julianbei/arno/internal/code\t0.248s",
 		"Compiling thing v0.1.0",
 		"note: run with RUST_BACKTRACE=1",
 		"12:34:56 starting build",

@@ -26,25 +26,25 @@ func TestAnalyzeConfusionFindsSwitchesRetriesAndUnusedTools(t *testing.T) {
 	fileA := TargetOf(map[string]interface{}{"path": "a.go"})
 	fileB := TargetOf(map[string]interface{}{"path": "b.go"})
 	records := []Record{
-		{Tool: "jade.read_range", Target: fileA, Outcome: OK},
-		{Tool: "jade.outline", Target: fileA, Outcome: OK},      // switch
-		{Tool: "jade.replace_text", Target: fileA, Outcome: OK}, // read then edit: not a switch
-		{Tool: "jade.read_symbol", Target: fileB, Outcome: NotFound},
-		{Tool: "jade.read_symbol", Target: fileB, Outcome: OK}, // retry
-		{Tool: "jade.outline", Target: fileA, Outcome: OK},     // different target: not a switch
+		{Tool: "arno.read_range", Target: fileA, Outcome: OK},
+		{Tool: "arno.outline", Target: fileA, Outcome: OK},      // switch
+		{Tool: "arno.replace_text", Target: fileA, Outcome: OK}, // read then edit: not a switch
+		{Tool: "arno.read_symbol", Target: fileB, Outcome: NotFound},
+		{Tool: "arno.read_symbol", Target: fileB, Outcome: OK}, // retry
+		{Tool: "arno.outline", Target: fileA, Outcome: OK},     // different target: not a switch
 	}
 
-	report := AnalyzeConfusion(records, []string{"jade.read_range", "jade.outline", "jade.rename", "jade.find"})
+	report := AnalyzeConfusion(records, []string{"arno.read_range", "arno.outline", "arno.rename", "arno.find"})
 
-	wantSwitches := []ToolSwitch{{From: "jade.read_range", To: "jade.outline", Count: 1}}
+	wantSwitches := []ToolSwitch{{From: "arno.read_range", To: "arno.outline", Count: 1}}
 	if !reflect.DeepEqual(report.Switches, wantSwitches) {
 		t.Errorf("switches: got %+v, want %+v", report.Switches, wantSwitches)
 	}
-	wantRetries := []ToolRetry{{Tool: "jade.read_symbol", After: NotFound, Count: 1}}
+	wantRetries := []ToolRetry{{Tool: "arno.read_symbol", After: NotFound, Count: 1}}
 	if !reflect.DeepEqual(report.Retries, wantRetries) {
 		t.Errorf("retries: got %+v, want %+v", report.Retries, wantRetries)
 	}
-	if want := []string{"jade.find", "jade.rename"}; !reflect.DeepEqual(report.NeverCalled, want) {
+	if want := []string{"arno.find", "arno.rename"}; !reflect.DeepEqual(report.NeverCalled, want) {
 		t.Errorf("never called: got %v, want %v", report.NeverCalled, want)
 	}
 }

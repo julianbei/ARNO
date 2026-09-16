@@ -1,6 +1,6 @@
 // Package lsp speaks the Language Server Protocol to real language servers.
 //
-// Until this package, jade's only semantic tooling was three `gopls` CLI
+// Until this package, arno's only semantic tooling was three `gopls` CLI
 // subcommands, which meant `references` and `rename` were exact for Go and
 // approximate-or-refused everywhere else. A CLI invocation also pays full
 // process startup and workspace load on every call, and can answer only the
@@ -8,7 +8,7 @@
 //
 // The protocol is deliberately implemented here rather than pulled in: the
 // client needs maybe six requests and four notifications, and the failure
-// behaviour jade wants — never block, never crash the server on a bad reply,
+// behaviour arno wants — never block, never crash the server on a bad reply,
 // degrade to the existing fallbacks when a server is missing — is most of the
 // work regardless of who writes the framing.
 package lsp
@@ -101,7 +101,7 @@ func readMessage(r *bufio.Reader) (Message, error) {
 }
 
 // maxFrameBytes bounds a single frame. A language server that has decided to
-// send jade 64MB of anything has gone wrong in a way that reading it all
+// send arno 64MB of anything has gone wrong in a way that reading it all
 // would only make worse — rust-analyzer's workspace notifications and
 // jdtls's progress reports can both get large.
 const maxFrameBytes = 64 << 20

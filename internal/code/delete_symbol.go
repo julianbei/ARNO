@@ -8,7 +8,7 @@ import (
 
 // DeleteSymbolSource removes a symbol's declaration entirely.
 //
-// jade had create_file, delete_file, replace_symbol, replace_range and
+// arno had create_file, delete_file, replace_symbol, replace_range and
 // replace_text but no way to delete a declaration, so removing one meant
 // locating it by hand and scanning for its closing brace — which is exactly
 // the `python3` heredoc that prompted this task. Tree-sitter already knows

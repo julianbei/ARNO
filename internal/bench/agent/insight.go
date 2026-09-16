@@ -15,7 +15,7 @@ import (
 // into its context, and where it went round in circles. Analyze reads that
 // from Claude Code's stream-json events; InsightReport compares it across arms.
 
-// Tool call categories. Every tool, built-in or Jade, lands in exactly one, so
+// Tool call categories. Every tool, built-in or Arno, lands in exactly one, so
 // the arms can be compared on the work done rather than on tool names.
 const (
 	CategoryRead   = "read"
@@ -59,9 +59,9 @@ type Insight struct {
 	CacheWriteTokens int `json:"cacheWriteTokens"`
 	CacheReadTokens  int `json:"cacheReadTokens"`
 
-	// JadeStatus is the Jade MCP server's status at session start. A Jade arm
-	// whose server did not connect measured nothing about Jade.
-	JadeStatus string `json:"jadeStatus,omitempty"`
+	// ArnoStatus is the Arno MCP server's status at session start. A Arno arm
+	// whose server did not connect measured nothing about Arno.
+	ArnoStatus string `json:"arnoStatus,omitempty"`
 	// Requests is model round trips; MaxParallel the most tool calls one
 	// round trip issued.
 	Requests          int `json:"requests"`
@@ -82,9 +82,9 @@ type Insight struct {
 	ResultBytes   int `json:"resultBytes"`
 }
 
-// Valid reports whether the run measured its arm: a Jade arm needs Jade.
+// Valid reports whether the run measured its arm: a Arno arm needs Arno.
 func (in Insight) Valid() bool {
-	return !in.Arm.UsesJade() || in.JadeStatus == "connected"
+	return !in.Arm.UsesArno() || in.ArnoStatus == "connected"
 }
 
 type contentBlock struct {
@@ -151,8 +151,8 @@ func Analyze(result RunResult) (Insight, error) {
 		case "system":
 			if event.Subtype == "init" {
 				for _, server := range event.MCPServers {
-					if server.Name == "jade" {
-						in.JadeStatus = server.Status
+					if server.Name == "arno" {
+						in.ArnoStatus = server.Status
 					}
 				}
 			}
@@ -274,17 +274,17 @@ func resultLength(raw json.RawMessage) int {
 	return len(raw)
 }
 
-// normalizeTool gives Jade's tools one spelling: mcp__jade__jade_outline is
-// jade.outline, the name Jade's own telemetry uses.
+// normalizeTool gives Arno's tools one spelling: mcp__arno__arno_outline is
+// arno.outline, the name Arno's own telemetry uses.
 func normalizeTool(name string) string {
-	if rest, ok := strings.CutPrefix(name, "mcp__jade__"); ok {
-		rest = strings.TrimPrefix(strings.TrimPrefix(rest, "jade_"), "jade.")
-		return "jade." + rest
+	if rest, ok := strings.CutPrefix(name, "mcp__arno__"); ok {
+		rest = strings.TrimPrefix(strings.TrimPrefix(rest, "arno_"), "arno.")
+		return "arno." + rest
 	}
 	return name
 }
 
-var jadeCategories = map[string]string{
+var arnoCategories = map[string]string{
 	"read_symbol": CategoryRead, "read_range": CategoryRead, "outline": CategoryRead, "context": CategoryRead,
 	"find": CategorySearch, "search": CategorySearch, "grep": CategorySearch, "retrieve": CategorySearch,
 	"repository_map": CategorySearch, "workspace_tree": CategorySearch, "references": CategorySearch,
@@ -327,7 +327,7 @@ func classify(tool string, input json.RawMessage) (string, string) {
 		return classifyCommand(command), clip(command, 160)
 	}
 
-	name, ok := strings.CutPrefix(tool, "jade.")
+	name, ok := strings.CutPrefix(tool, "arno.")
 	if !ok {
 		return CategoryOther, ""
 	}
@@ -350,7 +350,7 @@ func classify(tool string, input json.RawMessage) (string, string) {
 	case "run_command":
 		target = text("name")
 	}
-	category, known := jadeCategories[name]
+	category, known := arnoCategories[name]
 	if !known {
 		category = CategoryState
 	}
@@ -476,7 +476,7 @@ func (g group) categoryCalls(category string) float64 {
 }
 
 // InsightReport compares arms task by task, then overall, then looks inside
-// Jade's own tools and at the outliers.
+// Arno's own tools and at the outliers.
 func InsightReport(results []RunResult) string {
 	insights, unreadable := Insights(results)
 	if len(insights) == 0 {
@@ -495,7 +495,7 @@ func InsightReport(results []RunResult) string {
 	}
 	fmt.Fprintf(&b, "\n== insight: %d runs analysed", len(valid))
 	if len(invalid) > 0 {
-		fmt.Fprintf(&b, ", %d invalid (Jade not connected)", len(invalid))
+		fmt.Fprintf(&b, ", %d invalid (Arno not connected)", len(invalid))
 	}
 	if unreadable > 0 {
 		fmt.Fprintf(&b, ", %d without a readable transcript", unreadable)
@@ -553,7 +553,7 @@ func InsightReport(results []RunResult) string {
 		fmt.Fprintf(&b, "\n%s\n", task)
 		columns()
 		groups := byArm(list)
-		for _, arm := range []Arm{ArmShell, ArmShellLean, ArmJade, ArmJadeShell} {
+		for _, arm := range []Arm{ArmShell, ArmShellLean, ArmArno, ArmArnoShell} {
 			if g, ok := groups[arm]; ok {
 				line(arm, g)
 			}
@@ -563,14 +563,14 @@ func InsightReport(results []RunResult) string {
 	b.WriteString("\nall tasks\n")
 	columns()
 	groups := byArm(valid)
-	for _, arm := range []Arm{ArmShell, ArmShellLean, ArmJade, ArmJadeShell} {
+	for _, arm := range []Arm{ArmShell, ArmShellLean, ArmArno, ArmArnoShell} {
 		if g, ok := groups[arm]; ok {
 			line(arm, g)
 		}
 	}
 
 	b.WriteString("\ntokens per run by kind (means, k)\n")
-	for _, arm := range []Arm{ArmShell, ArmShellLean, ArmJade, ArmJadeShell} {
+	for _, arm := range []Arm{ArmShell, ArmShellLean, ArmArno, ArmArnoShell} {
 		g, ok := groups[arm]
 		if !ok {
 			continue
@@ -584,7 +584,7 @@ func InsightReport(results []RunResult) string {
 	}
 
 	b.WriteString("\ntool result bytes by category (share of each arm's context from tools)\n")
-	for _, arm := range []Arm{ArmShell, ArmJade, ArmJadeShell} {
+	for _, arm := range []Arm{ArmShell, ArmArno, ArmArnoShell} {
 		g, ok := groups[arm]
 		if !ok {
 			continue
@@ -630,7 +630,7 @@ func InsightReport(results []RunResult) string {
 		}
 	}
 	if len(stats) > 0 {
-		b.WriteString("\ntools used by the Jade arms (calls · errors · mean result bytes · runs using it)\n")
+		b.WriteString("\ntools used by the Arno arms (calls · errors · mean result bytes · runs using it)\n")
 		names := make([]string, 0, len(stats))
 		for name := range stats {
 			names = append(names, name)
@@ -669,7 +669,7 @@ func InsightReport(results []RunResult) string {
 	}
 
 	for _, in := range invalid {
-		fmt.Fprintf(&b, "\ninvalid: %s/%s %s #%d — jade status %q\n", in.Repository, in.Task, in.Arm, in.Repeat, in.JadeStatus)
+		fmt.Fprintf(&b, "\ninvalid: %s/%s %s #%d — arno status %q\n", in.Repository, in.Task, in.Arm, in.Repeat, in.ArnoStatus)
 	}
 	return b.String()
 }

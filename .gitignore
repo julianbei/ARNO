@@ -11,10 +11,10 @@ bin/
 # Local agent-harness state, not project configuration.
 .claude/
 
-# jade's own tool-usage log. .jade/commands.json IS meant to be committed —
+# arno's own tool-usage log. .arno/commands.json IS meant to be committed —
 # it is the repo's declared command vocabulary — but the telemetry log is
 # local measurement data that would conflict on every pull.
-.jade/telemetry.jsonl
+.arno/telemetry.jsonl
 
 # Conformance fixtures are prepared inside the container, not committed.
 test/conformance/repos/*/node_modules/

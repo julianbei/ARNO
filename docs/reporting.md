@@ -1,6 +1,6 @@
-# What makes a useful jade report
+# What makes a useful arno report
 
-Short version: **the tool call, what came back, and what you expected.** Jade's
+Short version: **the tool call, what came back, and what you expected.** Arno's
 responses are plain text and usually a few lines, so pasting them verbatim
 costs you almost nothing and saves a round trip.
 
@@ -8,20 +8,20 @@ costs you almost nothing and saves a round trip.
 
 **Did you reconnect your MCP client?** The tool catalog is fixed at connection
 time, so a newly added tool does not appear, and a newly built binary is not
-used, until the client reconnects. During jade's own development this accounted
+used, until the client reconnects. During arno's own development this accounted
 for every single "the tool is missing" report — without exception.
 
 ## The report we most want
 
 Not bugs. **Friction**: the moments you reached for `grep`, `sed` or `cat`
-even though jade was right there.
+even though arno was right there.
 
-Jade's premise is that an agent falling back to the shell is operating outside
+Arno's premise is that an agent falling back to the shell is operating outside
 any tooling you control — no revision tracking, no guardrails, no telemetry.
-So a fallback is a design failure whether or not jade had a working tool for
+So a fallback is a design failure whether or not arno had a working tool for
 the job.
 
-**"It was just habit" is a real answer and we want it.** It means the jade path
+**"It was just habit" is a real answer and we want it.** It means the arno path
 was not the obvious one at the moment of choosing, which is our problem. This
 project's own development log ([feedback.md](feedback.md)) records sixteen
 tasks of exactly these, and the pattern it found was blunt: the fallbacks that
@@ -35,31 +35,31 @@ So please report the boring ones.
 
 **Always:**
 
-- `jade-mcp --version`
+- `arno-mcp --version`
 - The tool call — name and arguments
 - The response, verbatim
 - What you expected instead
 
 **Often decisive:**
 
-- **The language of the file.** Jade has real tree-sitter grammars for Go,
+- **The language of the file.** Arno has real tree-sitter grammars for Go,
   TypeScript, TSX and Rust. Everything else falls back to a text scan that
-  finds some declarations and misses others. Jade says so in the response
+  finds some declarations and misses others. Arno says so in the response
   (`! no python grammar — …`), but if it did not, that itself is a bug.
 - **Whether `gopls` is installed**, for anything involving `references` or
   `rename`. Without it, `references` degrades to a textual approximation and
   `rename` refuses outright rather than guessing.
-- **Whether the repo is a git repository with at least one commit.** Jade works
+- **Whether the repo is a git repository with at least one commit.** Arno works
   without either, but `changes`, `diff`, `history` and `checkpoint` are limited
   and will say so.
 
 **Very helpful, and safe to paste:**
 
-Output of the `jade.telemetry` tool. It records **no arguments, no response
+Output of the `arno.telemetry` tool. It records **no arguments, no response
 bodies and no error message text** — only tool names, wall time, response sizes
 and failure classes. That is deliberate: a telemetry file containing source
 code could not be attached to an issue, which would defeat the point of
-collecting it. It is local-only and never transmitted; `JADE_TELEMETRY=0`
+collecting it. It is local-only and never transmitted; `ARNO_TELEMETRY=0`
 disables it entirely.
 
 The line worth pasting is the fallback summary:
@@ -70,7 +70,7 @@ fallback risk: not_found 1
 ```
 
 Those failure classes — `not_found`, `ambiguous`, `stale_revision`, `timeout`,
-`unavailable` — are the moments jade failed and the shell was one keystroke
+`unavailable` — are the moments arno failed and the shell was one keystroke
 away. They are the most direct evidence we can get.
 
 ## What not to bother with
@@ -79,7 +79,7 @@ away. They are the most direct evidence we can get.
   answer was *wrong* or *unclear*, not that it was phrased differently than
   last week. See [tool-contract.md](tool-contract.md) for what is and is not
   stable.
-- **Known limitations from the README's "What Jade does not do yet".** Unless
+- **Known limitations from the README's "What Arno does not do yet".** Unless
   you hit one in real work, in which case say so — that is priority
   information, and worth more than a feature request.
 - **Polishing the report.** A one-line "this made me use grep and I don't know
