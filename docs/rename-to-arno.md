@@ -38,7 +38,12 @@ Renamed files and directories: `cmd/jade-mcp/` → `cmd/arno-mcp/`,
 ## Compatibility, and when it ends
 
 Everything below is accepted, answers, and says it is deprecated. All of it is
-deleted in the release after the rename.
+deleted in the release after **0.0.13**.
+
+That was originally the release after 0.0.12. It moved out by one because
+0.0.12 and 0.0.13 shipped a day apart: anyone who installed under the old name
+and did not update within 24 hours would have been broken by a grace period
+that existed only on paper.
 
 - **Tool names.** `jade.find` and `jade_find` resolve to `arno.find`.
   `canonicalToolName` in `toolname.go` already maps two spellings to one wire

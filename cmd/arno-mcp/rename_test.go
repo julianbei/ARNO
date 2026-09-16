@@ -7,7 +7,7 @@ import (
 
 // A tester's client config, and any agent that learned the name before the
 // rename, still says jade.find. Both spellings resolve until the release
-// after 0.0.12; the catalog only ever advertises arno.*.
+// after 0.0.13; the catalog only ever advertises arno.*.
 func TestJadeToolNamesStillResolve(t *testing.T) {
 	cases := map[string]string{
 		"jade.find":       "arno.find",

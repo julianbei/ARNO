@@ -34,7 +34,7 @@ runs. Sonnet 5, one run per task, four languages —
 [results and caveats](docs/benchmark-results.md) ·
 [how to set it up](#let-arno-replace-the-built-in-tools).
 
-**Status:** 0.0.12 shipped, the first release called ARNO; 0.0.11 and earlier were Jade — early, usable, and looking for feedback. **Testing it?**
+**Status:** 0.0.13 shipped; 0.0.12 was the first release called ARNO, and 0.0.11 and earlier were Jade — early, usable, and looking for feedback. **Testing it?**
 Start with [the tester guide](#trying-arno-a-guide-for-testers).
 
 ```bash
@@ -276,7 +276,7 @@ The install script above is the easiest way. These work too.
 
 ```bash
 go install github.com/julianbei/arno/cmd/arno-mcp@latest    # newest
-go install github.com/julianbei/arno/cmd/arno-mcp@v0.0.12   # pinned to a tag
+go install github.com/julianbei/arno/cmd/arno-mcp@v0.0.13   # pinned to a tag
 ```
 
 Lands in `$GOBIN`, or `$(go env GOPATH)/bin` if that is unset — which is

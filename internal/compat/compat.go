@@ -1,7 +1,11 @@
-// Package compat keeps the names Jade used working for one release after the
-// rename to ARNO. Everything here is deleted in the release after 0.0.12; it
-// exists so a tester's shell profile, MCP client config and checked-in
-// .jade/commands.json do not break the moment they update.
+// Package compat keeps the names Jade used working for the releases that
+// follow the rename to ARNO. Everything here is deleted in the release after
+// 0.0.13; it exists so a tester's shell profile, MCP client config and
+// checked-in .jade/commands.json do not break the moment they update.
+//
+// The removal was originally set for the release after 0.0.12. It moved out
+// one release because 0.0.12 and 0.0.13 shipped a day apart, which is not
+// enough notice for anyone who installed under the old name.
 package compat
 
 import (
@@ -56,7 +60,7 @@ func Getenv(name string) string {
 	legacyName := legacyEnvPrefix + legacy
 	value := os.Getenv(legacyName)
 	if value != "" {
-		warn("%s is deprecated and will stop working after 0.0.12; use %s", legacyName, name)
+		warn("%s is deprecated and will stop working after 0.0.13; use %s", legacyName, name)
 	}
 	return value
 }
@@ -81,7 +85,7 @@ func StatePath(root, file string) string {
 func ToolName(name string) string {
 	for _, prefix := range []string{"jade.", "jade_"} {
 		if rest, ok := strings.CutPrefix(name, prefix); ok && rest != "" {
-			warn("%s is deprecated and will stop working after 0.0.12; use arno.%s", name, rest)
+			warn("%s is deprecated and will stop working after 0.0.13; use arno.%s", name, rest)
 			return "arno." + rest
 		}
 	}

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.0.13
 
 ### Detected command candidates
 
@@ -58,6 +58,23 @@ runs and did not ship; the benchmark round is in docs/benchmark-results.md.
 `bench/tasks/django.json`: three real fixes in a 7,000-file repository, run
 on a Python 3.13 venv with sqlite. Raw results of every round from
 2026-09-16 on live under `bench/results/<date>/`.
+
+### The Jade names keep working for one more release
+
+`jade.find`, `JADE_*` and `.jade/` were due to stop working in this release —
+that is what 0.0.12 warned on stderr. They keep working through 0.0.13 and are
+deleted in the release after it.
+
+0.0.12 and 0.0.13 shipped a day apart. A grace period measured in releases
+rather than days would have broken anyone who installed under the old name and
+did not update within 24 hours, which is not notice. The deprecation lines now
+name 0.0.13 as the last release that answers to the old spellings.
+
+### Fixed
+
+`a arno-mcp` in three comments the rename's blanket replacement left
+ungrammatical, and a README and llms.txt that still described 0.0.12 as
+upcoming after it had shipped.
 
 ## 0.0.12
 
