@@ -241,7 +241,7 @@ func TestAFailingCheckIsNotRecordedAsAFallback(t *testing.T) {
 		t.Fatalf("expected the call recorded, got %d", summary.TotalCalls)
 	}
 	if summary.TotalErrors != 0 {
-		t.Fatalf("expected a failing build NOT to count as a arno failure, got %+v", summary.Fallbacks)
+		t.Fatalf("expected a failing build NOT to count as an arno failure, got %+v", summary.Fallbacks)
 	}
 }
 func TestVersionIsStampedOrHonestlyDev(t *testing.T) {

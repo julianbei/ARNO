@@ -103,7 +103,7 @@ ENV ARNO_METALS_IMPORT=1
 # Prepare the fixture repositories the way a real checkout would be prepared.
 #
 # This is not convenience. Two servers refuse to start against a bare source
-# tree, and each refusal was initially mistaken for a arno bug:
+# tree, and each refusal was initially mistaken for an arno bug:
 #
 #   typescript-language-server: "Could not find a valid TypeScript
 #   installation" unless typescript is resolvable from the workspace. A real

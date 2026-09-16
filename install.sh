@@ -5,7 +5,7 @@
 #
 # Picks the build for this OS and CPU, verifies it against the release's
 # checksums.txt and installs it without sudo: /usr/local/bin when that is
-# writable, ~/.local/bin otherwise. Run it again to update: a arno-mcp already
+# writable, ~/.local/bin otherwise. Run it again to update: an arno-mcp already
 # on PATH is replaced where it is, and one already at the release is left alone.
 #
 # ARNO_VERSION      a release tag, e.g. v0.0.8 (default: the latest release)
