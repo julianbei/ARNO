@@ -9,6 +9,7 @@ import (
 	"github.com/julianbei/arno/internal/commands"
 	"github.com/julianbei/arno/internal/jobs"
 	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/render"
 )
 
 // RunCommand invokes one command from the repo's declared registry.
@@ -33,15 +34,24 @@ func (s *Server) RunCommand(req protocol.RunCommandRequest) (protocol.RunCommand
 	if req.Name == "" {
 		available := declaredList(registry)
 		return protocol.RunCommandResponse{
-			Status:    "listed",
-			Available: available,
-			Summary:   listSummary(available),
+			Status:     "listed",
+			Available:  available,
+			Candidates: s.undeclaredCandidates(registry),
+			Summary:    listSummary(available),
 		}, nil
 	}
 
 	command, ok := registry.Lookup(req.Name)
 	if !ok {
-		return protocol.RunCommandResponse{}, commands.UnknownCommandError(req.Name, registry.Names())
+		err := commands.UnknownCommandError(req.Name, registry.Names())
+		// A guessed name ("test-unit", "model_formsets_tests") is the failure
+		// class the 2026-09-16 benchmark measured directly: what the manifest
+		// already says deterministically should not have to be rediscovered by
+		// trial and error.
+		if block := render.FormatCandidates("Detected candidates:", s.undeclaredCandidates(registry)); block != "" {
+			err = fmt.Errorf("%s\n\n%s", err, block)
+		}
+		return protocol.RunCommandResponse{}, err
 	}
 
 	// The job kind carries the command name so history, events and job_status
@@ -192,6 +202,27 @@ func (s *Server) checkDeclared(req protocol.CheckRequest, kind string) (protocol
 // integrations that started a job without waiting.
 func (s *Server) WaitForJob(id string, timeout time.Duration) (jobs.JobOutput, bool) {
 	return s.jobs.Wait(id, timeout)
+}
+
+// undeclaredCandidates is what DetectCommandCandidates finds, minus anything
+// already declared — declare_command is the only path that writes the
+// registry, so a name already there is not a suggestion, it is answered.
+func (s *Server) undeclaredCandidates(registry *commands.Registry) []protocol.CommandCandidate {
+	detected := jobs.DetectCommandCandidates(s.workspace.Root())
+	if len(detected) == 0 {
+		return nil
+	}
+	declared := make(map[string]bool, len(registry.Names()))
+	for _, name := range registry.Names() {
+		declared[name] = true
+	}
+	candidates := make([]protocol.CommandCandidate, 0, len(detected))
+	for _, candidate := range detected {
+		if !declared[candidate.Name] {
+			candidates = append(candidates, candidate)
+		}
+	}
+	return candidates
 }
 
 func declaredList(registry *commands.Registry) []protocol.DeclaredCommand {

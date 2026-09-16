@@ -512,6 +512,7 @@ func capabilities(r protocol.CapabilitiesResponse) string {
 	if len(r.Commands) > 0 {
 		lines = append(lines, "declared commands: "+strings.Join(r.Commands, ", "))
 	}
+	lines = append(lines, candidateLines("detected, undeclared commands:", r.CommandCandidates)...)
 	if r.ProjectConfig != "" {
 		lines = append(lines, r.ProjectConfig)
 	}
@@ -930,7 +931,11 @@ func grep(r protocol.GrepResponse) string {
 // when no command was named.
 func runCommand(r protocol.RunCommandResponse) string {
 	if r.Status == "listed" || (r.Name == "" && len(r.Available) > 0) {
-		return declaredListing(r.Summary, r.Available)
+		text := declaredListing(r.Summary, r.Available)
+		if block := FormatCandidates("Detected candidates:", r.Candidates); block != "" {
+			text += "\n\n" + block
+		}
+		return text
 	}
 
 	status := r.Status
@@ -959,6 +964,31 @@ func runCommand(r protocol.RunCommandResponse) string {
 
 // maxListedScript clips an undescribed command's script in a listing.
 const maxListedScript = 60
+
+// candidateLines renders detected-but-undeclared commands under header, or
+// nothing when there are none. header carries its own leading blank line
+// where the caller wants one, so this stays usable both after another
+// rendered block and as the whole message.
+func candidateLines(header string, candidates []protocol.CommandCandidate) []string {
+	if len(candidates) == 0 {
+		return nil
+	}
+	lines := make([]string, 0, len(candidates)+2)
+	lines = append(lines, header)
+	for _, c := range candidates {
+		lines = append(lines, fmt.Sprintf("  %-12s→ %s", c.Name, c.Run))
+	}
+	lines = append(lines, "Use declare_command to add one.")
+	return lines
+}
+
+// FormatCandidates renders detected-but-undeclared commands as one block, or
+// "" when there are none. Exported so a plain error message — which bypasses
+// the response renderer entirely — can still share this formatting with
+// run_command's listing and capabilities.
+func FormatCandidates(header string, candidates []protocol.CommandCandidate) string {
+	return strings.Join(candidateLines(header, candidates), "\n")
+}
 
 func declaredListing(summary string, available []protocol.DeclaredCommand) string {
 	lines := make([]string, 0, len(available)+1)

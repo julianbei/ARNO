@@ -116,6 +116,20 @@ name, and the non-goals below. What it changed:
   2026-09-16: diagnostics are snapshotted before the write and only new ones
   listed, with a count of the rest; at most 12 are listed, nearest the edit
   first, when there is no snapshot.
+- [x] **Detected command candidates.** Sixteen guessed `run_command` names in
+  the Django runs (`test-unit`, `model_formsets_tests`) against a repository
+  that had declared nothing. `run_command`'s listing and unknown-name refusal,
+  and `capabilities`, now also show commands ARNO can see in the repository's
+  own manifests — npm scripts (verified the way discovery already verifies
+  one, by parsing what `npm run` itself lists) and Makefile targets (verified
+  with `make -n`) — that nobody has declared. Capped at 10, recognisable
+  operational names ranked first, a script `check` already covers for build,
+  typecheck or tests left off the list. Detection is read-only:
+  `declare_command` is still the only path that writes `.arno/commands.json`,
+  so a misread or unwanted candidate is never silently accepted. Done
+  2026-09-16. Deliberately narrower than a full bootstrap protocol — no
+  roles, cost metadata, provenance schema, staleness invalidation, or a model
+  round trip — kept for if a use for that richer schema actually appears.
 - [ ] **A declared command's full output has nowhere to go in the core
   profile.** Sixteen calls in the Django runs named `/tmp/...`: agents
   redirected a command's output there and asked `read_range` for it, which

@@ -677,6 +677,16 @@ whatever) worked out the incantation, replayed by name forever after. Calling
 an unknown name answers with the commands that *do* exist, so a wrong guess
 teaches rather than fails.
 
+Both answers also list **detected candidates**: npm scripts and Makefile
+targets ARNO can see in the repository's own manifests but nobody has
+declared. Detection is read-only — nothing is written until `declare_command`
+says so — and a script `check` already runs for build, typecheck or tests is
+left off the list, since it is not a gap. `capabilities` shows the same
+candidates alongside what it already reports. This closed a failure class the
+2026-09-16 benchmark measured directly: an agent guessing `run_command` names
+(`test-unit`, `model_formsets_tests`) against a repository that had declared
+nothing, each guess a wasted call, when the manifest already answered it.
+
 ### A validation chain
 
 Repository rules — Semgrep, a custom linter, a licence check — belong in

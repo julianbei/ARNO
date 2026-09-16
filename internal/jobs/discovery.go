@@ -6,10 +6,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/julianbei/arno/internal/project"
+	"github.com/julianbei/arno/internal/protocol"
 )
 
 // manifestDiscoveryTimeout bounds the ecosystem probes (`npm run`,
@@ -193,6 +195,147 @@ func discoverCommand(dir string, kind string) (name string, args []string, ok bo
 		return "", nil, false
 	}
 	return "go", commandArgs, true
+}
+
+// maxCommandCandidates bounds how many detected-but-undeclared commands are
+// surfaced at once, so a repository with a hundred npm scripts does not turn
+// a refusal or a capabilities call into another wall of text — the same
+// discipline as the diagnostics cap in edit responses.
+const maxCommandCandidates = 10
+
+// commandCandidatePriority orders recognisable operational names ahead of
+// whatever else a manifest happens to list, so "test" or "lint" is not
+// crowded out by a project's fortieth internal script. Names outside this
+// list still appear, alphabetically, after it, up to the cap.
+var commandCandidatePriority = []string{
+	"build", "test", "test:unit", "test:integration", "test:e2e", "e2e",
+	"lint", "format", "fmt", "typecheck", "check", "dev", "start", "serve",
+	"ci", "bench", "coverage",
+}
+
+// DetectCommandCandidates lists commands ARNO can see declared in the
+// repository's own manifests or build files but that nobody has run through
+// declare_command yet: npm/yarn/pnpm scripts, verified the same way
+// npmScriptFor verifies one — by parsing what bare `npm run` itself lists,
+// never by reading package.json's "scripts" object directly — and Makefile
+// targets, verified with `make -n` the same way makefileTargetFor is.
+//
+// This closes a failure class the 2026-09-16 benchmark measured directly: an
+// agent guessing run_command names ("test-unit", "model_formsets_tests")
+// against a repository that declared nothing, each guess a wasted call. What
+// ARNO already knows deterministically from the manifest should not have to
+// be rediscovered by trial and error.
+//
+// Detection is read-only. It never writes .arno/commands.json — only
+// declare_command does that — so a candidate ARNO misread, or a script an
+// agent should not run unattended, can be looked at and rejected rather than
+// silently becoming configuration.
+func DetectCommandCandidates(dir string) []protocol.CommandCandidate {
+	found := map[string]string{} // name -> run string, first source wins
+	var order []string
+	add := func(name string, run string) {
+		if name == "" || found[name] != "" {
+			return
+		}
+		found[name] = run
+		order = append(order, name)
+	}
+
+	if fileExists(filepath.Join(dir, "package.json")) {
+		for _, name := range npmScripts(dir) {
+			add(name, "npm run "+name)
+		}
+	}
+	if data, err := os.ReadFile(filepath.Join(dir, "Makefile")); err == nil {
+		for name := range parseMakefileTargets(string(data)) {
+			// Dot-prefixed names (.DEFAULT, .SUFFIXES, and .PHONY itself,
+			// already excluded by parseMakefileTargets) are make directives,
+			// not targets a caller would ever mean to run.
+			if strings.HasPrefix(name, ".") || !verifyMakeTarget(dir, name) {
+				continue
+			}
+			add(name, "make "+name)
+		}
+	}
+
+	// A script check already runs is not an undeclared gap: capabilities
+	// already lists it under build/typecheck/tests, and repeating it here as
+	// a "candidate" is exactly the observation-volume noise the diagnostics
+	// cap was fixed for the same day. A candidate not check-covered under
+	// one name (say, "build" resolving to a Makefile target while npm's
+	// "build" script does something else) still gets suggested; only an
+	// identical run string is filtered.
+	covered := coveredValidationRuns(dir)
+	kept := order[:0]
+	for _, name := range order {
+		if !covered[found[name]] {
+			kept = append(kept, name)
+		}
+	}
+	order = kept
+
+	sort.Slice(order, func(a, b int) bool {
+		if ra, rb := candidateRank(order[a]), candidateRank(order[b]); ra != rb {
+			return ra < rb
+		}
+		return order[a] < order[b]
+	})
+	if len(order) > maxCommandCandidates {
+		order = order[:maxCommandCandidates]
+	}
+
+	candidates := make([]protocol.CommandCandidate, 0, len(order))
+	for _, name := range order {
+		candidates = append(candidates, protocol.CommandCandidate{Name: name, Run: found[name]})
+	}
+	return candidates
+}
+
+// coveredValidationRuns is the exact command string (as a person would type
+// it) check would run for build, typecheck and tests in dir, the same kinds
+// capabilities lists under Validation. lint is not among them: unlike the
+// other three, check only runs a declared lint command, never a discovered
+// one, so there is nothing here to be redundant with.
+func coveredValidationRuns(dir string) map[string]bool {
+	covered := map[string]bool{}
+	for _, kind := range []string{"build", "typecheck", "tests"} {
+		if plan, ok, err := PlanValidation(dir, kind); err == nil && ok {
+			covered[plan.String()] = true
+		}
+	}
+	return covered
+}
+
+// candidateRank is a name's position in commandCandidatePriority, or a value
+// past the end of it for anything not listed there.
+func candidateRank(name string) int {
+	for i, candidate := range commandCandidatePriority {
+		if candidate == name {
+			return i
+		}
+	}
+	return len(commandCandidatePriority)
+}
+
+// npmScripts lists every script name bare `npm run` reports — what npm
+// itself considers runnable — reusing the parse npmScriptFor already trusts
+// for a single kind.
+func npmScripts(dir string) []string {
+	ctx, cancel := context.WithTimeout(context.Background(), manifestDiscoveryTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "npm", "run")
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil && len(output) == 0 {
+		return nil
+	}
+
+	var names []string
+	for _, match := range npmScriptLine.FindAllStringSubmatch(string(output), -1) {
+		names = append(names, match[1])
+	}
+	return names
 }
 
 // DescribeValidationCommand names the command a check of kind would run in

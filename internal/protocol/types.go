@@ -440,6 +440,17 @@ type RunCommandRequest struct {
 	TimeoutSeconds int
 }
 
+// CommandCandidate is a command ARNO can see declared in the repository's
+// own manifests or build files (an npm script, a Makefile target) but that
+// nobody has run through declare_command yet. It is a suggestion, not
+// something run_command can run — declare_command is the only path that
+// writes .arno/commands.json, so a misread or hallucinated name can never
+// become configuration on its own.
+type CommandCandidate struct {
+	Name string
+	Run  string
+}
+
 // DeclaredCommand is one entry of the repo command registry.
 type DeclaredCommand struct {
 	Name        string
@@ -463,6 +474,9 @@ type RunCommandResponse struct {
 	// Available is populated when Name was empty, and is the answer to "what
 	// can I run here".
 	Available []DeclaredCommand
+	// Candidates is populated alongside Available: commands detected but not
+	// yet declared.
+	Candidates []CommandCandidate
 }
 
 // DeclareCommandRequest adds or replaces a command in the repo registry.
@@ -728,11 +742,15 @@ type WorkspaceTreeResponse struct {
 
 // CapabilitiesResponse is what ARNO can do in this workspace, from one call.
 type CapabilitiesResponse struct {
-	Languages     []LanguageCapability
-	Git           bool
-	Commands      []string
-	Validation    []ValidationCapability
-	ProjectConfig string
+	Languages []LanguageCapability
+	Git       bool
+	Commands  []string
+	// CommandCandidates lists commands detected in the repository's manifests
+	// or build files that are not yet declared — npm scripts, Makefile
+	// targets — capped and ranked toward recognisable operational names.
+	CommandCandidates []CommandCandidate
+	Validation        []ValidationCapability
+	ProjectConfig     string
 	// Truncated says the language counts stopped at the listing bound.
 	Truncated bool
 	// Providers lists each capability's registered providers, in the order

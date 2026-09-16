@@ -118,6 +118,7 @@ func (s *Server) Capabilities() (protocol.CapabilitiesResponse, error) {
 			}
 			response.Commands = append(response.Commands, name)
 		}
+		response.CommandCandidates = s.undeclaredCandidates(registry)
 	}
 	for _, kind := range []string{"build", "typecheck", "tests"} {
 		if command, ok := jobs.DescribeValidationCommand(root, kind); ok {

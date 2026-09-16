@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Detected command candidates
+
+`run_command`'s listing and unknown-name refusal, and `capabilities`, now
+also show commands ARNO can see declared in the repository's own manifests
+but nobody has run through `declare_command` yet — npm scripts and Makefile
+targets, verified the way discovery already verifies one, capped at 10 with
+recognisable operational names ranked first. A script `check` already covers
+for build, typecheck or tests is left off the list. Detection is read-only;
+`declare_command` remains the only path that writes `.arno/commands.json`.
+Closes a failure class the 2026-09-16 benchmark measured directly: guessed
+`run_command` names (`test-unit`, `model_formsets_tests`) against a
+repository that had declared nothing.
+
 ### A stale-revision refusal says what moved
 
 `edit rejected: stale revision` used to be the whole message. It now names
