@@ -18,7 +18,7 @@ const maxFindBodyLines = 40
 // FindSymbols locates declarations by name and returns their bodies in one
 // call.
 //
-// This closes the most-cited reason to leave arno for the shell. Answering
+// This closes the most-cited reason to leave ARNO for the shell. Answering
 // "show me the function I have not located yet" took `outline` then
 // `read_symbol` — two round trips — while `grep -n "func X" -A 30` fuses
 // search and read into one. The shell won that comparison every time, and a
@@ -249,7 +249,7 @@ func findSummary(query string, total int, shown int) string {
 	return fmt.Sprintf("%d matches for %q", total, query)
 }
 
-// declarationKeywords open a declaration in the languages Arno parses.
+// declarationKeywords open a declaration in the languages ARNO parses.
 var declarationKeywords = map[string]bool{
 	"func": true, "fn": true, "def": true, "class": true, "struct": true, "interface": true,
 	"type": true, "function": true, "const": true, "let": true, "var": true, "val": true,

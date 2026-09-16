@@ -122,7 +122,7 @@ func TestSymbolDeltaReportsNothingForIdenticalSource(t *testing.T) {
 }
 
 func TestSymbolDeltaDegradesForUnparseableLanguages(t *testing.T) {
-	// A language arno cannot parse must yield no symbol detail rather than
+	// A language ARNO cannot parse must yield no symbol detail rather than
 	// wrong detail — the file-level counts still stand on their own.
 	changes := NewIndex(t.TempDir(), nil).SymbolDelta("notes.txt",
 		[]byte("some prose\n"), []byte("different prose\n"))

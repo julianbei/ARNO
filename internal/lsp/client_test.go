@@ -15,7 +15,7 @@ import (
 // test binary. Real servers are not available on every machine and are slow
 // and non-deterministic where they are — but the behaviours that actually
 // matter here are protocol behaviours (a server that hangs, one that dies
-// mid-request, one that asks arno a question), and those are only reliably
+// mid-request, one that asks ARNO a question), and those are only reliably
 // producible from a server written to produce them.
 func TestMain(m *testing.M) {
 	if script := os.Getenv("ARNO_FAKE_LSP"); script != "" {
@@ -114,7 +114,7 @@ func TestCallFailsFastWhenTheServerDies(t *testing.T) {
 }
 
 // A server-to-client request left unanswered blocks the server forever, which
-// presents as a hang with no error anywhere. This asserts arno answers.
+// presents as a hang with no error anywhere. This asserts ARNO answers.
 func TestServerToClientRequestIsAnswered(t *testing.T) {
 	client := startFake(t, "asks")
 

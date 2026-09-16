@@ -10,13 +10,13 @@ import (
 // an agent choose arno's search tool over a shell grep/find call,
 // piggyback a few relevant index hits onto the tool call it already made.
 //
-// arno is an MCP server, not the agent harness, so it cannot itself observe
+// ARNO is an MCP server, not the agent harness, so it cannot itself observe
 // or intercept a Bash/Grep/Glob tool call — that interception has to happen
-// in the harness (e.g. a PostToolUse hook). What arno *can* do, and what
+// in the harness (e.g. a PostToolUse hook). What ARNO *can* do, and what
 // this provides, is the reusable piece: given the raw command string the
 // harness already saw, decide whether a nudge is warranted and produce the
 // footer text to append. A harness integration calls this (e.g. via the
-// arno.search_nudge MCP tool) after a matching shell command; arno never
+// arno.search_nudge MCP tool) after a matching shell command; ARNO never
 // sees or needs to see the tool call itself.
 const (
 	nudgeMinOutputChars = 1200

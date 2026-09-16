@@ -55,7 +55,7 @@ func PullDiagnostics(ctx context.Context, client *Client, path string) ([]Diagno
 // WantsSave reports whether the server asked to be told when a document is
 // saved.
 //
-// arno edits files on disk, so every edit is a save and saying so is the
+// ARNO edits files on disk, so every edit is a save and saying so is the
 // truthful description. It matters because some servers only analyse on save:
 // metals compiles then, and a change notification alone produced an empty
 // diagnostic publish for a file with a syntax error in it.

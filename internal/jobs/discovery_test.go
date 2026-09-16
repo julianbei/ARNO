@@ -113,7 +113,7 @@ func writeGoMod(t *testing.T, dir string) {
 	}
 }
 
-// A project arno cannot identify must say so rather than running Go commands
+// A project ARNO cannot identify must say so rather than running Go commands
 // in it. `go build ./...` in a Python repository fails for a reason that has
 // nothing to do with the code, which sends the reader after the wrong problem.
 func TestDiscoverCommandRefusesToGuessGoForANonGoProject(t *testing.T) {

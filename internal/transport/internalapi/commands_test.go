@@ -326,7 +326,7 @@ func TestRunCommandFailsWhenOutputSaysSoDespiteCleanExit(t *testing.T) {
 	}
 }
 func TestAmbiguousReadSymbolCarriesSignaturesEndToEnd(t *testing.T) {
-	// Reproduces the case that cost arno a benchmark head-to-head: two
+	// Reproduces the case that cost ARNO a benchmark head-to-head: two
 	// methods with the same name in one file, distinguishable only by receiver.
 	// The signature has to be read off disk, so this is driven through the real
 	// index rather than a constructed response.

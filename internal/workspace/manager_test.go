@@ -97,7 +97,7 @@ func TestChangesIncludesEditsMadeOutsideArno(t *testing.T) {
 	m := NewManager(root, nil)
 
 	// No BumpRevision call here at all: this file was never touched through
-	// arno, only through a plain os.WriteFile, simulating an edit made by
+	// ARNO, only through a plain os.WriteFile, simulating an edit made by
 	// the host's own file tools instead of arno's replace_symbol/replace_range.
 	changes := m.Changes()
 
@@ -223,8 +223,8 @@ func TestChangesResponseSummarizesFileCountAndTotals(t *testing.T) {
 }
 func TestChangesResponseListsArnoTouchedFilesGitSeesNoDeltaFor(t *testing.T) {
 	// The reason ChangesResponse folds the edit ledger into Files rather than
-	// carrying a second Paths list. A file arno wrote and then restored to its
-	// committed content has no git delta, but arno still touched it, and the
+	// carrying a second Paths list. A file ARNO wrote and then restored to its
+	// committed content has no git delta, but ARNO still touched it, and the
 	// component that knows that must not report a clean tree.
 	root := t.TempDir()
 	runGit(t, root, "init")
@@ -327,7 +327,7 @@ func TestChangesResponseOmitsDirectoriesFromTheLedger(t *testing.T) {
 }
 
 func TestChangesResponseKeepsALedgerPathThatNoLongerExists(t *testing.T) {
-	// A stat failure must not be read as "directory". A file arno edited and
+	// A stat failure must not be read as "directory". A file ARNO edited and
 	// that was then deleted is still a file it changed.
 	root := t.TempDir()
 	runGit(t, root, "init")
@@ -355,7 +355,7 @@ func TestChangesResponseKeepsALedgerPathThatNoLongerExists(t *testing.T) {
 }
 func TestHeadCommitOnAFreshRepoSaysSoInOneLine(t *testing.T) {
 	// Freshness puts this error into every inspect and outline response, so on
-	// a brand-new repository arno was emitting four lines of git's "ambiguous
+	// a brand-new repository ARNO was emitting four lines of git's "ambiguous
 	// argument 'HEAD'" diagnostic at the top of every response — in the
 	// operator's locale, which happened to be German. Found live.
 	root := t.TempDir()

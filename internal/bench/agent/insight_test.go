@@ -8,7 +8,7 @@ import (
 )
 
 // The fixtures are real Claude Code stream-json transcripts, captured with a
-// one-call shell run and a one-call Arno run, with local paths and settings
+// one-call shell run and a one-call ARNO run, with local paths and settings
 // removed.
 
 func TestAnalyzeReadsARealShellTranscript(t *testing.T) {
@@ -26,7 +26,7 @@ func TestAnalyzeReadsARealShellTranscript(t *testing.T) {
 		t.Errorf("expected round trips and token usage, got %+v", in)
 	}
 	if !in.Valid() || in.ArnoStatus != "" {
-		t.Errorf("a shell run is valid without Arno: %+v", in)
+		t.Errorf("a shell run is valid without ARNO: %+v", in)
 	}
 }
 
@@ -36,13 +36,13 @@ func TestAnalyzeReadsARealArnoTranscript(t *testing.T) {
 		t.Fatal(err)
 	}
 	if in.ArnoStatus != "connected" || !in.Valid() {
-		t.Errorf("expected Arno connected, got %q", in.ArnoStatus)
+		t.Errorf("expected ARNO connected, got %q", in.ArnoStatus)
 	}
 	if len(in.Calls) != 1 || in.Calls[0].Tool != "arno.outline" || in.Calls[0].Category != CategoryRead || in.Calls[0].Target != "main.go" {
 		t.Fatalf("expected one arno.outline read of main.go, got %+v", in.Calls)
 	}
 	if in.Calls[0].ResultBytes == 0 {
-		t.Error("the Arno result's size was not joined to its call")
+		t.Error("the ARNO result's size was not joined to its call")
 	}
 }
 
@@ -56,15 +56,15 @@ func TestAArnoArmWithoutArnoIsInvalid(t *testing.T) {
 		t.Fatal(err)
 	}
 	if in.Valid() {
-		t.Fatal("a Arno arm whose server failed must not count as a Arno result")
+		t.Fatal("an ARNO arm whose server failed must not count as an ARNO result")
 	}
 }
 
-// shell-lean has no MCP server at all, so it must not be read as a Arno arm
+// shell-lean has no MCP server at all, so it must not be read as an ARNO arm
 // whose server failed to connect.
 func TestAShellLeanArmIsValidWithoutArno(t *testing.T) {
 	if !(Insight{Arm: ArmShellLean}).Valid() {
-		t.Fatal("a shell-lean run was counted as invalid for lacking Arno")
+		t.Fatal("a shell-lean run was counted as invalid for lacking ARNO")
 	}
 }
 
@@ -146,7 +146,7 @@ func TestInsightReportComparesArmsPerTask(t *testing.T) {
 	for _, want := range []string{
 		"3 runs analysed", "1 without a readable transcript", "tok k", "tokens per run by kind",
 		"demo/t1", "shell", "arno", "(20–30)",
-		"tools used by the Arno arms", "arno.outline",
+		"tools used by the ARNO arms", "arno.outline",
 		"largest tool results",
 	} {
 		if !strings.Contains(report, want) {

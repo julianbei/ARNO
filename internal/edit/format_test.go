@@ -10,7 +10,7 @@ import (
 )
 
 func TestSingleEditFormatsTheTouchedFile(t *testing.T) {
-	// The gap 12.7 closes: nothing else arno reports catches formatting
+	// The gap 12.7 closes: nothing else ARNO reports catches formatting
 	// drift, because build, vet and test all pass on badly formatted code.
 	dir := t.TempDir()
 	svc := newTestService(t, dir)

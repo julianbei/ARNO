@@ -8,7 +8,7 @@
 //
 // The protocol is deliberately implemented here rather than pulled in: the
 // client needs maybe six requests and four notifications, and the failure
-// behaviour arno wants — never block, never crash the server on a bad reply,
+// behaviour ARNO wants — never block, never crash the server on a bad reply,
 // degrade to the existing fallbacks when a server is missing — is most of the
 // work regardless of who writes the framing.
 package lsp
@@ -101,7 +101,7 @@ func readMessage(r *bufio.Reader) (Message, error) {
 }
 
 // maxFrameBytes bounds a single frame. A language server that has decided to
-// send arno 64MB of anything has gone wrong in a way that reading it all
+// send ARNO 64MB of anything has gone wrong in a way that reading it all
 // would only make worse — rust-analyzer's workspace notifications and
 // jdtls's progress reports can both get large.
 const maxFrameBytes = 64 << 20

@@ -78,7 +78,7 @@ func TestFindFallsBackToSubstringWhenNoExactMatch(t *testing.T) {
 }
 
 func TestFindFiltersByKind(t *testing.T) {
-	// arno reports a Go struct as "class" and a func as "function", which no
+	// ARNO reports a Go struct as "class" and a func as "function", which no
 	// caller would guess — every natural spelling must reach the same set.
 	for _, spelling := range []string{"type", "struct", "class"} {
 		response, err := findFixture(t).FindSymbols("Appli", spelling, 0, 0)

@@ -224,8 +224,8 @@ func main() {
 	ci := code.NewIndex(root, bus)
 
 	// Language servers are started lazily on first use and shut down when
-	// arno exits. Leaking them is not hypothetical: jdtls and metals hold
-	// hundreds of megabytes each, and an agent harness may restart arno
+	// ARNO exits. Leaking them is not hypothetical: jdtls and metals hold
+	// hundreds of megabytes each, and an agent harness may restart ARNO
 	// often.
 	servers := lsp.NewManager(root)
 	defer servers.Close()
@@ -825,7 +825,7 @@ func catalogTools() []mcpTool {
 	return []mcpTool{
 		{
 			Name:        "arno.capabilities",
-			Description: "What Arno can do in this workspace, in one call: per language, whether a grammar or a text scan reads it, which language server runs or is missing, and which formatter applies; whether git is there; the build, typecheck and test commands check would run; declared commands. Call it first in an unfamiliar repository instead of learning from failed calls.",
+			Description: "What ARNO can do in this workspace, in one call: per language, whether a grammar or a text scan reads it, which language server runs or is missing, and which formatter applies; whether git is there; the build, typecheck and test commands check would run; declared commands. Call it first in an unfamiliar repository instead of learning from failed calls.",
 			InputSchema: map[string]interface{}{
 				"type":       "object",
 				"properties": map[string]interface{}{},
@@ -1206,7 +1206,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "arno.checkpoint",
-			Description: "Mark a revertible point: snapshots the files Arno has edited this session and records git's HEAD. Not a commit, and does not touch git. Checkpoints last for the session.",
+			Description: "Mark a revertible point: snapshots the files ARNO has edited this session and records git's HEAD. Not a commit, and does not touch git. Checkpoints last for the session.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -1216,7 +1216,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "arno.revert",
-			Description: "Restore the files Arno changed to their state at a checkpoint — edited files restored, files deleted since recreated, files created since removed — as one new revision, all or nothing. Only files Arno touched are restored, and git is never moved. Refuses if a commit has landed since the checkpoint, because restoring would overwrite committed work — use git to move past a commit.",
+			Description: "Restore the files ARNO changed to their state at a checkpoint — edited files restored, files deleted since recreated, files created since removed — as one new revision, all or nothing. Only files ARNO touched are restored, and git is never moved. Refuses if a commit has landed since the checkpoint, because restoring would overwrite committed work — use git to move past a commit.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

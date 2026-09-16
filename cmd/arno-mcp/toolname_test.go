@@ -57,7 +57,7 @@ func TestUnderscoreAliasDispatchesAndRecordsCanonically(t *testing.T) {
 	}
 }
 
-// A call Arno rejects must leave no trace in the workspace. Harnesses commit
+// A call ARNO rejects must leave no trace in the workspace. Harnesses commit
 // untracked files, so a stray telemetry file becomes part of someone's change.
 func TestUnknownToolWritesNothingToTheWorkspace(t *testing.T) {
 	server, root := newTestMCPServer(t)

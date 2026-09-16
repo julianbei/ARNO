@@ -82,7 +82,7 @@ func capabilityBrief(index *code.Index) string {
 
 // runInit writes a draft .arno/project.json for the workspace from what
 // discovery finds, for a person to review and commit. It never overwrites an
-// existing config: that file is the repository's statement, not Arno's.
+// existing config: that file is the repository's statement, not ARNO's.
 func runInit(args []string, stdout io.Writer) error {
 	resolved, err := resolveWorkspaceRoot(args, compat.Getenv, os.Getwd)
 	if err != nil {

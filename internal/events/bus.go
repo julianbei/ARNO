@@ -2,7 +2,7 @@ package events
 
 import "sync"
 
-// Event is a normalized runtime signal emitted by Arno services.
+// Event is a normalized runtime signal emitted by ARNO services.
 type Event struct {
 	Type    string
 	Entity  string

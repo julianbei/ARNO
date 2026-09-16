@@ -3,7 +3,7 @@
 // node_modules or in the repository's virtual environment.
 //
 // It exists for read-only lookups. An agent fixing a bug in ripgrep searched
-// for a type in regex-syntax and could not reach it, because Arno reads only
+// for a type in regex-syntax and could not reach it, because ARNO reads only
 // the workspace. Resolution goes through the project's own lock or manifest,
 // so the version read is the one the project builds with, and never searches
 // the machine at large.

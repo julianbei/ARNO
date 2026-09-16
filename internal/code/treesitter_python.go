@@ -12,7 +12,7 @@ import (
 //
 // Python had no grammar until now and the text-scan fallback found one
 // declaration out of three in a trivial file — it matched `class Store` and
-// missed both `def`s. The caveat arno attached ("some may be missing") was
+// missed both `def`s. The caveat ARNO attached ("some may be missing") was
 // true but badly understated, which is its own kind of wrong answer.
 func extractPythonSymbolsTreeSitter(relPath string, source []byte) ([]Symbol, error) {
 	parser := sitter.NewParser()

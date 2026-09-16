@@ -1,5 +1,5 @@
-name: "Feature wish — Arno should be able to do this"
-description: Something you wish Arno did, or did in a different shape — a tool, a language, a build tool, a host.
+name: "Feature wish — ARNO should be able to do this"
+description: Something you wish ARNO did, or did in a different shape — a tool, a language, a build tool, a host.
 title: "wish: "
 labels: ["feature"]
 body:
@@ -9,9 +9,9 @@ body:
         Wishes are welcome, small or large. Two things make one easy to act on:
         the **task** behind it, and **how often** it comes up.
 
-        If Arno already has a tool for it that did not work for you, a
+        If ARNO already has a tool for it that did not work for you, a
         **friction** or **bug** report fits better. The README's
-        "What Arno does not do yet" section lists known gaps — a wish that
+        "What ARNO does not do yet" section lists known gaps — a wish that
         one of them bit you in real work still tells us its priority.
 
         **Wishing for Windows?** Please give
@@ -57,7 +57,7 @@ body:
     id: shape
     attributes:
       label: What would a good answer look like?
-      description: Optional. Arno's responses are plain text that lead with the decisive line.
+      description: Optional. ARNO's responses are plain text that lead with the decisive line.
       render: text
 
   - type: dropdown

@@ -69,7 +69,7 @@ const (
 // Bare IDs were not enough. Two methods named Put in the same file differ only
 // by receiver, and `store.go::Put@48` versus `store.go::Put@72` tells a caller
 // nothing about which is which — so they had to spend a turn fetching one to
-// find out. Measured: that round trip is why arno lost a head-to-head against
+// find out. Measured: that round trip is why ARNO lost a head-to-head against
 // grep on a real repository (1.36x tokens, 3 calls against 2).
 type SymbolCandidate struct {
 	ID   string
@@ -557,7 +557,7 @@ type Freshness struct {
 // ParserInfo says how a file's symbols were obtained, and — crucially —
 // whether the answer can be trusted to be complete.
 //
-// arno ships tree-sitter grammars for Go, TypeScript, TSX and Rust. Everything
+// ARNO ships tree-sitter grammars for Go, TypeScript, TSX and Rust. Everything
 // else falls back to a line-oriented heuristic that recognises some
 // declaration shapes and misses others. That fallback is fine; presenting its
 // output as if it were a grammar parse is not. Found live against a Python
@@ -726,7 +726,7 @@ type WorkspaceTreeResponse struct {
 	Continue string
 }
 
-// CapabilitiesResponse is what Arno can do in this workspace, from one call.
+// CapabilitiesResponse is what ARNO can do in this workspace, from one call.
 type CapabilitiesResponse struct {
 	Languages     []LanguageCapability
 	Git           bool
@@ -736,7 +736,7 @@ type CapabilitiesResponse struct {
 	// Truncated says the language counts stopped at the listing bound.
 	Truncated bool
 	// Providers lists each capability's registered providers, in the order
-	// Arno asks them.
+	// ARNO asks them.
 	Providers []ProviderCapability
 }
 
@@ -754,7 +754,7 @@ type LanguageCapability struct {
 	// words: structural · tree-sitter, or text fallback · text scan.
 	Structure Provenance
 	// Server is the language server that would start; MissingServer the one
-	// Arno looks for when none is installed. Both empty: none is known.
+	// ARNO looks for when none is installed. Both empty: none is known.
 	Server        string
 	MissingServer string
 	Formatter     string
@@ -784,7 +784,7 @@ type RetrievalRequest struct {
 
 // FindRequest locates declarations by name and returns their bodies in one
 // call — the fused search-and-read that `grep -n "func X" -A 30` provides
-// and arno previously needed two calls (outline, then read_symbol) to match.
+// and ARNO previously needed two calls (outline, then read_symbol) to match.
 type FindRequest struct {
 	// Dependency looks in that dependency's source instead of the workspace.
 	Dependency string
@@ -852,12 +852,12 @@ type SearchResponse struct {
 	Provenance Provenance
 }
 
-// SearchNudgeRequest asks arno whether a shell search-style command (a raw
+// SearchNudgeRequest asks ARNO whether a shell search-style command (a raw
 // grep/rg/ag/ack/find/fd invocation the harness already ran) warrants
 // appending index hits below its own output — piggybacking a better answer
 // onto the tool call an agent already chose, rather than trying to make it
 // choose differently.
-// arno cannot observe the tool call itself (it's an MCP server, not the
+// ARNO cannot observe the tool call itself (it's an MCP server, not the
 // harness); a harness integration supplies Command and the surrounding
 // context after running it.
 type SearchNudgeRequest struct {
@@ -1020,7 +1020,7 @@ type HistoryResponse struct {
 	Continue string
 }
 
-// ContextRequest asks arno to assemble everything needed to act on a symbol.
+// ContextRequest asks ARNO to assemble everything needed to act on a symbol.
 // Purpose selects which sections are worth their tokens: "modify" (default,
 // widest), "understand", "debug", "test".
 type ContextRequest struct {
@@ -1163,7 +1163,7 @@ type ChangesResponse struct {
 	Files        []ChangedFile
 	TotalAdded   int
 	TotalRemoved int
-	// Symbols is empty when no changed file is in a language arno can parse;
+	// Symbols is empty when no changed file is in a language ARNO can parse;
 	// the file-level counts stand on their own in that case rather than the
 	// whole response degrading.
 	Symbols []SymbolChange

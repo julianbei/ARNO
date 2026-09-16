@@ -27,7 +27,7 @@ func (s *Service) UseLanguageServers(check LanguageServerCheck) {
 // Checker and Unchecked exist because an empty diagnostic list is ambiguous.
 // Thirteen new TypeScript files produced no diagnostics and no way to tell
 // "nothing wrong" from "nothing looked". Exactly one of them is set for a file
-// Arno knows the language of; both are empty for files with no language
+// ARNO knows the language of; both are empty for files with no language
 // (Markdown, a Dockerfile), where "not checked" on every edit would be noise.
 type Result struct {
 	Diagnostics []protocol.Diagnostic

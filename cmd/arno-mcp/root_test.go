@@ -126,7 +126,7 @@ func TestAFileIsNotAWorkspaceRoot(t *testing.T) {
 func TestNonGitRootWarnsButStarts(t *testing.T) {
 	// Deliberately not fatal. Outline, find, grep, read and every edit work on
 	// any directory, and arno's revision tracking is its own counter rather
-	// than git's — refusing to start would make arno unusable somewhere it
+	// than git's — refusing to start would make ARNO unusable somewhere it
 	// serves perfectly well. But it must be said, because the git-backed tools
 	// degrade in ways that look like "nothing changed" rather than an error.
 	dir := t.TempDir()
@@ -179,7 +179,7 @@ func TestWorktreeGitFileCountsAsARepository(t *testing.T) {
 }
 
 func TestRootIsAlwaysAbsolute(t *testing.T) {
-	// Relative roots would make every path arno reports depend on the client's
+	// Relative roots would make every path ARNO reports depend on the client's
 	// launch directory.
 	resolved, err := resolveWorkspaceRoot([]string{"--root", "."}, noEnv, cwdAt(t.TempDir()))
 	if err != nil {

@@ -266,7 +266,7 @@ func (m *Manager) Unavailable(language string) string {
 
 // Sync makes sure the server's view of a file matches what is on disk.
 //
-// arno edits files on disk rather than holding buffers, so there is no
+// ARNO edits files on disk rather than holding buffers, so there is no
 // incremental change to report — the file simply differs from what the server
 // last saw. Sending didOpen once and didChange with the full text afterwards
 // is both correct and the honest description.
@@ -342,7 +342,7 @@ func (m *Manager) Sync(client *Client, path string, languageID string) error {
 	return nil
 }
 
-// Close shuts every server down. Called when the arno process exits; leaking
+// Close shuts every server down. Called when the ARNO process exits; leaking
 // language servers is not hypothetical, jdtls and metals both hold hundreds
 // of megabytes each.
 func (m *Manager) Close() {
@@ -370,7 +370,7 @@ func (m *Manager) Close() {
 }
 
 // LanguageForPath maps a file to arno's language identifier, matching the
-// extensions internal/code parses with a grammar. A file arno cannot parse
+// extensions internal/code parses with a grammar. A file ARNO cannot parse
 // structurally is one no server here claims either.
 func LanguageForPath(path string) string {
 	switch strings.ToLower(filepath.Ext(path)) {

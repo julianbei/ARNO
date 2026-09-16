@@ -11,7 +11,7 @@ import (
 	"github.com/julianbei/arno/internal/setup"
 )
 
-// runInstall is `arno-mcp install`: a menu of the language servers Arno can
+// runInstall is `arno-mcp install`: a menu of the language servers ARNO can
 // use, or with flags the same without questions. install.sh opens it after a
 // first install; plugins join the menu later as another kind of component.
 func runInstall(args []string, stdin *os.File, stdout io.Writer) error {

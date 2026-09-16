@@ -121,7 +121,7 @@ func TestRunMeasuresEveryArmAndVerifiesIndependently(t *testing.T) {
 		t.Errorf("shell arm should have built-in tools and no MCP:\n%s", shell)
 	}
 	if !strings.Contains(arno, "[--tools]\n[]") || !strings.Contains(arno, "[--mcp-config]") {
-		t.Errorf("arno arm should have no built-in tools and Arno's MCP server:\n%s", arno)
+		t.Errorf("arno arm should have no built-in tools and ARNO's MCP server:\n%s", arno)
 	}
 	if !strings.Contains(both, "[--tools]\n[default]") || !strings.Contains(both, "[--mcp-config]") {
 		t.Errorf("arno+shell arm should have both:\n%s", both)
@@ -279,7 +279,7 @@ func TestReadResultsRoundTripsWhatRunWrites(t *testing.T) {
 	}
 }
 
-// Arno arms keep their telemetry outside the workspace, and the report reads
+// ARNO arms keep their telemetry outside the workspace, and the report reads
 // tool confusion per run, never joining one run's last call to the next run's
 // first.
 func TestArnoTelemetrySurvivesTheRunAndReportsConfusion(t *testing.T) {
@@ -294,7 +294,7 @@ func TestArnoTelemetrySurvivesTheRunAndReportsConfusion(t *testing.T) {
 		t.Fatalf("run: %v", err)
 	}
 	if results[0].TelemetryDir != "" {
-		t.Errorf("the shell arm runs no Arno, so it keeps no telemetry: %q", results[0].TelemetryDir)
+		t.Errorf("the shell arm runs no ARNO, so it keeps no telemetry: %q", results[0].TelemetryDir)
 	}
 	for _, result := range results[1:] {
 		if result.TelemetryDir == "" {

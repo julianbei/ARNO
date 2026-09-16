@@ -14,7 +14,7 @@ import (
 
 // maxDiffBytes bounds a returned patch for the same reason 8.1 bounds job
 // output: this repository's own working diff is already over 8,000 lines, so
-// an unbounded diff() would be the single largest response arno can produce.
+// an unbounded diff() would be the single largest response ARNO can produce.
 const maxDiffBytes = 8000
 
 // Diff returns the actual patch text for the workspace or one target path —

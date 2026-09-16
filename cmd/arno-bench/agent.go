@@ -78,11 +78,11 @@ func runAgent(args []string) int {
 	perRun := flags.Float64("per-run", 2, "USD cap for each agent run")
 	repeats := flags.Int("repeats", 1, "times to run every task on every arm")
 	repeatStart := flags.Int("repeat-start", 1, "number of the first repeat, for running in rounds")
-	arnoMCP := flags.String("arno-mcp", "arno-mcp", "arno-mcp binary for the Arno arms")
-	arnoTools := flags.String("arno-tools", "", "tool profile for the Arno arms: all or core (default: arno-mcp's own)")
+	arnoMCP := flags.String("arno-mcp", "arno-mcp", "arno-mcp binary for the ARNO arms")
+	arnoTools := flags.String("arno-tools", "", "tool profile for the ARNO arms: all or core (default: arno-mcp's own)")
 	out := flags.String("out", "bench-results.jsonl", "append one JSON line per run here")
 	allowHost := flags.Bool("allow-host", false, "run agents with permissions bypassed on this machine, outside a sandbox")
-	telemetryDir := flags.String("telemetry-dir", "", "keep each Arno-arm run's telemetry here (default: <out>.telemetry)")
+	telemetryDir := flags.String("telemetry-dir", "", "keep each ARNO-arm run's telemetry here (default: <out>.telemetry)")
 	transcriptDir := flags.String("transcript-dir", "", "keep every run's agent transcript here (default: <out>.transcripts)")
 	if err := flags.Parse(args); err != nil {
 		return 2

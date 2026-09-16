@@ -80,7 +80,7 @@ func TestTheChangeTransactionHoldsAcrossAScriptedSession(t *testing.T) {
 		t.Fatalf("apply should land in both files: %q %q", text("a.txt"), text("b.txt"))
 	}
 
-	// An edit from outside Arno makes an edit based on the earlier read stale.
+	// An edit from outside ARNO makes an edit based on the earlier read stale.
 	read := must("arno.read_range", map[string]interface{}{"path": "a.txt"})
 	digest := digestHeader.FindStringSubmatch(read)
 	if digest == nil {

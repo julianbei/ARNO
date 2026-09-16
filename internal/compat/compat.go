@@ -1,5 +1,5 @@
 // Package compat keeps the names Jade used working for one release after the
-// rename to Arno. Everything here is deleted in the release after 0.0.12; it
+// rename to ARNO. Everything here is deleted in the release after 0.0.12; it
 // exists so a tester's shell profile, MCP client config and checked-in
 // .jade/commands.json do not break the moment they update.
 package compat
@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-// LegacyDir is the workspace directory Jade wrote. Arno writes ArnoDir.
+// LegacyDir is the workspace directory Jade wrote. ARNO writes ArnoDir.
 const (
 	LegacyDir = ".jade"
 	ArnoDir   = ".arno"
@@ -70,13 +70,13 @@ func StatePath(root, file string) string {
 	}
 	legacy := filepath.Join(root, LegacyDir, file)
 	if _, err := os.Stat(legacy); err == nil {
-		warn("reading %s; Jade is now Arno, so rename the directory: git mv %s %s", filepath.Join(LegacyDir, file), LegacyDir, ArnoDir)
+		warn("reading %s; Jade is now ARNO, so rename the directory: git mv %s %s", filepath.Join(LegacyDir, file), LegacyDir, ArnoDir)
 		return legacy
 	}
 	return current
 }
 
-// ToolName maps a tool name Jade served to Arno's. It returns "" for anything
+// ToolName maps a tool name Jade served to ARNO's. It returns "" for anything
 // that is not an old name, so callers can tell a rename from a typo.
 func ToolName(name string) string {
 	for _, prefix := range []string{"jade.", "jade_"} {

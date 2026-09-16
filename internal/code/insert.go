@@ -20,7 +20,7 @@ var ErrAnchorRequired = errors.New("anchor is required for before/after inserts"
 
 // InsertSource adds text to a file without replacing anything.
 //
-// arno could create files and replace text, but not append: `create_file`
+// ARNO could create files and replace text, but not append: `create_file`
 // refuses to overwrite and `replace_text` needs something to replace, so
 // adding a test to an existing file meant reading it first purely to learn
 // what to anchor on. That round trip is why `cat >> file` kept winning.

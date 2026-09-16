@@ -1,7 +1,7 @@
 # Roadmap
 
 What is planned, and why each item is on the list. Items come from real use —
-agents running Arno over MCP in other repositories — and from the conformance
+agents running ARNO over MCP in other repositories — and from the conformance
 suite. Each one names the observed problem first, because the fix is only
 right if it removes that problem.
 
@@ -13,7 +13,7 @@ Nothing here is a promise of a date. Order within a section is priority order.
 
 ### 0.0.3 — good tenant, cheaper calls, honest checks
 
-Theme: nothing Arno writes or says should be something the caller did not ask
+Theme: nothing ARNO writes or says should be something the caller did not ask
 for or cannot act on. Worked in this order; each item links to its section.
 
 1. Accept both tool-name spellings (§1)
@@ -48,24 +48,24 @@ transaction (0.0.7), then 0.1.0. Each phase has an exit gate.
 
 ## Strategy and evidence
 
-From an external review (2026-09-13) of Arno and the surrounding ecosystem.
+From an external review (2026-09-13) of ARNO and the surrounding ecosystem.
 Its central point: symbol-aware code access over MCP is becoming table stakes
-— several projects already offer it — so Arno's defensible ground is the
+— several projects already offer it — so ARNO's defensible ground is the
 **whole change transaction**: read → edit against a known revision →
 validate with the repository's own commands → report consequences → revert.
 The question every item below serves is the one the review ends on:
 
-> Does giving an agent Arno make it measurably better than giving it a shell?
+> Does giving an agent ARNO make it measurably better than giving it a shell?
 
 Competitor details below are the reviewer's claims, not verified here.
 
 ### Evidence before features
 
 - [x] **External benchmark, with bash as the baseline.** The current benchmark
-  runs against Arno's own repository, which is necessary but not sufficient.
+  runs against ARNO's own repository, which is necessary but not sufficient.
   Measure task success, tokens, tool calls, wall time, invalid edits, shell
   fallbacks and regressions across real repositories in several languages,
-  comparing *agent + shell*, *agent + Arno*, and *agent + Arno + shell*. A
+  comparing *agent + shell*, *agent + ARNO*, and *agent + ARNO + shell*. A
   bash-only agent (mini-SWE-agent's thesis) is the adversary that matters
   most. SWE-agent's configurable tool bundles are a candidate harness.
   Pilot done 2026-09-13 (0.0.4):
@@ -89,7 +89,7 @@ Competitor details below are the reviewer's claims, not verified here.
 
 ### Trustworthy answers
 
-- [ ] **Provenance on every answer.** Arno already distinguishes exact from
+- [ ] **Provenance on every answer.** ARNO already distinguishes exact from
   approximate in `references`, and now names the checker on edits. Make it
   uniform and compact: `exact · gopls`, `approximate · text index`,
   `structural · tree-sitter`, `no grammar · text fallback`. The rule stays:
@@ -118,29 +118,29 @@ Competitor details below are the reviewer's claims, not verified here.
 
 Recorded so they stay decisions rather than drift:
 
-- Arno is not an agent: no planning, memory, conversation state, subagents or
-  prompt workflows. The agent decides *what*; Arno guarantees *how*.
-- Arno is not a general code-knowledge platform. Retrieval exists to serve the
+- ARNO is not an agent: no planning, memory, conversation state, subagents or
+  prompt workflows. The agent decides *what*; ARNO guarantees *how*.
+- ARNO is not a general code-knowledge platform. Retrieval exists to serve the
   next correct edit.
 - No model or embedding in the deterministic path. Similarity may nominate;
   parsers, compilers, LSP and git decide.
-- Validation stays inside Arno through declared repository commands rather
+- Validation stays inside ARNO through declared repository commands rather
   than being handed back to the shell — that is what makes the whole
   transaction observable.
-- Not a sandbox runtime. Run Arno inside one instead.
+- Not a sandbox runtime. Run ARNO inside one instead.
 
 ---
 
 ## 1. Be a good tenant in someone else's repository
 
-Arno is increasingly run against checkouts it does not own: a worker's git
-worktree, a container mount, a CI clone. In those, every file Arno writes
+ARNO is increasingly run against checkouts it does not own: a worker's git
+worktree, a container mount, a CI clone. In those, every file ARNO writes
 that the user did not ask for becomes part of the change.
 
 - [x] **Keep `.arno/` state out of the workspace.**
   `telemetry.jsonl` is written to `<root>/.arno/` on the first tool call —
-  including a call Arno rejects as unknown. A harness that commits every
-  untracked file then commits Arno's bookkeeping as part of the agent's work,
+  including a call ARNO rejects as unknown. A harness that commits every
+  untracked file then commits ARNO's bookkeeping as part of the agent's work,
   and one that fails review on a changed worktree fails.
   - Add `ARNO_STATE_DIR` to put telemetry outside the workspace.
   - When state must live in the workspace, add `.arno/telemetry.jsonl` to
@@ -171,7 +171,7 @@ that the user did not ask for becomes part of the change.
 
 - [x] **Drop header lines a caller cannot act on.**
   - `drifted: N files` on every read. It is noise for a read, and its meaning
-    (files changed outside Arno — by a build, git, another process) is never
+    (files changed outside ARNO — by a build, git, another process) is never
     explained. Show it on edits, where it is a real precondition, with a
     one-word hint of what drift means; omit it from reads.
   - `jobs: job-N` on every edit. The background validation result is only
@@ -181,7 +181,7 @@ that the user did not ask for becomes part of the change.
   - Done 2026-09-13: reads no longer print a drift count (only a broken
     "freshness unknown" state is shown); edit responses no longer print job
     IDs in text output (still present with `ARNO_JSON=1`). Verified live: a
-    read in a repo with two files changed outside Arno renders as `r1` plus
+    read in a repo with two files changed outside ARNO renders as `r1` plus
     content; an edit renders as `r1 → r2 · a.go · +1 -1`.
   - Follow-up for 0.0.4: every single edit still starts a whole-repository
     typecheck job whose result nobody reads. Either scope it to the edited
@@ -189,7 +189,7 @@ that the user did not ask for becomes part of the change.
   - Done 2026-09-13 (0.0.4): single edits start no background job;
     validation runs through `check` or `apply`'s `check`.
 - [x] **Name the core tools in the server instructions.** Hosts load MCP tool
-  schemas lazily, so an agent's first call to any Arno tool first costs a
+  schemas lazily, so an agent's first call to any ARNO tool first costs a
   schema-search turn. A worker with a four-turn budget lost one of them this
   way. The instructions should name the handful to load first: `find`,
   `read_range`, `replace_text`, `insert`, `apply`, `outline`, `check`.
@@ -241,7 +241,7 @@ that the user did not ask for becomes part of the change.
 ## 3. Diagnostics everywhere, and say which checker ran
 
 Diagnostics in the edit response are the feature agents cite as the reason to
-use Arno over the host's own edit tool: `undefined: strings` returned with the
+use ARNO over the host's own edit tool: `undefined: strings` returned with the
 edit, fixed on the next call, no build turn. They should hold in every
 language.
 
@@ -262,7 +262,7 @@ language.
     its parse-before-apply race (flush with `documentSymbol` before pulling);
     ruby-lsp's incremental sync needing a ranged change; metals publishing
     empty before compiling (only post-compile diagnostics count). metals also
-    asks to import the build; arno declines unless `ARNO_METALS_IMPORT=1`,
+    asks to import the build; ARNO declines unless `ARNO_METALS_IMPORT=1`,
     because importing runs sbt and writes `.bloop/` and `.metals/`.
     Closes the reported gap of ~15 TypeScript/TSX edits returning nothing,
     leaving all checking to `tsc` in the build.
@@ -305,14 +305,14 @@ Agents bypassed `check` for four reasons, each fixable:
   Done 2026-09-14 (0.0.6): `check target`, and an unavailable root check
   lists the projects.
 - [ ] **Long-running work without polling.** `check` caps its wait at 300
-  seconds, and a Docker build takes longer. Arno's job IDs then cost a polling
+  seconds, and a Docker build takes longer. ARNO's job IDs then cost a polling
   turn each. Send MCP progress notifications while a job runs so hosts that
   support them can wake the agent on completion, and raise or remove the cap
   for jobs that are already backgrounded.
 
 ## 5. Explain how revisions relate to git
 
-- [x] **Document and anchor revisions to git.** Arno's `r1…r53` ran alongside
+- [x] **Document and anchor revisions to git.** ARNO's `r1…r53` ran alongside
   three commits made from the shell, and the agent avoided `revert` and
   `checkpoint` entirely because it could not tell what a revert does to
   already-committed files or whether it crosses a commit. State it in the
@@ -325,12 +325,12 @@ Agents bypassed `check` for four reasons, each fixable:
     after a checkpoint taken in a fresh repository — naming both commits and
     pointing at git. Without git, revert behaves as before. The `checkpoint`
     and `revert` descriptions and the README now say what is restored (only
-    files Arno touched), that git is never moved, and that checkpoints last
+    files ARNO touched), that git is never moved, and that checkpoints last
     for the session.
 
 ## 6. Workspace scope
 
-- [ ] **An optional scratch root.** Arno is fixed to one root, so an agent's
+- [ ] **An optional scratch root.** ARNO is fixed to one root, so an agent's
   temporary scripts were edited with `sed` instead, and a broken `pkill`
   pattern slipped through unchecked and corrupted a verification run.
   Support a second, explicitly configured root (for example
@@ -348,14 +348,14 @@ Agents bypassed `check` for four reasons, each fixable:
   that change behaviour. `rubocop --fix-layout` with a `.rubocop.yml` present
   is the candidate, if layout-only can be proven.
 - [ ] **ruby-lsp method rename.** ruby-lsp 0.26 renames classes and modules
-  but returns null for methods. Arno falls back to `solargraph` when it is
+  but returns null for methods. ARNO falls back to `solargraph` when it is
   installed; without it, method rename refuses. Revisit when ruby-lsp adds it.
 
 ---
 
 ## 8. First-hand use
 
-Found while building 0.0.3 with Arno itself rather than the host's own tools.
+Found while building 0.0.3 with ARNO itself rather than the host's own tools.
 
 - [x] **`replace_text` line counts misdescribe additions.** Done 2026-09-13:
   lines shared at the start and end are not counted. Appending 14 lines

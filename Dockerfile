@@ -1,6 +1,6 @@
 # Build arno-mcp for use inside another project's container.
 #
-# Arno is not a service — it is a stdio MCP server that an agent harness
+# ARNO is not a service — it is a stdio MCP server that an agent harness
 # spawns as a child process. So this image exists to *produce the binary*,
 # not to run as a long-lived container. The intended use is a build stage:
 #

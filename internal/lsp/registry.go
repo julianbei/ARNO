@@ -20,7 +20,7 @@ type ServerSpec struct {
 	// Alternatives are other binaries providing the same language, tried in
 	// order when Command is absent. Ecosystems rarely settle on one server —
 	// Python has pyright and pylsp, Ruby has ruby-lsp and solargraph — and
-	// insisting on a favourite means arno goes semantic-blind on a machine
+	// insisting on a favourite means ARNO goes semantic-blind on a machine
 	// that has the other one installed.
 	Alternatives []AlternativeSpec
 
@@ -141,7 +141,7 @@ var specs = map[string]ServerSpec{
 	},
 }
 
-// SpecFor returns the server spec for a arno language identifier.
+// SpecFor returns the server spec for an ARNO language identifier.
 func SpecFor(language string) (ServerSpec, bool) {
 	spec, ok := specs[language]
 	return spec, ok
@@ -224,7 +224,7 @@ func (s ServerSpec) Fallbacks() []ServerSpec {
 // directories in addition to PATH.
 //
 // This is not over-engineering: gopls is installed by `go install` into
-// ~/go/bin, which is not on PATH by default — on the machine arno was
+// ~/go/bin, which is not on PATH by default — on the machine ARNO was
 // developed on, `command -v gopls` finds nothing while gopls is installed and
 // working. A client that only consulted PATH would report Go as having no
 // language server on the very system that has one.

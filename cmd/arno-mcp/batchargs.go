@@ -59,7 +59,7 @@ func rangesArg(args map[string]interface{}) ([]protocol.ReadRangeRequest, error)
 //
 // One string rather than two integers because models drop the second key: in
 // benchmark runs an agent sent {"path": "a.go", "startLine": 1195, 1230} five
-// times, which is not JSON, so the host rejected each call before Arno saw it.
+// times, which is not JSON, so the host rejected each call before ARNO saw it.
 func parseLines(text string) (int, int, error) {
 	text = strings.TrimSpace(text)
 	invalid := fmt.Errorf("invalid lines %q: use 280-400, 280- or 280", text)

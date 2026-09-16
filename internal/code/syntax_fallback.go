@@ -24,7 +24,7 @@ import (
 // single missing brace can make a parser flag every line after it.
 const maxSyntaxDiagnostics = 5
 
-// syntaxGrammar is the tree-sitter grammar for path's extension, nil when Arno
+// syntaxGrammar is the tree-sitter grammar for path's extension, nil when ARNO
 // has none.
 func syntaxGrammar(path string) *sitter.Language {
 	switch strings.ToLower(filepath.Ext(path)) {

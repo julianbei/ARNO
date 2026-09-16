@@ -14,16 +14,16 @@ headless on Sonnet 5, one run per task per arm, $1.50 cap per run. Recorded
 
 ## Suite
 
-Arno at `a8fd3e9`. Means per run over 12 tasks.
+ARNO at `a8fd3e9`. Means per run over 12 tasks.
 
 | Arm | Solved | Tokens | Turns | Time | Cost | Scorecard vs `shell` |
 |---|---|---|---|---|---|---|
 | `shell` — all 27 built-in tools | 10 of 12 | 1.38M | 25.3 | 215s | $0.82 | — |
 | `shell-lean` — Bash, Read, Edit, Write | 10 of 12 | 0.90M | 25.8 | 213s | $0.66 | pass (0.66x tokens) |
-| `arno` — core profile, no built-in tools | 12 of 12 | 0.68M | 23.0 | 163s | $0.52 | pass (0.49x tokens, +17 points) |
-| `arno+shell` — both, 39 tools | 11 of 12 | 1.50M | 25.8 | 191s | $0.84 | pass (1.09x tokens, +8 points) |
+| `ARNO` — core profile, no built-in tools | 12 of 12 | 0.68M | 23.0 | 163s | $0.52 | pass (0.49x tokens, +17 points) |
+| `ARNO+shell` — both, 39 tools | 11 of 12 | 1.50M | 25.8 | 191s | $0.84 | pass (1.09x tokens, +8 points) |
 
-Tokens per run, Arno alone against each shell arm:
+Tokens per run, ARNO alone against each shell arm:
 
 | Repository | vs `shell` | vs `shell-lean` |
 |---|---|---|
@@ -34,53 +34,53 @@ Tokens per run, Arno alone against each shell arm:
 | all | −51% | −25% |
 
 Both shell arms failed ky's download-progress task and ripgrep's null-data
-task; Arno alone solved both. `arno+shell` failed the ky task.
+task; ARNO alone solved both. `ARNO+shell` failed the ky task.
 
 ## Rerun after the pilot's fixes
 
-Arno at `4c7694c`: failed-call fixes, dependency source reads, tree-sitter
-syntax checks and `.arno/project.json`. Only `arno` and `shell-lean`, same
+ARNO at `4c7694c`: failed-call fixes, dependency source reads, tree-sitter
+syntax checks and `.arno/project.json`. Only `ARNO` and `shell-lean`, same
 tasks and cap.
 
-| Arm | Solved | Tokens | Turns | Time | Failed Arno calls |
+| Arm | Solved | Tokens | Turns | Time | Failed ARNO calls |
 |---|---|---|---|---|---|
 | `shell-lean` | 11 of 12 | 0.99M | 29.0 | 200s | — |
-| `arno` | 11 of 12 | 0.82M | 24.8 | 153s | 0.42 per run (suite: 0.67) |
+| `ARNO` | 11 of 12 | 0.82M | 24.8 | 153s | 0.42 per run (suite: 0.67) |
 
-Arno alone against `shell-lean`: −18% tokens, −14% turns, −24% time. By
+ARNO alone against `shell-lean`: −18% tokens, −14% turns, −24% time. By
 repository: cobra −18%, ky −31%, requests −58%, ripgrep −2%. Both failed ky's
 download-progress task. The suite's requests result reversed, so it was noise.
 
 ## Rerun at 0.0.7
 
-Arno at `b4921b2` (v0.0.7): response budgets, provenance, preconditions,
-impact checks and the deprecation of five overlapping tools. Only `arno` and
+ARNO at `b4921b2` (v0.0.7): response budgets, provenance, preconditions,
+impact checks and the deprecation of five overlapping tools. Only `ARNO` and
 `shell-lean`, same tasks and cap, $14.85 in total. Recorded 2026-09-14.
 
 | Arm | Solved | Tokens | Turns | Time | Cost |
 |---|---|---|---|---|---|
 | `shell-lean` | 10 of 12 | 0.94M | 25.9 | 182s | $0.63 |
-| `arno` | 11 of 12 | 0.80M | 25.2 | 206s | $0.61 |
+| `ARNO` | 11 of 12 | 0.80M | 25.2 | 206s | $0.61 |
 
-Arno alone against `shell-lean`: −14% tokens, −3% turns, +13% time. By
+ARNO alone against `shell-lean`: −14% tokens, −3% turns, +13% time. By
 repository: cobra +18%, ky −60%, requests +43%, ripgrep −6%. Both failed
 ky's download-progress task; `shell-lean` also failed requests'
-double-slash task, which Arno solved.
+double-slash task, which ARNO solved.
 
-Against the previous rerun, Arno's tokens per run are level (0.82M to 0.80M)
+Against the previous rerun, ARNO's tokens per run are level (0.82M to 0.80M)
 and its success unchanged, so 0.0.5–0.0.7 did not cost tokens. Time got
 worse: one ripgrep run took 706s against 314s for the shell. Per repository
 the sign flips between runs (requests went from −58% to +43%), which is the
 noise of one run per task; only the totals are worth quoting.
 
-Arno's runs made 13.8 calls before the first edit against 7.9 for the shell,
+ARNO's runs made 13.8 calls before the first edit against 7.9 for the shell,
 and re-read an unchanged target 4.2 times per run against none.
 
 ## Transcript fixes, and a larger core profile
 
-Arno at `15138d6`: timeout hints that name only the tool just called and join
+ARNO at `15138d6`: timeout hints that name only the tool just called and join
 the running job, test results with counts and the first failure, and
-validation kept to its target. Two Arno arms, no shell arm: `core` as shipped,
+validation kept to its target. Two ARNO arms, no shell arm: `core` as shipped,
 and `core-exec` with `run_command` and `diff` added to the core list. Same
 tasks and cap, $15.06 in total. Recorded 2026-09-14. The shell and 0.0.7 rows
 are from the rerun above.
@@ -88,7 +88,7 @@ are from the rerun above.
 | Arm | Solved | Tokens | Turns | Time | Cost |
 |---|---|---|---|---|---|
 | `shell-lean` (0.0.7 rerun) | 10 of 12 | 0.94M | 25.9 | 182s | $0.63 |
-| `arno` at 0.0.7 | 11 of 12 | 0.80M | 25.2 | 206s | $0.61 |
+| `ARNO` at 0.0.7 | 11 of 12 | 0.80M | 25.2 | 206s | $0.61 |
 | `core` at `15138d6` | 10 of 12 | 0.83M | 26.3 | 162s | $0.60 |
 | `core-exec` | 11 of 12 | 0.95M | 26.8 | 185s | $0.66 |
 
@@ -111,16 +111,16 @@ The core profile stays as it was.
 
 - **Most of the saving over Claude Code's defaults is the shorter tool list.**
   The built-in tools are 38.2k tokens of prompt on every turn; trimmed to four
-  they are 15.8k, Arno's core profile 13.9k. The trimmed shell alone saves 34%.
-- **Arno's own share is 18–25% fewer tokens than a trimmed shell,** with fewer
+  they are 15.8k, ARNO's core profile 13.9k. The trimmed shell alone saves 34%.
+- **ARNO's own share is 18–25% fewer tokens than a trimmed shell,** with fewer
   turns, less time and at least equal success.
-- **Arno added to the shell does not pay.** The agent sent half its calls to
+- **ARNO added to the shell does not pay.** The agent sent half its calls to
   Bash and paid for both tool lists: 9% more tokens than the full shell.
-  Arno is recommended in place of the built-in tools, not beside them.
+  ARNO is recommended in place of the built-in tools, not beside them.
 
 ## Tool usage
 
-From `telemetry` in the 24 Arno-arm suite runs:
+From `telemetry` in the 24 ARNO-arm suite runs:
 
 | Tool | Calls |
 |---|---|
@@ -139,13 +139,13 @@ From `telemetry` in the 24 Arno-arm suite runs:
 
 Retried after a failed answer: `apply` after `not_found`, 4 times — anchors
 written from memory, since answered with the line where file and anchor
-differ. The rerun's 12 Arno runs had the same order, with `read_range` first
+differ. The rerun's 12 ARNO runs had the same order, with `read_range` first
 (90) and `outline`, `create_file` and `delete_file` never called.
 
 For 0.0.5, which merges and cuts tools by this data:
 
 - **`outline` is listed in the core profile and was never called** in 36
-  Arno-only runs. `grep` and `read_range` carried the reading.
+  ARNO-only runs. `grep` and `read_range` carried the reading.
 - **`find` is a small share** (13 of 325 calls) next to `grep`; agents search
   text first, declarations rarely.
 - **The rest of the inspect cluster** — `search`, `retrieve`, `context`,
@@ -155,12 +155,12 @@ For 0.0.5, which merges and cuts tools by this data:
 
 ## Caveats
 
-- **One run per cell.** The same task moved Arno alone from 13 to 32 turns
+- **One run per cell.** The same task moved ARNO alone from 13 to 32 turns
   between rounds. Read per-task differences under about 30% as noise; the
   repository and overall means are the claims.
 - **Four languages, not five.** No Java repository yet: no JDK on the
   benchmark machine.
-- **Tuned on these tasks.** Arno was changed between per-repository rounds
+- **Tuned on these tasks.** ARNO was changed between per-repository rounds
   from what their transcripts showed. Fixes were general, but the suite ran on
   the repositories they came from. The 0.1.0 rerun adds repositories nobody
   tuned for.

@@ -182,7 +182,7 @@ func impactLine(impact protocol.Impact) string {
 }
 
 // isTestFile recognises test files by the naming conventions of the
-// ecosystems Arno runs tests for.
+// ecosystems ARNO runs tests for.
 func isTestFile(path string) bool {
 	base := strings.ToLower(filepath.Base(path))
 	slashed := "/" + filepath.ToSlash(path)

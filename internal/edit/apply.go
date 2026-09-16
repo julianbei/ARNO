@@ -16,7 +16,7 @@ import (
 
 // Apply performs several edits as one unit: all of them land, or none do.
 //
-// arno edits one site per call, and adding a single tool to this repository
+// ARNO edits one site per call, and adding a single tool to this repository
 // touches six files. That made every such task cost six calls and six
 // revision round trips, so the work got scripted in `python3` instead —
 // bypassing revision checks entirely. That fallback caused the only outage

@@ -48,7 +48,7 @@ var cargoArgsByKind = map[string][]string{
 // These are manifest-verified only, like the cargo path: the manifest proves
 // the ecosystem, and the tool's own subcommands are built in rather than
 // project-declared, so there is nothing further worth probing. A project that
-// wants something else declares a Makefile target or a arno command, both of
+// wants something else declares a Makefile target or an ARNO command, both of
 // which are consulted first.
 var ecosystemCommands = []struct {
 	manifest string

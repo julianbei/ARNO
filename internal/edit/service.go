@@ -132,8 +132,8 @@ func (s *Service) ReplaceText(path string, expectedRevision string, oldText stri
 // It existed only as an `apply` op until now, which meant additive work (a new
 // test function, a section appended to a document) had no tool of its own and
 // was reported as faster to do with a plain file edit. That is the same
-// failure mode the op was written for: when arno has no cheap way to add
-// something, adding it happens somewhere arno cannot see.
+// failure mode the op was written for: when ARNO has no cheap way to add
+// something, adding it happens somewhere ARNO cannot see.
 func (s *Service) Insert(path string, expectedRevision string, anchor string, position string, text string) (protocol.EditResponse, error) {
 	current := s.workspace.Revision()
 	if expectedRevision != "" && expectedRevision != current {
@@ -255,7 +255,7 @@ func (s *Service) DeleteFile(path string) (protocol.EditResponse, error) {
 }
 
 // Rename renames a symbol repository-wide via gopls (7.2). It differs from
-// every other mutation here in that arno does not compute the edit: the
+// every other mutation here in that ARNO does not compute the edit: the
 // language server does, and arno's job is the revision precondition, the
 // changed-file accounting and the validation job that follows. Because a
 // rename touches files the caller never named, the revision check matters

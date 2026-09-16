@@ -1,5 +1,5 @@
 // Command arno-bench measures what it costs an agent to answer questions
-// with arno versus with shell and file tools.
+// with ARNO versus with shell and file tools.
 //
 // Usage:
 //

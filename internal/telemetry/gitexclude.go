@@ -45,7 +45,7 @@ func excludeFromGit(root string) {
 	// --git-path resolves the exclude file correctly for worktrees and
 	// submodules, where .git is a file pointing elsewhere. --show-prefix is
 	// the workspace's position inside the repository: a pattern anchored at
-	// the repository root has to name the subdirectory when Arno is rooted
+	// the repository root has to name the subdirectory when ARNO is rooted
 	// below it.
 	query := exec.CommandContext(ctx, git, "rev-parse", "--git-path", "info/exclude", "--show-prefix")
 	query.Dir = root

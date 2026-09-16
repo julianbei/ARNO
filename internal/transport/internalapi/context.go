@@ -31,7 +31,7 @@ var identifierPattern = regexp.MustCompile(`\b[A-Za-z_][A-Za-z0-9_]*\b`)
 // here is not new capability, it is the round trips removed: an agent asking
 // "I want to modify this function" otherwise issues read_symbol, references,
 // a test search, and a diagnostics check, then reconciles four responses
-// itself. This is the same progressive-disclosure move arno already makes
+// itself. This is the same progressive-disclosure move ARNO already makes
 // for outline(), applied across concepts instead of within one file.
 //
 // Purpose selects which sections are worth their tokens. It narrows; it

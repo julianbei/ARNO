@@ -76,7 +76,7 @@ func run(t *testing.T, dir string, name string, args ...string) string {
 }
 
 // The harness failure this exists for: an agent's worktree committed
-// wholesale, with Arno's log in it.
+// wholesale, with ARNO's log in it.
 func TestLogInAGitWorkspaceIsNotUntracked(t *testing.T) {
 	root := gitRepo(t)
 	recorder := New(root)
@@ -95,7 +95,7 @@ func TestLogInAGitWorkspaceIsNotUntracked(t *testing.T) {
 		t.Fatalf("expected the pattern exactly once, found %d:\n%s", count, exclude)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".gitignore")); !os.IsNotExist(err) {
-		t.Fatal(".gitignore is tracked; Arno must not create or edit it")
+		t.Fatal(".gitignore is tracked; ARNO must not create or edit it")
 	}
 }
 

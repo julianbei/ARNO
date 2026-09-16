@@ -19,7 +19,7 @@ var coreTools = []string{
 // serverInstructions is sent once per session, so every sentence is paid for
 // by every session. It says what to load, when to batch, and the one naming
 // fact that otherwise costs a failed call.
-const serverInstructions = "Arno inspects, edits and validates code in this workspace. " +
+const serverInstructions = "ARNO inspects, edits and validates code in this workspace. " +
 	"Load these first: arno.find (declaration and body in one call), arno.read_range, " +
 	"arno.replace_text, arno.insert, arno.apply, arno.check. " +
 	"Repeatable runs (a repro, a benchmark): arno.declare_command once, then arno.run_command. " +

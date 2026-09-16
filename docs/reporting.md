@@ -1,6 +1,6 @@
-# What makes a useful arno report
+# What makes a useful ARNO report
 
-Short version: **the tool call, what came back, and what you expected.** Arno's
+Short version: **the tool call, what came back, and what you expected.** ARNO's
 responses are plain text and usually a few lines, so pasting them verbatim
 costs you almost nothing and saves a round trip.
 
@@ -14,14 +14,14 @@ for every single "the tool is missing" report — without exception.
 ## The report we most want
 
 Not bugs. **Friction**: the moments you reached for `grep`, `sed` or `cat`
-even though arno was right there.
+even though ARNO was right there.
 
-Arno's premise is that an agent falling back to the shell is operating outside
+ARNO's premise is that an agent falling back to the shell is operating outside
 any tooling you control — no revision tracking, no guardrails, no telemetry.
-So a fallback is a design failure whether or not arno had a working tool for
+So a fallback is a design failure whether or not ARNO had a working tool for
 the job.
 
-**"It was just habit" is a real answer and we want it.** It means the arno path
+**"It was just habit" is a real answer and we want it.** It means the ARNO path
 was not the obvious one at the moment of choosing, which is our problem. This
 project's own development log ([feedback.md](feedback.md)) records sixteen
 tasks of exactly these, and the pattern it found was blunt: the fallbacks that
@@ -42,14 +42,14 @@ So please report the boring ones.
 
 **Often decisive:**
 
-- **The language of the file.** Arno has real tree-sitter grammars for Go,
+- **The language of the file.** ARNO has real tree-sitter grammars for Go,
   TypeScript, TSX and Rust. Everything else falls back to a text scan that
-  finds some declarations and misses others. Arno says so in the response
+  finds some declarations and misses others. ARNO says so in the response
   (`! no python grammar — …`), but if it did not, that itself is a bug.
 - **Whether `gopls` is installed**, for anything involving `references` or
   `rename`. Without it, `references` degrades to a textual approximation and
   `rename` refuses outright rather than guessing.
-- **Whether the repo is a git repository with at least one commit.** Arno works
+- **Whether the repo is a git repository with at least one commit.** ARNO works
   without either, but `changes`, `diff`, `history` and `checkpoint` are limited
   and will say so.
 
@@ -70,7 +70,7 @@ fallback risk: not_found 1
 ```
 
 Those failure classes — `not_found`, `ambiguous`, `stale_revision`, `timeout`,
-`unavailable` — are the moments arno failed and the shell was one keystroke
+`unavailable` — are the moments ARNO failed and the shell was one keystroke
 away. They are the most direct evidence we can get.
 
 ## What not to bother with
@@ -79,7 +79,7 @@ away. They are the most direct evidence we can get.
   answer was *wrong* or *unclear*, not that it was phrased differently than
   last week. See [tool-contract.md](tool-contract.md) for what is and is not
   stable.
-- **Known limitations from the README's "What Arno does not do yet".** Unless
+- **Known limitations from the README's "What ARNO does not do yet".** Unless
   you hit one in real work, in which case say so — that is priority
   information, and worth more than a feature request.
 - **Polishing the report.** A one-line "this made me use grep and I don't know

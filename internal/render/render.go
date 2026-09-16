@@ -1,7 +1,7 @@
 // Package render turns arno's typed responses into plain text for the MCP
 // transport.
 //
-// The consumer of every arno response is a language model, not a parser. MCP
+// The consumer of every ARNO response is a language model, not a parser. MCP
 // already delivers tool results as text content, so JSON is a serialization
 // tax paid on every call: braces, quotes, repeated field names, indentation,
 // and nulls for fields nobody populated. The 8.3 benchmark measured that tax
@@ -191,7 +191,7 @@ func inspect(r protocol.InspectResponse) string {
 	}
 	// Freshness appears on a read only when it is broken. A drift count was
 	// printed on every read — `r34 · drifted: 6 files` — and no read can act
-	// on it: the files changed outside Arno (a build, git, another process)
+	// on it: the files changed outside ARNO (a build, git, another process)
 	// and the content returned is already current. `changes` reports what
 	// moved for anyone who needs it.
 	if r.Freshness.Unknown != "" {
@@ -356,7 +356,7 @@ const maxRenderedSymbolChanges = 40
 // maxRenderedChangedFiles bounds the file list. Symbols were capped from the
 // start but the file list never was, so a branch with 88 changed files printed
 // all 88 — the single largest contributor to changes() being the most
-// expensive call arno makes.
+// expensive call ARNO makes.
 const maxRenderedChangedFiles = 40
 
 func changes(r protocol.ChangesResponse) string {

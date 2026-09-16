@@ -161,7 +161,7 @@ Work as you normally would. If you want a checklist for the first sessions:
 | When | File this |
 |---|---|
 | After a week or two — or when you turn ARNO off | [**Feedback**](https://github.com/julianbei/arno/issues/new?template=feedback.yml) |
-| The agent used the shell although a ARNO tool existed | [Friction](https://github.com/julianbei/arno/issues/new?template=friction.yml) |
+| The agent used the shell although an ARNO tool existed | [Friction](https://github.com/julianbei/arno/issues/new?template=friction.yml) |
 | A tool gave a wrong answer or failed | [Bug](https://github.com/julianbei/arno/issues/new?template=bug.yml) |
 | Something you wish ARNO did | [Feature wish](https://github.com/julianbei/arno/issues/new?template=feature.yml) |
 
@@ -706,7 +706,7 @@ prints findings and exits 0 passes.
 
 Structure comes from tree-sitter grammars compiled into the binary, so it
 works with nothing installed. Semantics come from a real language server,
-which you provide — `arno-mcp install` installs it for you — and arno starts
+which you provide — `arno-mcp install` installs it for you — and ARNO starts
 it on first use, reuses it for the session, and shuts it down on exit.
 
 | Language | Structure | Semantics, with this installed |
@@ -722,12 +722,12 @@ it on first use, reuses it for the session, and shuts it down on exit.
 | Everything else | text scan, announced | — |
 
 Every row is verified end-to-end by `make conformance`, which builds an image
-containing all eight servers and runs arno against a real repository per
+containing all eight servers and runs ARNO against a real repository per
 language.
 
 Semantic requests wait for the server to finish indexing (its `$/progress`
 tokens), because an indexing server answers wrongly rather than slowly. When
-the primary server declines a rename, arno asks the language's installed
+the primary server declines a rename, ARNO asks the language's installed
 alternative: **ruby-lsp renames classes but not methods, so Ruby method rename
 needs `solargraph` installed alongside it.** With ruby-lsp alone, method
 rename refuses and repeats the server's reason.

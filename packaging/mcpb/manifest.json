@@ -1,10 +1,10 @@
 {
   "manifest_version": "0.3",
   "name": "arno-mcp",
-  "display_name": "Arno",
+  "display_name": "ARNO",
   "version": "0.0.0",
   "description": "The IDE for agents: read by symbol, edit against a revision, validate with your own build, revert.",
-  "long_description": "Arno is a local MCP server for coding agents. It reads code by symbol with tree-sitter and real language servers (Go, Java, Scala, TypeScript, Python, Rust, Ruby), edits against a known revision and returns compiler diagnostics with each edit, runs the repository's own build, test and declared commands, shows what changed, and reverts to checkpoints. Telemetry stays on your machine.\n\nLanguage servers are optional; install them with `arno-mcp install`.",
+  "long_description": "ARNO is a local MCP server for coding agents. It reads code by symbol with tree-sitter and real language servers (Go, Java, Scala, TypeScript, Python, Rust, Ruby), edits against a known revision and returns compiler diagnostics with each edit, runs the repository's own build, test and declared commands, shows what changed, and reverts to checkpoints. Telemetry stays on your machine.\n\nLanguage servers are optional; install them with `arno-mcp install`.",
   "author": {
     "name": "Julian Amelung",
     "url": "https://github.com/julianbei"
@@ -36,7 +36,7 @@
     "workspace": {
       "type": "directory",
       "title": "Repository",
-      "description": "The repository Arno reads, edits and validates",
+      "description": "The repository ARNO reads, edits and validates",
       "required": true
     }
   }

@@ -1,5 +1,5 @@
 name: "Bug — a tool did the wrong thing"
-description: A Arno tool returned a wrong answer, failed when it should not have, or changed something it should not have.
+description: An ARNO tool returned a wrong answer, failed when it should not have, or changed something it should not have.
 title: "bug: "
 labels: ["bug"]
 body:
@@ -32,7 +32,7 @@ body:
     id: response
     attributes:
       label: What came back
-      description: Paste the response verbatim. Arno's responses are plain text and usually short.
+      description: Paste the response verbatim. ARNO's responses are plain text and usually short.
       render: text
     validations:
       required: true
@@ -68,7 +68,7 @@ body:
       label: Capabilities (very helpful for language problems)
       description: |
         Output of the `arno.capabilities` tool: which grammar and language
-        server Arno used, and the build and test commands it found. No source
+        server ARNO used, and the build and test commands it found. No source
         code in it.
       render: text
 

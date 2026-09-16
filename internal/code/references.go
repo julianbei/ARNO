@@ -175,7 +175,7 @@ func (i *Index) approximateReferences(symbolID string, symbol Symbol) []protocol
 }
 
 // relativePath converts an absolute path gopls reported back into a
-// workspace-relative one, matching the form every other arno response uses.
+// workspace-relative one, matching the form every other ARNO response uses.
 func (i *Index) relativePath(path string) string {
 	if !filepath.IsAbs(path) {
 		return filepath.ToSlash(path)

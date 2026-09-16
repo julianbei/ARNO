@@ -1,6 +1,6 @@
 # Tool surface contract — 0.0.1
 
-This is what arno promises to callers, and what it does not.
+This is what ARNO promises to callers, and what it does not.
 
 ## Why this is frozen at all
 
@@ -139,7 +139,7 @@ changing with it.
 
 | Guarantee | Held by |
 |---|---|
-| An edit given `expectedRevision` is refused if Arno's revision moved on | `TestApplyRejectsStaleRevision`, `TestReplaceSymbolRejectsStaleRevision` |
+| An edit given `expectedRevision` is refused if ARNO's revision moved on | `TestApplyRejectsStaleRevision`, `TestReplaceSymbolRejectsStaleRevision` |
 | An edit given `expectedDigest` is refused if the file changed since that read, by anyone | `TestAnEditIsRefusedWhenTheFileChangedSinceItsRead` |
 | An anchor must match exactly once; an ambiguous one is refused | `TestReplaceTextRefusesAmbiguousAnchor`, `TestInsertRefusesAmbiguousAnchor`, `TestApplyRejectsAmbiguousAnchorBeforeWritingAnything` |
 | An anchor that is not there is refused | `TestReplaceTextRefusesMissingAnchor`, `TestInsertRefusesMissingAnchorText` |
@@ -180,7 +180,7 @@ changing with it.
 | All of the above hold together in one scripted session through the MCP transport | `TestTheChangeTransactionHoldsAcrossAScriptedSession` |
 
 Not guaranteed yet: that the revision also moves for changes made outside
-Arno or by another session — each session counts its own edits, and only the
+ARNO or by another session — each session counts its own edits, and only the
 digest precondition sees the rest — and that `changes` attributes an edit to
 the session that made it.
 

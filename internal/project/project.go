@@ -1,5 +1,5 @@
 // Package project reads .arno/project.json: a repository's own statement of
-// how Arno should build, check and test it, committed next to the code the
+// how ARNO should build, check and test it, committed next to the code the
 // way an editor keeps its settings in .vscode/.
 //
 // Discovery guesses from manifests, and the pilot benchmark showed where

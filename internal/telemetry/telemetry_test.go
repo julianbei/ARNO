@@ -41,7 +41,7 @@ func TestRecordAndSummarize(t *testing.T) {
 }
 
 func TestSummarizeCountsFailureClassesSeparately(t *testing.T) {
-	// The headline number: each of these is a moment the arno path failed and
+	// The headline number: each of these is a moment the ARNO path failed and
 	// the shell was one keystroke away.
 	root := t.TempDir()
 	recorder := New(root)
@@ -111,7 +111,7 @@ func TestDisabledRecorderWritesNothing(t *testing.T) {
 
 func TestRecordNeverFailsTheCall(t *testing.T) {
 	// Losing a measurement is cheap; failing a working edit because the
-	// measurement could not be written would make arno less reliable than the
+	// measurement could not be written would make ARNO less reliable than the
 	// bash it competes with. An unwritable root must be swallowed.
 	root := filepath.Join(t.TempDir(), "does", "not", "exist", "\x00bad")
 	recorder := New(root)
@@ -276,8 +276,8 @@ func TestClassifyResponseIgnoresResponsesWithNothingToSay(t *testing.T) {
 }
 
 func TestAFailingBuildIsAVerdictNotAFallback(t *testing.T) {
-	// The distinction the whole metric depends on. A red build is arno doing
-	// its job, not arno failing; counting it would swamp the fallback signal
+	// The distinction the whole metric depends on. A red build is ARNO doing
+	// its job, not ARNO failing; counting it would swamp the fallback signal
 	// with ordinary broken code and make the number meaningless.
 	for _, response := range []interface{}{
 		protocol.CheckResponse{Status: "completed", Passed: false},

@@ -8,7 +8,7 @@ import (
 //
 // The line range comes from arno's current parse of the file, and git's -L
 // then follows that range backwards through history itself. That ordering
-// matters: arno never has to guess where the symbol lived in an older
+// matters: ARNO never has to guess where the symbol lived in an older
 // revision, which is the part a naive implementation gets wrong.
 // historyAll answers history with its patch whole beside the response.
 // History pages the patch.

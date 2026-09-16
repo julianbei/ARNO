@@ -24,8 +24,8 @@ func (s *Server) fileDigest(path string) string {
 }
 
 // checkDigest refuses an edit whose file changed since the read it was based
-// on — changed by Arno, the user, a formatter, a build or another agent.
-// Revisions count only Arno's own edits, so an expectedRevision passed after
+// on — changed by ARNO, the user, a formatter, a build or another agent.
+// Revisions count only ARNO's own edits, so an expectedRevision passed after
 // someone else rewrote the file; the digest is of the file itself.
 func (s *Server) checkDigest(path string, expected string) error {
 	expected = strings.TrimSpace(expected)

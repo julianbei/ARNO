@@ -175,7 +175,7 @@ func utf16Column(lineText string, byteColumn int) int {
 }
 
 // byteColumn is utf16Column's inverse, for turning a server's answer back into
-// a position arno can use against the file's bytes.
+// a position ARNO can use against the file's bytes.
 func byteColumn(lineText string, utf16Offset int) int {
 	if utf16Offset <= 0 {
 		return 1

@@ -1,4 +1,4 @@
-// Package update tells a user that a newer Arno release exists without getting
+// Package update tells a user that a newer ARNO release exists without getting
 // in their way.
 //
 // The rules that keep it quiet: nothing is fetched on the request path — a
@@ -27,7 +27,7 @@ import (
 const (
 	// DisableEnv set to 0 turns the check off.
 	DisableEnv = "ARNO_UPDATE_CHECK"
-	// InstallCommand installs or updates Arno in place.
+	// InstallCommand installs or updates ARNO in place.
 	InstallCommand = "curl -fsSL https://raw.githubusercontent.com/julianbei/arno/main/install.sh | sh"
 
 	latestURL    = "https://api.github.com/repos/julianbei/arno/releases/latest"

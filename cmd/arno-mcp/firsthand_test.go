@@ -10,7 +10,7 @@ import (
 	"github.com/julianbei/arno/internal/protocol"
 )
 
-// Fixes for what building 0.0.3 with Arno itself turned up (ROADMAP §8).
+// Fixes for what building 0.0.3 with ARNO itself turned up (ROADMAP §8).
 
 func TestReplaceTextCountsOnlyWhatChanged(t *testing.T) {
 	server, root := newTestMCPServer(t)
@@ -189,7 +189,7 @@ func TestCommandListingShowsNamesNotScripts(t *testing.T) {
 	}
 }
 
-// Fixes for what building 0.0.4 with Arno itself turned up.
+// Fixes for what building 0.0.4 with ARNO itself turned up.
 
 func TestApplyInsertAcceptsText(t *testing.T) {
 	server, root := newTestMCPServer(t)

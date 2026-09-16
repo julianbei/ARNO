@@ -1,6 +1,6 @@
-# Renaming Jade to Arno
+# Renaming Jade to ARNO
 
-**Arno — Agent Repository Navigation & Operations.**
+**ARNO — Agent Repository Navigation & Operations.**
 
 Jade is ambiguous in software: existing products, a prior trademark conflict,
 and other MCP projects already use the name. That costs searchability and
@@ -72,7 +72,7 @@ that still promises the benchmark, and a rename is not evidence.
       names), wired into the loaders, the tool router and `install.sh`, with
       tests.
 - [x] Artwork: `logo.png`, `logo-dark.png`, the bundle icon and the social
-      preview derived from the new Arno cards.
+      preview derived from the new ARNO cards.
 - [ ] Gate green, then commit.
 - [ ] GitHub rename, then the registries below.
 
@@ -92,7 +92,7 @@ Each phase ends green: build, vet, gofmt, tests, and the TDQS lint.
    Dockerfile, workflows, the MCP bundle manifest.
 7. Docs: README, llms.txt, CHANGELOG, ROADMAP, docs/, release notes. Release
    notes for shipped versions keep their text; they describe what was true.
-8. Logos: the new Arno marks replace `logo.png` and `logo-dark.png`, and the
+8. Logos: the new ARNO marks replace `logo.png` and `logo-dark.png`, and the
    social preview is regenerated from them.
 
 ### 2. GitHub
@@ -112,7 +112,7 @@ Each phase ends green: build, vet, gofmt, tests, and the TDQS lint.
 | **ghcr.io** | New package `ghcr.io/julianbei/arno-mcp`. The old package cannot be renamed; leave its tags in place and stop pushing to it. | Release workflow |
 | **Glama** | The listing follows the repository, but the build spec installs `jade-mcp` by name: update the Dockerfile page's build steps and CMD, then deploy. `glama.json` keeps the maintainer. | Manual, on Glama |
 | **awesome-mcp-servers** | The merged entry (PR #14418) names `julianbei/jade`. New PR updating the line, its Glama badge and the install command. | New PR |
-| **tdqs.dev** | Scores are per server name; the next CI run scores `arno` as a new server. Nothing to migrate. | Automatic |
+| **tdqs.dev** | Scores are per server name; the next CI run scores `ARNO` as a new server. Nothing to migrate. | Automatic |
 | **PulseMCP, MCP Bench, registry browsers** | They read the official registry, so they follow the new listing and the deprecation on their own. | Automatic |
 
 ### 4. Users

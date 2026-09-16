@@ -16,7 +16,7 @@ import (
 )
 
 // goplsRenameTimeout bounds a rename. A rename rewrites every call site in
-// the repository, so it is the most expensive gopls operation arno runs and
+// the repository, so it is the most expensive gopls operation ARNO runs and
 // gets a longer budget than 7.1's reference lookup.
 const goplsRenameTimeout = 30 * time.Second
 

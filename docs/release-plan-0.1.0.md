@@ -1,13 +1,13 @@
 # Road to 0.1.0
 
-What has to be true before Arno calls itself 0.1.0, and the phases that get it
+What has to be true before ARNO calls itself 0.1.0, and the phases that get it
 there. Tasks link to [ROADMAP.md](../ROADMAP.md) where the item already lives;
 this file orders them and says when each phase is done. Done items move to
 [CHANGELOG.md](../CHANGELOG.md), as everywhere else.
 
 ## Where this comes from
 
-An external review of 0.0.2 (2026-09-13) described Arno back to us. Its
+An external review of 0.0.2 (2026-09-13) described ARNO back to us. Its
 reading of the thesis matches ours: symbols, revisions, diagnostics and
 repository commands instead of `grep`/`sed`/`cat`, and a product that only
 wins if it is **cheaper for the model than bash**. It named three strengths —
@@ -20,7 +20,7 @@ symbol-oriented edits, revisions with edit consequences, and
    limit; matching enough of it without exploding the MCP surface is the hard
    product problem. 35 tools already overlap.
 3. **Capabilities vary by environment.** The strongest features depend on git,
-   language servers and toolchains, and Arno degrades when they are missing.
+   language servers and toolchains, and ARNO degrades when they are missing.
    Sensible — but an agent cannot tell in advance what it will get.
 
 The review also restates the number that matters: **0.85x at home, 1.36x
@@ -34,15 +34,15 @@ cautions above:
 - **"Architecturally correct but economically unnecessary"** is the largest
   risk. Two shell calls beat six structured ones however elegant they are.
 - **Scale of evidence:** 20–50 outside repositories across Go, Python,
-  TypeScript, Java, Rust and mixed monorepos — and agent + Arno + shell
+  TypeScript, Java, Rust and mixed monorepos — and agent + ARNO + shell
   fallback "may actually be the practical winner".
 - **Consolidate by data, delete aggressively.** The right surface may be
   10–15 operations, not 35.
 - **Abstraction leakage.** When `jdtls` takes minutes to start or pyright
-  disagrees with the project's config, the user's verdict is "Arno doesn't
+  disagrees with the project's config, the user's verdict is "ARNO doesn't
   work". Managing dependencies may cost more than the MCP layer.
 - **Real users** are the next signal, not more features: people installing
-  Arno in unrelated projects and keeping it enabled.
+  ARNO in unrelated projects and keeping it enabled.
 
 A third review surveyed the category. Competitor details and star counts are
 the reviewer's claims, not verified here. Its conclusion changes the
@@ -50,15 +50,15 @@ positioning, not the architecture:
 
 - **Symbol-aware code access over MCP is table stakes.** Serena (LSP-backed
   retrieval, editing and refactoring; by far the largest) overlaps almost
-  entirely with Arno's inspect layer. SymForge is technically closest: symbol
+  entirely with ARNO's inspect layer. SymForge is technically closest: symbol
   edits, impact analysis, checkpoints, trust labels on answers, and a
   three-tool compact mode that claims to cut schema size from ~85 KB to
   ~4.8 KB. code-atlas already does affected-test detection and token-capped
-  responses. treesitter-mcp makes Arno's own "fewer tokens than grep" argument.
+  responses. treesitter-mcp makes ARNO's own "fewer tokens than grep" argument.
   **"Cheaper than cat" is not a unique claim.**
-- **Arno's ground is the transaction:** edit against revision N, apply
+- **ARNO's ground is the transaction:** edit against revision N, apply
   atomically, report what structurally changed, validate with the repository's
-  own commands, diff, revert, record how the agent got there. Describe Arno as
+  own commands, diff, revert, record how the agent got there. Describe ARNO as
   a transactional development environment for agents, not a code-intelligence
   server.
 - **Hosts, in priority order:** OpenCode (large, MCP-native, and its docs warn
@@ -71,7 +71,7 @@ positioning, not the architecture:
   code-atlas, codescout, treesitter-mcp — and mini-SWE-agent, bash only by
   design, as the adversary that matters most.
 - **Build on, do not rebuild:** SCIP and ast-grep later; Semgrep through
-  declared commands; SWE-ReX as the sandbox Arno runs inside; Joern never in
+  declared commands; SWE-ReX as the sandbox ARNO runs inside; Joern never in
   core.
 
 A fourth review said what to take from competitors, under one rule: **copy
@@ -84,10 +84,10 @@ mechanisms, not product identity.**
   (codescout). **Carefully:** awareness of docs, specs and ADRs.
   **Experiment:** git ranking signals. **Low:** embeddings. **Avoid:**
   memories and orchestration.
-- **Where Arno should disagree with them.** Not an agent (Serena is heading
+- **Where ARNO should disagree with them.** Not an agent (Serena is heading
   there). Not a code-knowledge platform ("Sourcegraph-lite over MCP"). And
-  **validation stays inside Arno**: SymForge hands builds and tests back to
-  the shell, which leaves Arno controlling half the transaction.
+  **validation stays inside ARNO**: SymForge hands builds and tests back to
+  the shell, which leaves ARNO controlling half the transaction.
   `.arno/commands.json` should get stronger, not weaker.
 - **Operations name capabilities, not backends.** `references` may answer from
   LSP, SCIP or a text index; only provenance says which.
@@ -133,7 +133,7 @@ said was missing is integrity, not features. Checked against the code,
   ([index.go:1359](../internal/code/index.go#L1359)); no layer checks that a
   path stays inside the root. "Safe to leave running" cannot be claimed
   while an edit can write outside the workspace.
-- **Revisions only see Arno's own edits.** `expectedRevision` is compared with
+- **Revisions only see ARNO's own edits.** `expectedRevision` is compared with
   an in-process counter ([apply.go:34](../internal/edit/apply.go#L34)). A file
   changed by the user, the host or another tool leaves the revision unchanged,
   so a stale edit passes its precondition.
@@ -158,9 +158,9 @@ architectural invariant, not a roadmap choice.
 
 0.1.0 is a claim someone else can check:
 
-- **Measured.** On at least 20 repositories Arno was not built in — Go,
+- **Measured.** On at least 20 repositories ARNO was not built in — Go,
   Python, TypeScript, Java, Rust and at least one mixed monorepo — agent +
-  Arno (or agent + Arno + shell, whichever wins) passes the Phase 2
+  ARNO (or agent + ARNO + shell, whichever wins) passes the Phase 2
   scorecard against agent + shell: never less successful, never more invalid
   or unintended edits, and any extra tokens, calls or time within the
   trade-offs fixed before the run. The same
@@ -178,7 +178,7 @@ architectural invariant, not a roadmap choice.
   informed it, whoever changed it. Revisions never move backward, and a revert
   restores which files exist as well as their contents. Revisions, checkpoints
   and `revert` have
-  documented behaviour against git, and nothing Arno does rewrites committed
+  documented behaviour against git, and nothing ARNO does rewrites committed
   work or dirties a worktree it was not asked to touch.
 - **Stable where promised.** The tool contract says what 0.1.x will not break.
 - **Used outside.** Setup is verified live in OpenCode, goose, Cline, Codex CLI
@@ -202,9 +202,9 @@ are already in the README's design principles; the rest are added in Phase 2.
 5. **Truthful degradation.** Every answer says how authoritative it is: exact
    when exact, approximate when useful, refuse when approximation is unsafe.
 6. **Cheaper than the escape hatch.** If bash is easier, faster and cheaper
-   for a workflow, Arno has failed that workflow.
+   for a workflow, ARNO has failed that workflow.
 
-A feature that makes Arno more like an agent, a knowledge base or an IDE, and
+A feature that makes ARNO more like an agent, a knowledge base or an IDE, and
 not more like a safer, cheaper transaction, fails this test however good it is
 in a competitor.
 
@@ -218,7 +218,7 @@ belong in core.
 
 Two invariants follow, and hold for every phase and every later plugin:
 
-- **The tool catalog is Arno's alone.** No language, provider or plugin adds
+- **The tool catalog is ARNO's alone.** No language, provider or plugin adds
   a tool; they make existing tools answer better. Enforced by the existing
   contract test on the catalog.
 - **Every path goes through core.** Providers receive paths core has already
@@ -260,12 +260,12 @@ release notes draft section removed, tag `v0.0.3`.
 
 ## Phase 2 — 0.0.4: evidence before features
 
-Theme: find out whether Arno beats the shell before building more of it.
+Theme: find out whether ARNO beats the shell before building more of it.
 Caution 2 cannot be answered by opinion; this phase produces the data every
 later phase uses to decide what to merge, cut or add.
 
 - [x] **External benchmark with bash as the baseline** (ROADMAP § Evidence).
-  Three arms — agent + shell, agent + Arno, agent + Arno + shell — starting
+  Three arms — agent + shell, agent + ARNO, agent + ARNO + shell — starting
   with a pilot of at least five outside repositories covering Go, TypeScript,
   Python, Java and Rust. Record task success, tokens, tool calls, wall time,
   invalid edits, shell fallbacks, regressions and unintended side effects
@@ -276,7 +276,7 @@ later phase uses to decide what to merge, cut or add.
   an arm against a repository path and task list it did not ship with, and
   the pilot results table is committed — whatever it says. The repository
   list grows to 20+ by Phase 6; adding one must be a config entry, not code.
-  Harness candidates, to pick before building one: Arno as a SWE-agent tool
+  Harness candidates, to pick before building one: ARNO as a SWE-agent tool
   bundle, mini-SWE-agent as the bash arm, a SWE-bench Verified subset as one
   task source, SWE-ReX sandboxes as the runtime.
   *Progress 2026-09-13:* harness built — `arno-bench agent` runs the three
@@ -295,31 +295,31 @@ later phase uses to decide what to merge, cut or add.
   tasks, four arms including a trimmed shell; results in
   [benchmark-results.md](benchmark-results.md). Java and a fifth repository
   move to 0.0.5.
-- [ ] **Competitor arm.** The same tasks with Serena in place of Arno; SymForge
+- [ ] **Competitor arm.** The same tasks with Serena in place of ARNO; SymForge
   and code-atlas if their setup allows. A comparison to learn from, not a gate —
-  but if Serena wins on the inspect tasks, Phase 3 cuts Arno's inspect surface
+  but if Serena wins on the inspect tasks, Phase 3 cuts ARNO's inspect surface
   harder rather than competing on it. *Moved to 0.0.5 (2026-09-13):* not
   started, and not a gate.
 - [x] **Reposition the README lead.** Done 2026-09-13: the lead describes the
   change transaction; principles 3, 7, 11 and 12 now state preconditions,
   repository-native execution and cheaper-than-the-shell. From "structural access to a codebase" to
   the change transaction, with the loop spelled out and the inspect tools as
-  the means. Only claims Arno already backs; Phase 6 re-checks it. Fold the
-  principles Arno's design principles do not yet state into the README:
+  the means. Only claims ARNO already backs; Phase 6 re-checks it. Fold the
+  principles ARNO's design principles do not yet state into the README:
   transactional mutation (preconditions, not just consequences),
   repository-native execution, and cheaper than the escape hatch.
-- [x] **Decide which arm Arno optimises for.** *Decided 2026-09-13:* agent +
-  Arno alone, built-in tools off, core profile. Arno + shell used 9% more
-  tokens than the shell with Bash taking half its calls; Arno alone used 51%
+- [x] **Decide which arm ARNO optimises for.** *Decided 2026-09-13:* agent +
+  ARNO alone, built-in tools off, core profile. ARNO + shell used 9% more
+  tokens than the shell with Bash taking half its calls; ARNO alone used 51%
   fewer than the full shell and 18–25% fewer than a trimmed one. The README
-  recommends it. If agent + Arno + shell wins,
-  that is the supported configuration and the README says so; Arno's job
+  recommends it. If agent + ARNO + shell wins,
+  that is the supported configuration and the README says so; ARNO's job
   becomes owning the transaction, not replacing every shell call. The
-  criterion is that agents use Arno where Arno is better — not that the shell
+  criterion is that agents use ARNO where ARNO is better — not that the shell
   disappears.
 - [x] **Fix the scorecard before the first run.** Written into the benchmark
   docs and not changed after results are seen. *Decided 2026-09-13:*
-  agents run as Claude Code headless (`claude -p`), with and without Arno's
+  agents run as Claude Code headless (`claude -p`), with and without ARNO's
   MCP server, on Sonnet 5, pilot capped at $50; tradeable threshold is up to
   +10% tokens for each +5 points of task success. *Non-negotiable* against the
   shell arm: task success at least equal; invalid edits and unintended edits
@@ -378,18 +378,18 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   only if its description can say, in one sentence, when to prefer it over
   its neighbours. Removals follow the breaking-change policy in
   [tool-contract.md](tool-contract.md) — deprecate in 0.0.5, remove before
-  0.1.0. The catalog is Arno's alone: nothing — language support, providers,
+  0.1.0. The catalog is ARNO's alone: nothing — language support, providers,
   later plugins — adds a tool. A framework-aware provider makes `references`
   or `retrieve` better; it never adds `django_models`. That is what keeps
   profiles and schema size predictable.
 - [ ] **Tool profiles** (ROADMAP § Surface). *Measured 2026-09-13:* the full
   catalog is 35 tools, 22.6 KB of `tools/list`, and costs about 6.9k prompt
-  tokens on every turn (a one-turn Haiku run: 13.6k with Arno loaded against
+  tokens on every turn (a one-turn Haiku run: 13.6k with ARNO loaded against
   6.7k with no MCP server). At the pilot's ~20 turns per task that is ~140k of
-  a ~1M-token run. The nine-tool subset the benchmark's Arno-only agent
+  a ~1M-token run. The nine-tool subset the benchmark's ARNO-only agent
   actually leaned on (find, grep, read_range, outline, replace_text, insert,
   apply, check, run_tests) is 9.0 KB. Moved ahead of Phase 3 by the benchmark:
-  tokens are a category Arno has to win outright. A core profile selectable at
+  tokens are a category ARNO has to win outright. A core profile selectable at
   launch, with the full catalog opt-in. Measure schema bytes first: record the
   full catalog's `tools/list` size today, and set the core profile's budget
   from it (SymForge claims ~4.8 KB compact). Two shapes are plausible — about a
@@ -397,9 +397,9 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   `state`) — and ROADMAP warns that grouping moves routing into arguments.
   Benchmark both; ship the one that wins. Add **host profiles** that leave out
   what the host already does better — a host with good file reads and search
-  does not need Arno's versions of them in context — the way Serena disables
+  does not need ARNO's versions of them in context — the way Serena disables
   its own overlapping tools inside agent harnesses. The bar for every tool in a
-  profile: it keeps Arno preferable to the host's own tool for that job.
+  profile: it keeps ARNO preferable to the host's own tool for that job.
 - [x] **Response budgets with continuation** (ROADMAP § Surface). *Design
   written 2026-09-13* in [tool-contract.md](tool-contract.md#budgets-and-provenance--005-design).
   *Progress 2026-09-13:* continuation store in `internalapi`; `grep`, `find`,
@@ -431,11 +431,11 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
   `checked: <source>` with the same source names.
 - [x] **Say where the shell is still the right tool.** *Done 2026-09-13:*
   README "When the shell is still the right tool". The review is right that
-  Arno will not match shell composability, and should not try. Document the
+  ARNO will not match shell composability, and should not try. Document the
   boundary — `run_command` and declared commands are the sanctioned escape
   hatch; one-off probes and debugging a script are shell work (see
   feedback.md, 11.10) — so "use the shell" is a decision, not a leak. Unlike
-  SymForge, builds, tests, lint and codegen stay on the Arno side of that
+  SymForge, builds, tests, lint and codegen stay on the ARNO side of that
   line: validation run from the shell is validation the transaction cannot
   see.
 - [x] **Shrink the full catalog, not only the core profile.** *Done
@@ -447,11 +447,11 @@ Theme: answer caution 2 with the Phase 2 data, not before it.
 - [ ] **Host integrations, in order:** OpenCode, goose, Cline, Codex CLI,
   Gemini CLI. For each: a config snippet in the README, a live session
   verified with the core profile, and notes on what the host already does
-  (Cline's checkpoints and diff review, for instance) so Arno's instructions do
+  (Cline's checkpoints and diff review, for instance) so ARNO's instructions do
   not duplicate or fight it. goose first among equals if its ACP passthrough
-  really gives Claude Code and Codex Arno through one config.
+  really gives Claude Code and Codex ARNO through one config.
   *Progress 2026-09-14:* **Codex CLI 0.154 verified** (find, insert, check
-  through Arno; needs `--approve-for-me` or interactive approval of MCP
+  through ARNO; needs `--approve-for-me` or interactive approval of MCP
   calls) and **goose 1.50 verified** (stdio extension, `claude-code`
   provider) and **OpenCode 1.18.30 verified** (local MCP server in
   `opencode.json`, `github-copilot` provider with Claude Sonnet 5, tools
@@ -577,7 +577,7 @@ impact-aware validation comes after the write path it depends on, not before.
   through it too; the guard test covers code, edit, commands, workspace and
   the API layer. Every writing edit advances the revision, and the index
   invalidates on the written file's mtime and size. Formatters are
-  external processes that rewrite a file after Arno's write, which the
+  external processes that rewrite a file after ARNO's write, which the
   checkpoint has already recorded.
 - [x] **Write the edit contract down, and test it.** *Done 2026-09-14:*
   tool-contract.md "The edit contract", 21 guarantees each naming its test,
@@ -589,11 +589,11 @@ impact-aware validation comes after the write path it depends on, not before.
   revision, consequences reported). One test per guarantee, so the contract
   cannot silently weaken — this is the part competitors have not built, and
   the hardest to commoditise.
-- [x] **Preconditions see changes Arno did not make.** *Done 2026-09-14:*
+- [x] **Preconditions see changes ARNO did not make.** *Done 2026-09-14:*
   reads return a content digest; `replace_text`, `insert` and `apply` edits
   refuse on `expectedDigest` mismatch, naming both digests. Opt-in, like
-  `expectedRevision`; the revision itself still counts Arno's edits only. Today an edit made by the
-  user, the host or another tool leaves Arno's revision unchanged, so a stale
+  `expectedRevision`; the revision itself still counts ARNO's edits only. Today an edit made by the
+  user, the host or another tool leaves ARNO's revision unchanged, so a stale
   `expectedRevision` still passes. The requirement: a mutation detects any
   change to its target since the read that informed it. Likely shape — a
   workspace generation that advances on detected external change, plus a
@@ -601,7 +601,7 @@ impact-aware validation comes after the write path it depends on, not before.
   (`read_symbol` → `r41 · digest abc123`; `replace_symbol expected=r41
   digest=abc123`) — but the API is decided in this task, not here. Refusals
   say what changed and who is known to have changed it. Tested by editing a
-  file from outside Arno between a read and an edit.
+  file from outside ARNO between a read and an edit.
 - [x] **Checkpoint and revert that restore state.** Part of the edit contract,
   with a test for each:
   - *Revisions are monotonic.* A revert creates a new revision whose content
@@ -614,7 +614,7 @@ impact-aware validation comes after the write path it depends on, not before.
     as a whole and says which, instead of discarding errors.
   *Done 2026-09-14:* the write path records a file's prior state for each
   checkpoint before its first change; revert restores through
-  `writes.Files` and advances the revision. Changes made outside Arno are
+  `writes.Files` and advances the revision. Changes made outside ARNO are
   captured only for files edited before the checkpoint (see the
   external-change item).
 - [x] **Revisions against git, enforced.** Landed early, in 0.0.3 (f76ee88):
@@ -633,7 +633,7 @@ impact-aware validation comes after the write path it depends on, not before.
   protocol must meet (see *Deferred*). Written now so the refactors above do
   not close the door and the plugin work later does not reopen the argument.
 - [x] **Strengthen declared commands.** They are how validation stays inside
-  Arno. Declared commands appear in the capability report, `check` can run
+  ARNO. Declared commands appear in the capability report, `check` can run
   them as validation steps by kind (`lint`, `codegen`), and their runs appear
   in `changes` and `events` alongside edits, so the whole transaction is in
   one record.
@@ -650,7 +650,7 @@ impact-aware validation comes after the write path it depends on, not before.
 - [x] **Impact-aware validation** (ROADMAP § Trustworthy), on top of the
   single write path. References name the affected packages and likely tests;
   those run first. code-atlas already detects affected tests, so this is
-  parity for the inspect side — what Arno adds is running them inside the
+  parity for the inspect side — what ARNO adds is running them inside the
   transaction and folding the verdict into the edit response. Target shape:
 
   ```text
@@ -683,9 +683,9 @@ impact-aware validation comes after the write path it depends on, not before.
   work, concurrent applies land; the write path now tells every session of
   every write. `changes` marks files a session did not edit as outside
   this session; naming which other session made them would need a shared
-  ledger. *Measured 2026-09-14:* two sessions on Arno's own repository,
+  ledger. *Measured 2026-09-14:* two sessions on ARNO's own repository,
   started together, each boot their own gopls — 177 MB each — and both give
-  the first exact `references` in 1.63 s, the same as one session. Arno's
+  the first exact `references` in 1.63 s, the same as one session. ARNO's
   client keeps no lock files, ports or data directories, so nothing assumes
   one process owns a server. Sharing servers across sessions waits: the cost
   is memory, not time, for gopls. Servers that write per-workspace state
@@ -704,7 +704,7 @@ impact-aware validation comes after the write path it depends on, not before.
   2026-09-14:* errors of the in-progress shape point at `apply`.
 
 **Exit gate:** a scripted session — checkpoint, create a file, delete another,
-multi-file `apply`, edit a file from outside Arno, attempted stale edit,
+multi-file `apply`, edit a file from outside ARNO, attempted stale edit,
 failing check, fix, commit from the shell, attempted revert, revert to a
 checkpoint before the commit — behaves as documented, and runs in CI.
 *Met 2026-09-14* by `TestTheChangeTransactionHoldsAcrossAScriptedSession`,
@@ -729,10 +729,10 @@ checkpoint taken after the commit.
   provenance vocabulary, validation outcome set, capability-report fields and
   the edit contract's
   guarantees frozen; response wording still not.
-- [x] **Hardening statement.** *Done 2026-09-14:* README "What Arno does not do
-  yet" says what Arno covers, what only a sandbox covers, and what nothing
+- [x] **Hardening statement.** *Done 2026-09-14:* README "What ARNO does not do
+  yet" says what ARNO covers, what only a sandbox covers, and what nothing
   covers. README keeps "not hardened for untrusted input"
-  and says what running Arno inside a sandbox covers (ROADMAP non-goals).
+  and says what running ARNO inside a sandbox covers (ROADMAP non-goals).
 - [ ] **README rewrite of "Status"** from "early, usable" to what 0.1.0 does
   and does not promise, and removal of any number not re-measured on the
   release candidate. The transaction positioning from Phase 2 is checked
@@ -741,7 +741,7 @@ checkpoint taken after the commit.
 
 **Release gate:** the six claims under *What 0.1.0 means* each point to the
 test, benchmark or document that proves them. If the benchmark says agent +
-Arno fails the scorecard fixed in Phase 2, 0.1.0 does not ship; the phase
+ARNO fails the scorecard fixed in Phase 2, 0.1.0 does not ship; the phase
 that fixes it does.
 
 ---
@@ -782,12 +782,12 @@ Also after 0.1.0, with conditions attached now so they do not drift:
     (`workspace.read`, `workspace.list` back to core) before they are
     supported.
   - Authority classes come from the protocol; core renders them.
-  - Installation is the user's: `~/.arno/plugins/` and `arno plugin
+  - Installation is the user's: `~/.arno/plugins/` and `ARNO plugin
     install|list|remove|doctor`. `arno-mcp install` (added 2026-09-14, opened by
     `install.sh` after a first install) is the front door: its menu lists
     language servers today, and plugins join it as a second kind of component,
     installed through the same commands. A repository's `.arno/config.json` may *name*
-    a plugin it wants; Arno never launches a binary found inside a
+    a plugin it wants; ARNO never launches a binary found inside a
     repository.
   - No plugin adds MCP tools.
   - Package split only when there is a reason. Language support and its
@@ -801,6 +801,6 @@ Also after 0.1.0, with conditions attached now so they do not drift:
 
 Not planned at all: memories, planning, prompt workflows or other agent
 features; a Joern or other code-property-graph adapter in core (a
-security-focused agent can run one beside Arno); handing builds and tests
+security-focused agent can run one beside ARNO); handing builds and tests
 back to the shell; Go's `plugin` package; plugin-defined tools; running
 binaries shipped inside a repository.

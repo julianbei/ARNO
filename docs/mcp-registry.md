@@ -1,6 +1,6 @@
 # Publishing to the MCP Registry
 
-Arno is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io)
+ARNO is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io)
 as `io.github.julianbei/arno`. Clients and directories that read the registry
 pick it up from there. The listing offers two packages:
 

@@ -1,7 +1,7 @@
 # External benchmark
 
-Does an agent with Arno get more done, at acceptable cost, than the same agent
-with a shell? The release plan's Phase 2 asks this of repositories Arno was
+Does an agent with ARNO get more done, at acceptable cost, than the same agent
+with a shell? The release plan's Phase 2 asks this of repositories ARNO was
 not built in. `arno-bench agent` runs it.
 
 ## Method
@@ -9,12 +9,12 @@ not built in. `arno-bench agent` runs it.
 Each task runs once per arm, per repeat, in a fresh clone of the repository at
 a pinned commit:
 
-| Arm | Built-in tools | Arno MCP server |
+| Arm | Built-in tools | ARNO MCP server |
 |---|---|---|
 | `shell` | all | no |
 | `shell-lean` | Bash, Read, Edit, Write | no |
-| `arno` | none | yes |
-| `arno+shell` | all | yes |
+| `ARNO` | none | yes |
+| `ARNO+shell` | all | yes |
 
 The agent is Claude Code headless. Every arm gets the same invocation except
 tools and MCP:
@@ -28,8 +28,8 @@ claude -p "<task prompt>" --output-format json --no-session-persistence \
 
 `shell-lean` exists because the tool list is resent on every turn. The pilot
 found that Claude Code's full built-in list is 38k tokens of prompt per turn and
-Arno's core profile 14k, so a comparison against `shell` alone cannot say how
-much of Arno's saving is its tools and how much is a shorter list.
+ARNO's core profile 14k, so a comparison against `shell` alone cannot say how
+much of ARNO's saving is its tools and how much is a shorter list.
 
 `--strict-mcp-config` keeps the operator's own MCP servers out, and
 `--setting-sources project` keeps user-level hooks and plugins out, so the
@@ -114,5 +114,5 @@ shell commands can do no harm.
 Results of the 0.0.4 pilot: [benchmark-results.md](benchmark-results.md).
 
 The report prints per arm: runs, success rate, mean tokens, turns, cost,
-seconds, lines and files changed, agent errors — then each Arno arm's
+seconds, lines and files changed, agent errors — then each ARNO arm's
 scorecard verdict against `shell`.

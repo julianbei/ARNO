@@ -3,7 +3,7 @@
 //
 // # What this measures, and what it does not
 //
-// docs/scope.md §26 asks whether an agent using arno "completes real tasks more
+// docs/scope.md §26 asks whether an agent using ARNO "completes real tasks more
 // efficiently and reliably than shell/file tooling", and §42-43 lists
 // tokens, turns and success rate as the metrics. This harness measures the
 // first of those three, deterministically and without an LLM in the loop:
@@ -19,7 +19,7 @@
 // them.
 //
 // The honest reading of a result table is therefore: "answering this
-// question costs N tokens of context through arno and M through shell."
+// question costs N tokens of context through ARNO and M through shell."
 // That is a real, reproducible comparison, and it is the part of docs/scope.md's
 // question that can be answered without a benchmark agent.
 package bench
@@ -41,7 +41,7 @@ type Scenario struct {
 	// Question is the agent-level task, phrased as an agent would think of
 	// it rather than as a tool invocation.
 	Question string
-	Arno     Arm
+	ARNO     Arm
 	Shell    Arm
 }
 
@@ -57,17 +57,17 @@ type ArmResult struct {
 type Result struct {
 	Name     string
 	Question string
-	Arno     ArmResult
+	ARNO     ArmResult
 	Shell    ArmResult
 }
 
 // TokenRatio is arno's token cost as a multiple of shell's. Below 1.0 means
-// arno is cheaper. Returns 0 when shell produced nothing to compare against.
+// ARNO is cheaper. Returns 0 when shell produced nothing to compare against.
 func (r Result) TokenRatio() float64 {
 	if r.Shell.Tokens == 0 {
 		return 0
 	}
-	return float64(r.Arno.Tokens) / float64(r.Shell.Tokens)
+	return float64(r.ARNO.Tokens) / float64(r.Shell.Tokens)
 }
 
 // EstimateTokens approximates tokens from bytes at the widely used ~4
@@ -91,7 +91,7 @@ func Run(scenarios []Scenario) []Result {
 		results = append(results, Result{
 			Name:     scenario.Name,
 			Question: scenario.Question,
-			Arno:     measure(scenario.Arno),
+			ARNO:     measure(scenario.ARNO),
 			Shell:    measure(scenario.Shell),
 		})
 	}
@@ -112,8 +112,8 @@ func measure(arm Arm) ArmResult {
 }
 
 // Report renders results as plain text. Deliberately not JSON: this output
-// is read by a person deciding whether arno is worth continuing, and it is
-// also the house style Phase 10 is moving every arno response toward.
+// is read by a person deciding whether ARNO is worth continuing, and it is
+// also the house style Phase 10 is moving every ARNO response toward.
 func Report(results []Result) string {
 	var b strings.Builder
 
@@ -122,7 +122,7 @@ func Report(results []Result) string {
 
 	var totalArno, totalShell int
 	for _, r := range results {
-		totalArno += r.Arno.Tokens
+		totalArno += r.ARNO.Tokens
 		totalShell += r.Shell.Tokens
 
 		ratio := "n/a"
@@ -132,10 +132,10 @@ func Report(results []Result) string {
 
 		b.WriteString(fmt.Sprintf("%-30s  %-9s %-9s %-7s %d/%d\n",
 			truncate(r.Name, 30),
-			tokensCell(r.Arno),
+			tokensCell(r.ARNO),
 			tokensCell(r.Shell),
 			ratio,
-			r.Arno.Calls, r.Shell.Calls))
+			r.ARNO.Calls, r.Shell.Calls))
 	}
 
 	b.WriteString("--------------------------------------------------------------------\n")
@@ -167,8 +167,8 @@ func tokensCell(r ArmResult) string {
 func collectErrors(results []Result) []string {
 	lines := make([]string, 0)
 	for _, r := range results {
-		if r.Arno.Err != nil {
-			lines = append(lines, fmt.Sprintf("%s [arno]: %v", r.Name, r.Arno.Err))
+		if r.ARNO.Err != nil {
+			lines = append(lines, fmt.Sprintf("%s [arno]: %v", r.Name, r.ARNO.Err))
 		}
 		if r.Shell.Err != nil {
 			lines = append(lines, fmt.Sprintf("%s [shell]: %v", r.Name, r.Shell.Err))

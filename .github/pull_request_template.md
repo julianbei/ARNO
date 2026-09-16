@@ -1,6 +1,6 @@
 ## What and why
 
-<!-- What does this change, and what problem does it solve for someone using Arno? -->
+<!-- What does this change, and what problem does it solve for someone using ARNO? -->
 
 ## Checklist
 

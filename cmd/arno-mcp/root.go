@@ -18,7 +18,7 @@ const (
 	envWorkspace            = "ARNO_WORKSPACE_ROOT"
 )
 
-// resolvedRoot is the outcome of working out which directory arno should
+// resolvedRoot is the outcome of working out which directory ARNO should
 // operate on.
 type resolvedRoot struct {
 	Path   string
@@ -28,7 +28,7 @@ type resolvedRoot struct {
 	Warning string
 }
 
-// resolveWorkspaceRoot decides which directory arno will inspect and edit.
+// resolveWorkspaceRoot decides which directory ARNO will inspect and edit.
 //
 // Precedence is --root, then ARNO_WORKSPACE_ROOT, then the current working
 // directory. The flag wins because it is the more specific statement: an env
@@ -55,7 +55,7 @@ func resolveWorkspaceRoot(args []string, getenv func(string) string, getwd func(
 	}
 	// EvalSymlinks matters on macOS, where /tmp is a symlink to /private/tmp:
 	// without it the root and the paths git reports disagree, and every
-	// relative path arno computes comes out wrong.
+	// relative path ARNO computes comes out wrong.
 	if resolved, err := filepath.EvalSymlinks(absolute); err == nil {
 		absolute = resolved
 	}
@@ -75,10 +75,10 @@ func resolveWorkspaceRoot(args []string, getenv func(string) string, getwd func(
 	if !isGitRepository(absolute) {
 		// Deliberately a warning rather than a fatal error.
 		//
-		// Most of arno does not need git: outline, find, grep, read and every
+		// Most of ARNO does not need git: outline, find, grep, read and every
 		// edit operation work on any directory, and arno's revision tracking
 		// is its own counter rather than git's. Refusing to start would make
-		// arno unusable on a directory it can serve perfectly well.
+		// ARNO unusable on a directory it can serve perfectly well.
 		//
 		// But it must be said plainly at startup, because the tools that DO
 		// need git degrade in ways that look like "nothing changed" rather

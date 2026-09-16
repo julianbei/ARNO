@@ -22,7 +22,7 @@ func goplsInstalled() bool {
 	return ok
 }
 
-// Capabilities reports what Arno can do in this workspace in one answer: per
+// Capabilities reports what ARNO can do in this workspace in one answer: per
 // language, how its structure is read, which language server would run or is
 // missing, and which formatter applies; whether git is there; the commands
 // check would run; declared commands. An agent in a container with no language

@@ -84,7 +84,7 @@ func TestReadsCarryNoDriftCountOrPathLists(t *testing.T) {
 	}
 }
 
-// Broken freshness is the one case worth a line: Arno's own view of the
+// Broken freshness is the one case worth a line: ARNO's own view of the
 // workspace cannot be trusted.
 func TestUnknownFreshnessIsStillReported(t *testing.T) {
 	out, _ := Text(protocol.InspectResponse{
@@ -112,7 +112,7 @@ func TestChangesPrintsEachFileExactlyOnce(t *testing.T) {
 	}
 }
 func TestChangesStillListsFilesWithNoGitDelta(t *testing.T) {
-	// A file arno touched that git reports no delta for arrives as a zero-count
+	// A file ARNO touched that git reports no delta for arrives as a zero-count
 	// entry. It must still be listed: the renderer is the last place that could
 	// silently drop it, and "no changes" would be wrong.
 	out, _ := Text(protocol.ChangesResponse{
@@ -289,7 +289,7 @@ func manyChangedFiles(count int) []protocol.ChangedFile {
 
 func TestChangesCapsTheFileList(t *testing.T) {
 	// The file list was never bounded while symbols always were, which made
-	// changes() the most expensive call arno makes on a large branch.
+	// changes() the most expensive call ARNO makes on a large branch.
 	out, _ := Text(protocol.ChangesResponse{
 		Revision: "r9",
 		Files:    manyChangedFiles(88),
@@ -390,7 +390,7 @@ func TestInspectSaysNothingWhenTheGrammarParsed(t *testing.T) {
 func TestAmbiguousShowsWhatDistinguishesTheCandidates(t *testing.T) {
 	// The measured problem: two methods named Put in one file, told apart only
 	// by receiver. Bare IDs forced a whole extra call to find out which was
-	// which, and that round trip is why arno lost a head-to-head against grep.
+	// which, and that round trip is why ARNO lost a head-to-head against grep.
 	out, _ := Text(protocol.InspectResponse{
 		Resolve: protocol.SymbolResolution{
 			Status: protocol.ResolutionAmbiguous,

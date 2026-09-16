@@ -1,17 +1,17 @@
-# arno response style
+# ARNO response style
 
-The acceptance bar for every arno tool response. Adding a tool means adding
+The acceptance bar for every ARNO tool response. Adding a tool means adding
 a renderer that follows these rules.
 
 ## Why this exists
 
-The consumer of a arno response is a language model, not a parser. MCP
+The consumer of an ARNO response is a language model, not a parser. MCP
 already delivers tool results as text, so JSON is a tax paid on every call:
 braces, quotes, repeated field names, indentation, and nulls for fields
 nobody populated.
 
 This is measured, not asserted. The `arno-bench` harness (`cmd/arno-bench`)
-asks seven realistic questions and answers each twice — once through arno,
+asks seven realistic questions and answers each twice — once through ARNO,
 once through the shell command an agent would otherwise use:
 
 | | tokens | vs shell |
@@ -19,7 +19,7 @@ once through the shell command an agent would otherwise use:
 | JSON responses | 8,317 | 5.63x |
 | rendered text | 1,270 | 0.85x |
 
-arno went from costing **5.6x more than grep and sed** to **cheaper than
+ARNO went from costing **5.6x more than grep and sed** to **cheaper than
 them**, with no capability removed. That 6.5x reduction is the entire
 justification for this document. Re-run `go run ./cmd/arno-bench` after any
 change to response shape.

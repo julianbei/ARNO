@@ -23,7 +23,7 @@ func TestAnEditIsRefusedWhenTheFileChangedSinceItsRead(t *testing.T) {
 		t.Fatalf("a read should carry the file's digest, got:\n%s", read)
 	}
 
-	// Changed outside Arno: Arno's revision does not move.
+	// Changed outside ARNO: ARNO's revision does not move.
 	if err := os.WriteFile(filepath.Join(root, "a.txt"), []byte("one\ntwo\nthree\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

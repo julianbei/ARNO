@@ -1,9 +1,9 @@
-# Arno — Agent Repository Navigation & Operations
+# ARNO — Agent Repository Navigation & Operations
 
 ## Product, Architecture and Implementation Concept
 
 **Status:** Initial concept / team briefing
-**Project name:** **Arno**
+**Project name:** **ARNO**
 **Expansion:** **Agent Repository Navigation & Operations**
 **Initial languages:** TypeScript, Go, Rust
 **Later languages:** Java, Python, JavaScript, C#, Ruby, Scala, others
@@ -12,7 +12,7 @@
 
 # 1. Executive summary
 
-**Arno is an Agent Development Environment designed specifically for software-engineering agents.**
+**ARNO is an Agent Development Environment designed specifically for software-engineering agents.**
 
 Today's coding agents typically interact with repositories through abstractions inherited from human shell usage:
 
@@ -30,11 +30,11 @@ These tools work, but they are poorly matched to LLMs.
 
 A human developer using a modern IDE rarely reads entire files or manually searches every reference. The IDE continuously provides structural information, diagnostics, navigation, refactoring support, test status, type information and incremental feedback.
 
-Arno applies the same principle to agents, but without copying the graphical IDE.
+ARNO applies the same principle to agents, but without copying the graphical IDE.
 
 > **The objective is to expose the information advantage of a modern IDE through an agent-native interface optimized for tokens, model turns, latency and correctness.**
 
-For example, instead of sending a 2,000-line TypeScript file to an agent, Arno can return:
+For example, instead of sending a 2,000-line TypeScript file to an agent, ARNO can return:
 
 ```text
 src/auth/session.ts
@@ -54,7 +54,7 @@ The agent can then request only:
 open SessionManager.refreshSession
 ```
 
-Likewise, instead of having an agent edit a file and then spend another model turn asking a compiler whether the edit was valid, Arno returns immediate diagnostics as part of the edit result.
+Likewise, instead of having an agent edit a file and then spend another model turn asking a compiler whether the edit was valid, ARNO returns immediate diagnostics as part of the edit result.
 
 ```text
 replace SessionManager.refreshSession with <new code>
@@ -66,13 +66,13 @@ replace SessionManager.refreshSession with <new code>
 → affected tests started asynchronously
 ```
 
-Arno therefore sits between the agent and the development workspace:
+ARNO therefore sits between the agent and the development workspace:
 
 ```text
 Agent / Agent Harness
         │
         ▼
-       Arno
+       ARNO
         │
  ┌──────┼────────┬─────────┐
  ▼      ▼        ▼         ▼
@@ -165,9 +165,9 @@ not 10,000 lines of stdout.
 
 # 3. Product definition
 
-## Arno's job
+## ARNO's job
 
-Arno owns the agent's interaction with a software workspace.
+ARNO owns the agent's interaction with a software workspace.
 
 It provides four classes of capability:
 
@@ -201,9 +201,9 @@ Maintain a coherent understanding of the workspace and what has changed.
 
 ---
 
-# 4. What Arno is not
+# 4. What ARNO is not
 
-Arno should have a deliberately clear boundary.
+ARNO should have a deliberately clear boundary.
 
 It is **not**:
 
@@ -221,7 +221,7 @@ The relationship should instead be:
 ```text
 Agent Harness
     │
-    ├── Arno ─────────── code workspace
+    ├── ARNO ─────────── code workspace
     │
     ├── browser ──────── web
     │
@@ -232,7 +232,7 @@ Agent Harness
     └── other skills ─── external systems
 ```
 
-**Arno is specifically the development environment of the agent.**
+**ARNO is specifically the development environment of the agent.**
 
 ---
 
@@ -240,7 +240,7 @@ Agent Harness
 
 ## North Star definition
 
-> **Arno is a stateful, language-aware development runtime that allows autonomous software-engineering agents to inspect, modify and validate arbitrarily large codebases while consuming only the context necessary for the current task.**
+> **ARNO is a stateful, language-aware development runtime that allows autonomous software-engineering agents to inspect, modify and validate arbitrarily large codebases while consuming only the context necessary for the current task.**
 
 The intended long-term experience is that an agent rarely needs to operate on raw files.
 
@@ -271,7 +271,7 @@ Block / source range
 
 ## 6.1 Progressive disclosure
 
-Arno should send the **minimum sufficient representation** first.
+ARNO should send the **minimum sufficient representation** first.
 
 A file request does not necessarily mean "return the file."
 
@@ -322,7 +322,7 @@ For example:
 src/auth/session.ts::SessionManager.refreshSession
 ```
 
-Arno should maintain stable internal symbol identifiers where possible.
+ARNO should maintain stable internal symbol identifiers where possible.
 
 That enables operations such as:
 
@@ -346,7 +346,7 @@ Line positions are returned for orientation but should not be the primary identi
 
 # 8. In-place replacement
 
-This is one of Arno's core primitives.
+This is one of ARNO's core primitives.
 
 The agent must be able to say:
 
@@ -356,7 +356,7 @@ replace function SessionManager.refreshSession with:
 <new implementation>
 ```
 
-Arno finds the existing function boundaries and replaces exactly that function.
+ARNO finds the existing function boundaries and replaces exactly that function.
 
 The new implementation may contain:
 
@@ -365,7 +365,7 @@ The new implementation may contain:
 * changed formatting;
 * changed nested structures.
 
-Arno reparses the resulting file and recalculates symbol locations automatically.
+ARNO reparses the resulting file and recalculates symbol locations automatically.
 
 ## Range replacement
 
@@ -423,11 +423,11 @@ This becomes essential later if multiple agents can operate on related workspace
 
 # 10. Diagnostics-on-edit
 
-This should be a defining Arno behavior.
+This should be a defining ARNO behavior.
 
 > **An edit must never return only "success."**
 
-After every modification Arno should immediately perform all validation that fits within a small latency budget.
+After every modification ARNO should immediately perform all validation that fits within a small latency budget.
 
 Conceptually:
 
@@ -436,7 +436,7 @@ Agent
   │
   │ replace function
   ▼
-Arno
+ARNO
   │
   ├── write change
   ├── parse
@@ -482,7 +482,7 @@ background:
 
 The model can immediately repair the problem.
 
-Without Arno the interaction may require:
+Without ARNO the interaction may require:
 
 ```text
 LLM → edit
@@ -491,7 +491,7 @@ LLM → understand lint output
 LLM → edit
 ```
 
-With Arno:
+With ARNO:
 
 ```text
 LLM → edit
@@ -509,7 +509,7 @@ At scale that matters considerably.
 
 Not every check belongs in the synchronous edit path.
 
-Arno should distinguish between **fast feedback** and **background validation**.
+ARNO should distinguish between **fast feedback** and **background validation**.
 
 ### Immediate
 
@@ -541,7 +541,7 @@ An agent should not sit idle while a 30-second test suite executes.
 Instead:
 
 ```text
-Agent                    Arno
+Agent                    ARNO
 
  replace ---------------->
 
@@ -567,7 +567,7 @@ provides the fallback.
 
 # 12. Structured test output
 
-Arno should not normally give the LLM raw test-runner stdout.
+ARNO should not normally give the LLM raw test-runner stdout.
 
 Instead:
 
@@ -610,7 +610,7 @@ This is progressive disclosure applied to execution output.
 
 A normal IDE always gives a developer some awareness of what has changed.
 
-Arno should do the same.
+ARNO should do the same.
 
 ```text
 changes()
@@ -642,13 +642,13 @@ expand change SessionManager.refreshSession
 
 to obtain the textual diff.
 
-Arno should therefore treat a **change set as a first-class object**, not merely as raw Git output.
+ARNO should therefore treat a **change set as a first-class object**, not merely as raw Git output.
 
 ---
 
 # 14. North Star inspection capabilities
 
-Over time Arno should provide:
+Over time ARNO should provide:
 
 ### Structural inspection
 
@@ -688,7 +688,7 @@ dependency relationships
 
 ### Context intelligence
 
-Eventually Arno should be capable of producing a **context view**:
+Eventually ARNO should be capable of producing a **context view**:
 
 ```text
 context(
@@ -753,7 +753,7 @@ extract method
 semantic refactoring
 ```
 
-Where deterministic tooling can safely make the modification, Arno should prefer deterministic tooling over asking an LLM to regenerate code.
+Where deterministic tooling can safely make the modification, ARNO should prefer deterministic tooling over asking an LLM to regenerate code.
 
 ---
 
@@ -782,7 +782,7 @@ static analysis
 security scanners
 ```
 
-All output should follow Arno's rule:
+All output should follow ARNO's rule:
 
 > **Return the conclusion first. Raw output is expandable.**
 
@@ -790,7 +790,7 @@ All output should follow Arno's rule:
 
 # 17. North Star runtime/debugging capabilities
 
-A later Arno version should expose debugger information in an agent-native form.
+A later ARNO version should expose debugger information in an agent-native form.
 
 Instead of reproducing a visual debugger:
 
@@ -832,7 +832,7 @@ Rather than:
 git log -p
 ```
 
-Arno could provide:
+ARNO could provide:
 
 ```text
 history(SessionManager.refreshSession)
@@ -859,7 +859,7 @@ The proposed North Star architecture is:
 ```text
                            Agent Harness
                                 │
-                                │ Arno Protocol
+                                │ ARNO Protocol
                                 ▼
 ┌──────────────────────────────────────────────────────────┐
 │                         ARNO                             │
@@ -1054,14 +1054,14 @@ later work on plugins does not reopen the argument.
   supported.
 - Authority classes come from the protocol; core renders them.
 - Installation is the user's (`~/.arno/plugins/`); a repository may name a
-  plugin it wants, and Arno never launches a binary found inside a
+  plugin it wants, and ARNO never launches a binary found inside a
   repository.
 
 # 21. Language support strategy
 
 ## Phase 1 languages
 
-Arno initially supports:
+ARNO initially supports:
 
 1. **TypeScript**
 2. **Go**
@@ -1087,11 +1087,11 @@ JavaScript should likely reuse substantial parts of the TypeScript adapter.
 
 The key architectural requirement is:
 
-> **Arno's protocol must remain language-neutral even though its adapters are language-specific.**
+> **ARNO's protocol must remain language-neutral even though its adapters are language-specific.**
 
 ---
 
-# 22. Arno protocol
+# 22. ARNO protocol
 
 The public API should remain small and composable.
 
@@ -1185,9 +1185,9 @@ This keeps the API small while preserving precision.
 
 # 24. Transport
 
-Arno should not become tightly coupled to one agent framework.
+ARNO should not become tightly coupled to one agent framework.
 
-The internal Arno API should therefore be transport-independent.
+The internal ARNO API should therefore be transport-independent.
 
 Possible adapters include:
 
@@ -1203,15 +1203,15 @@ For an MVP, an **MCP façade is reasonable** because existing agent harnesses ca
 
 However:
 
-> MCP should be a transport adapter around Arno, not Arno's internal architecture.
+> MCP should be a transport adapter around ARNO, not ARNO's internal architecture.
 
-This keeps Arno usable by future harnesses that may use a different tool protocol.
+This keeps ARNO usable by future harnesses that may use a different tool protocol.
 
 ---
 
 # 25. Shell strategy
 
-Arno should not prohibit shell execution.
+ARNO should not prohibit shell execution.
 
 Unknown repositories inevitably contain:
 
@@ -1227,14 +1227,14 @@ The architecture should instead encourage:
                Operation required
                        │
                        ▼
-          Arno primitive available?
+          ARNO primitive available?
                /               \
              yes               no
               │                 │
-             Arno              Shell
+             ARNO              Shell
 ```
 
-The long-term goal is that normal source-code work happens through Arno while shell use becomes exceptional.
+The long-term goal is that normal source-code work happens through ARNO while shell use becomes exceptional.
 
 ---
 
@@ -1242,7 +1242,7 @@ The long-term goal is that normal source-code work happens through Arno while sh
 
 The MVP must answer one question:
 
-> **Does an agent using Arno complete real software-engineering tasks more efficiently and reliably than the same agent using conventional shell and file tools?**
+> **Does an agent using ARNO complete real software-engineering tasks more efficiently and reliably than the same agent using conventional shell and file tools?**
 
 The MVP should therefore avoid attractive features that don't help answer that question.
 
@@ -1333,7 +1333,7 @@ replace_symbol(
 )
 ```
 
-Arno:
+ARNO:
 
 1. resolves the symbol;
 2. verifies its current revision;
@@ -1388,7 +1388,7 @@ background jobs:
 
 This behavior is not optional polish.
 
-It is central to the Arno hypothesis.
+It is central to the ARNO hypothesis.
 
 ---
 
@@ -1562,7 +1562,7 @@ A deliberately compact MVP can look like:
                        │
                        ▼
               ┌────────────────┐
-              │      Arno      │
+              │      ARNO      │
               └───────┬────────┘
                       │
         ┌─────────────┼──────────────┐
@@ -1631,7 +1631,7 @@ arno/
 
 # 38. Core implementation language
 
-My default recommendation would be **Go for the Arno runtime**, unless there is a strong existing team reason to choose something else.
+My default recommendation would be **Go for the ARNO runtime**, unless there is a strong existing team reason to choose something else.
 
 The runtime primarily needs:
 
@@ -1646,7 +1646,7 @@ The runtime primarily needs:
 
 Go fits that profile well and reduces implementation complexity.
 
-Rust would also be technically strong, but Arno does not initially have a problem where memory safety or zero-cost abstractions justify taking on additional implementation complexity.
+Rust would also be technically strong, but ARNO does not initially have a problem where memory safety or zero-cost abstractions justify taking on additional implementation complexity.
 
 The language adapters remain independent of this choice.
 
@@ -1683,7 +1683,7 @@ Rust:
   cargo test
 ```
 
-Arno should orchestrate these systems and **normalize their information**, not rebuild them.
+ARNO should orchestrate these systems and **normalize their information**, not rebuild them.
 
 ---
 
@@ -1730,7 +1730,7 @@ Fix refresh-token expiration handling.
 search_symbol("refresh")
 ```
 
-Arno returns relevant symbols.
+ARNO returns relevant symbols.
 
 ### 3. Agent inspects a file structurally
 
@@ -1738,7 +1738,7 @@ Arno returns relevant symbols.
 outline("src/auth/session.ts")
 ```
 
-Arno returns signatures, not 1,000 lines of source.
+ARNO returns signatures, not 1,000 lines of source.
 
 ### 4. Agent expands a function
 
@@ -1767,7 +1767,7 @@ replace_symbol(
 )
 ```
 
-### 7. Arno immediately responds
+### 7. ARNO immediately responds
 
 ```text
 edit accepted
@@ -1784,7 +1784,7 @@ tests #419 started
 
 No explicit lint/compiler round trip was required.
 
-### 9. Arno emits test event
+### 9. ARNO emits test event
 
 ```text
 TEST_RESULT #419
@@ -1797,13 +1797,13 @@ TEST_RESULT #419
 
 The rest of the test output never enters the model context.
 
-That entire sequence represents the value proposition of Arno.
+That entire sequence represents the value proposition of ARNO.
 
 ---
 
 # 42. Product metrics
 
-Arno should not be evaluated primarily on API elegance or parsing performance.
+ARNO should not be evaluated primarily on API elegance or parsing performance.
 
 It should be benchmarked by what happens to an agent.
 
@@ -1847,13 +1847,13 @@ The important constraint is:
 
 > **Token reduction is not valuable if task success deteriorates.**
 
-Arno should reduce context while preserving or improving agent correctness.
+ARNO should reduce context while preserving or improving agent correctness.
 
 ---
 
 # 44. Benchmark strategy
 
-A benchmark harness should be built alongside Arno rather than after it.
+A benchmark harness should be built alongside ARNO rather than after it.
 
 Take the same:
 
@@ -1879,12 +1879,12 @@ normal filesystem tools
 
 against:
 
-### Arno
+### ARNO
 
 ```text
 same Agent
 +
-Arno
+ARNO
 ```
 
 Collect:
@@ -1908,14 +1908,14 @@ Without this A/B setup it will be very easy to build sophisticated infrastructur
 
 ## Phase 0 — benchmark foundation
 
-Before substantial Arno development:
+Before substantial ARNO development:
 
 * define representative TypeScript, Go and Rust repositories;
 * define engineering tasks;
 * establish baseline agent results using existing shell/file tooling;
 * capture tokens, turns, latency and success.
 
-This creates the baseline Arno must beat.
+This creates the baseline ARNO must beat.
 
 ---
 
@@ -1974,7 +1974,7 @@ fast lint feedback
 
 Every edit now returns immediate deterministic feedback.
 
-This is likely the point where Arno should begin showing significant reductions in agent turns.
+This is likely the point where ARNO should begin showing significant reductions in agent turns.
 
 ---
 
@@ -2022,7 +2022,7 @@ TypeScript, Go and Rust have substantially different semantic models.
 
 Trying to force every concept into one universal AST will create a poor abstraction.
 
-Arno should normalize common operations while allowing language-specific metadata where required.
+ARNO should normalize common operations while allowing language-specific metadata where required.
 
 ---
 
@@ -2050,7 +2050,7 @@ Language servers:
 * produce delayed diagnostics;
 * behave differently between repositories.
 
-Arno needs lifecycle management and a clear distinction between:
+ARNO needs lifecycle management and a clear distinction between:
 
 ```text
 no errors
@@ -2086,7 +2086,7 @@ This should eventually be part of workspace metadata.
 
 Tests and build scripts execute repository-controlled code.
 
-Therefore Arno validation is not inherently safe simply because the source editing API is structured.
+Therefore ARNO validation is not inherently safe simply because the source editing API is structured.
 
 Sandboxing belongs in the surrounding Agent Hangar / execution infrastructure and needs an explicit security model.
 
@@ -2130,7 +2130,7 @@ Prefer `replace(symbol)` over raw line manipulation when possible.
 
 **Textual escape hatches remain available.**
 
-Agents need ranges and eventually shell access for cases Arno cannot model.
+Agents need ranges and eventually shell access for cases ARNO cannot model.
 
 ### Rule 7
 
@@ -2146,7 +2146,7 @@ Do not block an agent unnecessarily on tests and builds.
 
 ### Rule 9
 
-**Arno remains model- and harness-independent.**
+**ARNO remains model- and harness-independent.**
 
 Claude, OpenAI, Grok or future agents should receive the same development interface.
 
@@ -2154,13 +2154,13 @@ Claude, OpenAI, Grok or future agents should receive the same development interf
 
 **Measure agent outcomes, not infrastructure sophistication.**
 
-A feature belongs in Arno because it demonstrably helps agents engineer software—not because IDEs traditionally have it.
+A feature belongs in ARNO because it demonstrably helps agents engineer software—not because IDEs traditionally have it.
 
 ---
 
 # 48. MVP definition of done
 
-The Arno MVP is complete when an external agent can take a TypeScript, Go or Rust repository and reliably perform this sequence:
+The ARNO MVP is complete when an external agent can take a TypeScript, Go or Rust repository and reliably perform this sequence:
 
 ```text
 1. Create isolated workspace
@@ -2194,18 +2194,18 @@ And, critically:
 
 > **The same benchmark tasks show a measurable reduction in model context and/or model turns compared with conventional shell/file tooling without reducing task success.**
 
-That is the point at which Arno has demonstrated that it is a product rather than merely another tooling abstraction.
+That is the point at which ARNO has demonstrated that it is a product rather than merely another tooling abstraction.
 
 ---
 
 # 49. One-sentence internal pitch
 
-For explaining Arno internally:
+For explaining ARNO internally:
 
-> **Arno gives coding agents the equivalent of the structural navigation, precise editing and continuous feedback that a modern IDE gives human developers, but redesigns those capabilities around LLM context, latency and autonomous execution rather than a graphical user interface.**
+> **ARNO gives coding agents the equivalent of the structural navigation, precise editing and continuous feedback that a modern IDE gives human developers, but redesigns those capabilities around LLM context, latency and autonomous execution rather than a graphical user interface.**
 
 Or, more technically:
 
-> **Arno is the language-aware workspace runtime between an agent and its repository, providing progressive code disclosure, precise mutation and automatic validation while minimizing tokens and agent round trips.**
+> **ARNO is the language-aware workspace runtime between an agent and its repository, providing progressive code disclosure, precise mutation and automatic validation while minimizing tokens and agent round trips.**
 
 The second is probably the better long-term product definition.

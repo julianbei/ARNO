@@ -1,11 +1,11 @@
-// Package conformance drives arno the way a client does — a real arno-mcp
+// Package conformance drives ARNO the way a client does — a real arno-mcp
 // process, real MCP framing over stdio, real language servers — against one
 // small repository per supported language.
 //
 // It exists because the unit tests cannot answer the question that matters.
 // They prove arno's own logic; they cannot prove that pyright resolves a
 // Python reference, that jdtls starts at all, or that a rename written by a
-// server arno has never run against lands correctly on disk. Every one of
+// server ARNO has never run against lands correctly on disk. Every one of
 // those has to be found against the real thing, and the only honest way to
 // have the real thing on hand is a container that installs it.
 //
@@ -61,7 +61,7 @@ type languageCase struct {
 	// declines. Empty means rename is expected to work.
 	renameLimitation string
 
-	// answerBudget bounds the time from starting arno to the first exact
+	// answerBudget bounds the time from starting ARNO to the first exact
 	// references answer: server start, indexing and the answer itself. About
 	// three times the 2026-09-14 container baseline, so noise passes and a
 	// release that makes a server markedly slower to start fails.
@@ -102,7 +102,7 @@ func cases() []languageCase {
 			// ruby-lsp 0.26 renames classes and modules but returns null for
 			// a method, even fully indexed. The image also has solargraph,
 			// which renames methods, so this case proves the fallback: the
-			// primary declines, arno asks the alternative, both files change.
+			// primary declines, ARNO asks the alternative, both files change.
 		},
 		{
 			name: "rust", dir: "rust", file: "src/lib.rs", symbol: "put",
@@ -125,7 +125,7 @@ func cases() []languageCase {
 	}
 }
 
-// TestStructure covers what arno does with nothing installed. Grammars are
+// TestStructure covers what ARNO does with nothing installed. Grammars are
 // compiled into the binary, so a failure here is arno's alone.
 func TestStructure(t *testing.T) {
 	binary := arnoBinary(t)
@@ -169,7 +169,7 @@ func TestSemantics(t *testing.T) {
 
 			// A server indexes before it can answer, so retry rather than
 			// sleeping a guessed amount. The failure being guarded against is
-			// a flaky "0 references" that looks like a arno bug.
+			// a flaky "0 references" that looks like an ARNO bug.
 			var references string
 			deadline := time.Now().Add(serverDeadline)
 			for time.Now().Before(deadline) {
@@ -180,7 +180,7 @@ func TestSemantics(t *testing.T) {
 				// version looked for "(approximate" with a leading paren,
 				// which never matched "2 approximate references" — so the
 				// retry never fired and every language that needed a moment
-				// to index was reported as a arno failure at 0.3s.
+				// to index was reported as an ARNO failure at 0.3s.
 				if strings.Contains(references, "approximate") || strings.Contains(references, "0 references") {
 					time.Sleep(3 * time.Second)
 					continue
@@ -208,7 +208,7 @@ func TestSemantics(t *testing.T) {
 			})
 
 			if tc.renameLimitation != "" {
-				// The server declined. arno must name the server and repeat
+				// The server declined. ARNO must name the server and repeat
 				// its reason, never claim no server is available — that
 				// sends someone to install what they already have.
 				if !strings.Contains(renameOut, tc.renameLimitation) {
@@ -242,7 +242,7 @@ func TestSemantics(t *testing.T) {
 }
 
 // TestDegraded is every language again with its language server hidden: an
-// empty PATH and home, so neither PATH nor the toolchain directories arno
+// empty PATH and home, so neither PATH nor the toolchain directories ARNO
 // searches can find one. It runs without the container. What it proves is
 // that a missing server is reported as missing — by the capability report
 // and in the fallback answer itself — rather than silently answered by name
@@ -284,7 +284,7 @@ const serverDeadline = 90 * time.Second
 // hypothetical distinction: rustup puts a `rust-analyzer` shim on PATH whose
 // only behaviour is to report "Unknown binary in official toolchain" unless
 // the component is installed. LookPath finds it, so a test keyed on presence
-// alone tries to use it and reports a arno failure for someone else's
+// alone tries to use it and reports an ARNO failure for someone else's
 // packaging.
 //
 // Servers absent from this list are assumed usable if present. jdtls and
@@ -345,7 +345,7 @@ func newSession(t *testing.T, binary string, root string) *session {
 	return newSessionWithEnv(t, binary, root, nil)
 }
 
-// newSessionWithEnv starts arno with env as its whole environment, or the
+// newSessionWithEnv starts ARNO with env as its whole environment, or the
 // test's own when env is nil.
 func newSessionWithEnv(t *testing.T, binary string, root string, env []string) *session {
 	t.Helper()

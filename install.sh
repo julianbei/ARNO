@@ -144,7 +144,7 @@ case ":$PATH:" in
 	fi
 	if [ "$add" = 1 ] && [ -n "$profile" ]; then
 		if ! grep -qsF "$line" "$profile"; then
-			printf '\n# added by the Arno installer\n%s\n' "$line" >>"$profile"
+			printf '\n# added by the ARNO installer\n%s\n' "$line" >>"$profile"
 		fi
 		say "added $install_dir to PATH in $profile; open a new terminal, or run: $line"
 	else

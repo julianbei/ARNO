@@ -1,6 +1,6 @@
 // Package agent runs the release plan's external benchmark: a real agent
-// (Claude Code headless) solving real tasks in a repository Arno was not built
-// in, once per arm — shell tools only, Arno only, and Arno plus shell.
+// (Claude Code headless) solving real tasks in a repository ARNO was not built
+// in, once per arm — shell tools only, ARNO only, and ARNO plus shell.
 //
 // internal/bench measures what one answer costs with no agent in the loop.
 // This package measures what that cannot: whether the task got done, and what
@@ -36,16 +36,16 @@ const (
 	ArmShell Arm = "shell"
 	// ArmShellLean is the four built-in tools a coding task uses — Bash,
 	// Read, Edit, Write — and no MCP server. The full built-in list costs
-	// 38k tokens of prompt on every turn; this arm separates what Arno saves
+	// 38k tokens of prompt on every turn; this arm separates what ARNO saves
 	// from what a shorter tool list saves.
 	ArmShellLean Arm = "shell-lean"
-	// ArmArno is Arno's tools and nothing else.
+	// ArmArno is ARNO's tools and nothing else.
 	ArmArno Arm = "arno"
 	// ArmArnoShell is both. The plan expects this may be the practical winner.
 	ArmArnoShell Arm = "arno+shell"
 )
 
-// UsesArno reports an arm that runs the Arno MCP server.
+// UsesArno reports an arm that runs the ARNO MCP server.
 func (a Arm) UsesArno() bool {
 	return a == ArmArno || a == ArmArnoShell
 }
@@ -154,7 +154,7 @@ type Config struct {
 	// across repositories — every repository once, then again — and a budget
 	// that runs out still leaves complete rounds.
 	RepeatStart int
-	// ArnoMCP is the arno-mcp binary for the Arno arms.
+	// ArnoMCP is the arno-mcp binary for the ARNO arms.
 	ArnoMCP string
 	// ArnoTools is passed to arno-mcp as --tools (all or core); empty keeps
 	// arno-mcp's default.
@@ -165,7 +165,7 @@ type Config struct {
 	WorkDir string
 	// Env is added to the agent's environment.
 	Env []string
-	// TelemetryDir keeps Arno's telemetry from each Arno-arm run, one
+	// TelemetryDir keeps ARNO's telemetry from each ARNO-arm run, one
 	// subdirectory per run, so tool confusion can be reported after the
 	// workspace is gone. Empty keeps nothing.
 	TelemetryDir string
@@ -206,7 +206,7 @@ type RunResult struct {
 	LinesChanged int      `json:"linesChanged"`
 	FilesChanged []string `json:"filesChanged,omitempty"`
 
-	// TelemetryDir is where this run's Arno telemetry was kept, for Arno arms.
+	// TelemetryDir is where this run's ARNO telemetry was kept, for ARNO arms.
 	TelemetryDir string `json:"telemetryDir,omitempty"`
 	// Transcript is the run's saved agent transcript, one JSON event per line.
 	Transcript string `json:"transcript,omitempty"`
@@ -541,7 +541,7 @@ func writeVerifyFiles(dir string, files map[string]string) error {
 
 func writeMCPConfig(path string, arnoMCP string, arnoTools string, workspace string) error {
 	if arnoMCP == "" {
-		return fmt.Errorf("a Arno arm needs the arno-mcp binary")
+		return fmt.Errorf("an ARNO arm needs the arno-mcp binary")
 	}
 	args := []string{"--root", workspace}
 	if arnoTools != "" {
@@ -554,7 +554,7 @@ func writeMCPConfig(path string, arnoMCP string, arnoTools string, workspace str
 				"command": arnoMCP,
 				"args":    args,
 				// Claude Code hides MCP tools behind tool search by default.
-				// Without this, the arno+shell arm never loaded one Arno tool
+				// Without this, the ARNO+shell arm never loaded one ARNO tool
 				// in three pilot runs: it measured the shell arm twice. The
 				// README tells users to set it for the same reason.
 				"alwaysLoad": true,
@@ -578,7 +578,7 @@ func verify(ctx context.Context, dir string, command string) (bool, string) {
 }
 
 // diffStats counts lines added plus removed and the files touched, new files
-// included. Arno's telemetry log is excluded through .git/info/exclude, so it
+// included. ARNO's telemetry log is excluded through .git/info/exclude, so it
 // never counts as a change the agent made.
 func diffStats(dir string) (int, []string) {
 	_ = exec.Command("git", "-C", dir, "add", "--all", "--intent-to-add").Run()

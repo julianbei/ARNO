@@ -2,7 +2,7 @@ package lsp
 
 import "testing"
 
-// LSP counts columns in UTF-16 code units, arno counts bytes. The two agree
+// LSP counts columns in UTF-16 code units, ARNO counts bytes. The two agree
 // for ASCII and diverge for everything else, which is why getting this wrong
 // survives casual testing and then answers about the wrong identifier in any
 // file containing an accent or an emoji.
@@ -10,7 +10,7 @@ func TestUTF16ColumnConversion(t *testing.T) {
 	cases := []struct {
 		name string
 		line string
-		// byteColumn is 1-based, as arno reports positions.
+		// byteColumn is 1-based, as ARNO reports positions.
 		byteCol int
 		want    int
 	}{
@@ -90,7 +90,7 @@ func TestLanguageForPath(t *testing.T) {
 	}
 }
 
-// Every language arno parses with a grammar should have a server configured,
+// Every language ARNO parses with a grammar should have a server configured,
 // or semantic features are permanently unavailable for it with no indication
 // that anyone decided so.
 func TestEveryGrammarLanguageHasAServerSpec(t *testing.T) {
@@ -183,7 +183,7 @@ func TestDocumentEndCoversTheWholeText(t *testing.T) {
 }
 
 // Importing an sbt build runs sbt and writes .bloop/ and .metals/ into the
-// repository, so arno only says yes when the user opted in.
+// repository, so ARNO only says yes when the user opted in.
 func TestMetalsImportPromptNeedsOptIn(t *testing.T) {
 	message := "New sbt workspace detected, would you like to import the build?"
 	actions := []string{"Import build", "Not now", "Don't show again"}

@@ -6,7 +6,7 @@ import (
 )
 
 // coreProfileTools is what `--tools core` lists: every tool an agent called in
-// the benchmark pilot's Arno runs. The full catalog is about 23 KB of schema
+// the benchmark pilot's ARNO runs. The full catalog is about 23 KB of schema
 // that the host sends again with every turn, so a 20-turn task pays for it 20
 // times; these twelve are under half of it.
 //

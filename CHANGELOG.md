@@ -2,9 +2,9 @@
 
 ## 0.0.12
 
-### Jade is now Arno
+### Jade is now ARNO
 
-**Arno — Agent Repository Navigation & Operations.** Jade is ambiguous in
+**ARNO — Agent Repository Navigation & Operations.** Jade is ambiguous in
 software: other products, a prior trademark conflict, and other MCP projects
 already carry the name, which costs searchability and adds legal risk.
 Renaming now is far cheaper than renaming once the name has spread through
@@ -15,7 +15,7 @@ What changed: the binary is `arno-mcp`, tools are `arno.*`, variables are
 `github.com/julianbei/arno`, the image is `ghcr.io/julianbei/arno-mcp`, and
 the registry listing is `io.github.julianbei/arno`.
 
-Nothing breaks on update. Until the release after this one, Arno still accepts
+Nothing breaks on update. Until the release after this one, ARNO still accepts
 `jade.*` and `jade_*` tool names, reads `JADE_*` variables when the `ARNO_*`
 one is unset, and keeps using an existing `.jade/` directory — each with one
 deprecation line on stderr saying what to change. `tools/list` advertises only

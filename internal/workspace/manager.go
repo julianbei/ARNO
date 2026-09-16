@@ -129,11 +129,11 @@ func (m *Manager) BumpRevision(changedPaths ...string) (oldRevision, newRevision
 	return oldRevision, newRevision
 }
 
-// Changes returns every path this workspace considers touched: paths arno
+// Changes returns every path this workspace considers touched: paths ARNO
 // itself mediated an edit for (normalized back to real file paths, since a
 // replace_symbol edit is tracked under a "path::Name@line" key), unioned
 // with whatever git actually sees as dirty. Without the git union, an edit
-// made outside arno (e.g. through a host's own file tools) would be
+// made outside ARNO (e.g. through a host's own file tools) would be
 // invisible here even though the workspace genuinely changed.
 func (m *Manager) Changes() []string {
 	m.mu.RLock()
@@ -176,11 +176,11 @@ func (m *Manager) ChangesResponse() protocol.ChangesResponse {
 
 // mergedChangedFiles folds arno's own edit ledger into git's diff summary.
 //
-// The two disagree in exactly the cases that matter: a file arno edited and
+// The two disagree in exactly the cases that matter: a file ARNO edited and
 // then reverted has no git delta, and when git is unavailable DiffSummary is
-// empty while arno still knows every path it wrote. Reporting "no changes"
+// empty while ARNO still knows every path it wrote. Reporting "no changes"
 // there would be a lie told by the one component that does have the answer,
-// so a path arno touched is always listed — with zero counts when git sees
+// so a path ARNO touched is always listed — with zero counts when git sees
 // nothing, which is itself the honest report.
 //
 // Folding rather than returning a second Paths list is deliberate: two
@@ -231,7 +231,7 @@ func (m *Manager) mergedChangedFiles() []protocol.ChangedFile {
 // Files made them visible as bogus `+0 -0 internal/bench` rows. Found live over
 // MCP immediately after the fold landed.
 //
-// A stat failure counts as not-a-directory: a path arno recorded that has since
+// A stat failure counts as not-a-directory: a path ARNO recorded that has since
 // been deleted is still a file it changed, and dropping it would lose a real
 // edit to hide a cosmetic one.
 func (m *Manager) isDirectory(path string) bool {
@@ -443,7 +443,7 @@ func (m *Manager) RevertCheckpoint(id string) (Checkpoint, error) {
 //
 // This matters more than it looks. Freshness puts the error text into every
 // inspect and outline response, so on a repository with no commits yet — a
-// brand-new one, the most common thing there is — arno was emitting four lines
+// brand-new one, the most common thing there is — ARNO was emitting four lines
 // of `git rev-parse`'s "ambiguous argument 'HEAD'" diagnostic at the top of
 // every single response. Localized, too: on the machine this was found on it
 // came back in German, which no amount of downstream string matching could

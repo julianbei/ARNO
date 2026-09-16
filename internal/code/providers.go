@@ -149,7 +149,7 @@ type renameRequest struct {
 // renameProvider renames a symbol across files. Unlike references, a provider
 // that handled the request ends it, success or refusal: a server that declined
 // a rename has answered, and a weaker provider guessing past it would be the
-// approximate edit Arno refuses to make. There is deliberately no text-index
+// approximate edit ARNO refuses to make. There is deliberately no text-index
 // provider.
 type renameProvider interface {
 	ID() string

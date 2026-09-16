@@ -59,7 +59,7 @@ const maxGrepQueries = 10
 // each in the order asked.
 //
 // A shell agent searches two or three alternatives in one `grep` command. A
-// Arno-only benchmark agent could only send one pattern per call, and made ten
+// ARNO-only benchmark agent could only send one pattern per call, and made ten
 // more search calls per task than the shell agent did — turns that each
 // re-read the whole conversation.
 func (s *Server) GrepBatch(queries []string, base protocol.GrepRequest) (protocol.GrepBatchResponse, error) {

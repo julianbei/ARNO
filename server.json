@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.julianbei/arno",
-  "title": "Arno",
+  "title": "ARNO",
   "description": "The IDE for agents: read by symbol, edit against a revision, validate with your own build, revert.",
   "repository": {
     "url": "https://github.com/julianbei/arno",
@@ -19,7 +19,7 @@
       "runtimeArguments": [
         {
           "type": "named",
-          "description": "Mount the repository Arno should work on at /workspace",
+          "description": "Mount the repository ARNO should work on at /workspace",
           "name": "--mount",
           "value": "type=bind,src={workspace},dst=/workspace",
           "isRequired": true,

@@ -94,7 +94,7 @@ func TestFailedToolCallsAreRecordedWithTheirClass(t *testing.T) {
 
 func TestUnknownToolIsRecordedToo(t *testing.T) {
 	// A call for a tool that does not exist is itself a signal — it means the
-	// agent expected a capability arno does not have, which is the most direct
+	// agent expected a capability ARNO does not have, which is the most direct
 	// evidence of a gap this log can carry. It is recorded into an existing
 	// log only; TestUnknownToolWritesNothingToTheWorkspace covers the case
 	// where no log exists yet.
@@ -216,7 +216,7 @@ func TestInBandFailureIsRecordedAsAFallback(t *testing.T) {
 }
 
 func TestAFailingCheckIsNotRecordedAsAFallback(t *testing.T) {
-	// A red build is arno working, not arno failing. If this ever starts
+	// A red build is ARNO working, not ARNO failing. If this ever starts
 	// counting, the fallback metric stops meaning anything.
 	server, root := newTestMCPServer(t)
 

@@ -15,7 +15,7 @@ import (
 // into its context, and where it went round in circles. Analyze reads that
 // from Claude Code's stream-json events; InsightReport compares it across arms.
 
-// Tool call categories. Every tool, built-in or Arno, lands in exactly one, so
+// Tool call categories. Every tool, built-in or ARNO, lands in exactly one, so
 // the arms can be compared on the work done rather than on tool names.
 const (
 	CategoryRead   = "read"
@@ -59,8 +59,8 @@ type Insight struct {
 	CacheWriteTokens int `json:"cacheWriteTokens"`
 	CacheReadTokens  int `json:"cacheReadTokens"`
 
-	// ArnoStatus is the Arno MCP server's status at session start. A Arno arm
-	// whose server did not connect measured nothing about Arno.
+	// ArnoStatus is the ARNO MCP server's status at session start. An ARNO arm
+	// whose server did not connect measured nothing about ARNO.
 	ArnoStatus string `json:"arnoStatus,omitempty"`
 	// Requests is model round trips; MaxParallel the most tool calls one
 	// round trip issued.
@@ -82,7 +82,7 @@ type Insight struct {
 	ResultBytes   int `json:"resultBytes"`
 }
 
-// Valid reports whether the run measured its arm: a Arno arm needs Arno.
+// Valid reports whether the run measured its arm: an ARNO arm needs ARNO.
 func (in Insight) Valid() bool {
 	return !in.Arm.UsesArno() || in.ArnoStatus == "connected"
 }
@@ -274,8 +274,8 @@ func resultLength(raw json.RawMessage) int {
 	return len(raw)
 }
 
-// normalizeTool gives Arno's tools one spelling: mcp__arno__arno_outline is
-// arno.outline, the name Arno's own telemetry uses.
+// normalizeTool gives ARNO's tools one spelling: mcp__arno__arno_outline is
+// arno.outline, the name ARNO's own telemetry uses.
 func normalizeTool(name string) string {
 	if rest, ok := strings.CutPrefix(name, "mcp__arno__"); ok {
 		rest = strings.TrimPrefix(strings.TrimPrefix(rest, "arno_"), "arno.")
@@ -476,7 +476,7 @@ func (g group) categoryCalls(category string) float64 {
 }
 
 // InsightReport compares arms task by task, then overall, then looks inside
-// Arno's own tools and at the outliers.
+// ARNO's own tools and at the outliers.
 func InsightReport(results []RunResult) string {
 	insights, unreadable := Insights(results)
 	if len(insights) == 0 {
@@ -495,7 +495,7 @@ func InsightReport(results []RunResult) string {
 	}
 	fmt.Fprintf(&b, "\n== insight: %d runs analysed", len(valid))
 	if len(invalid) > 0 {
-		fmt.Fprintf(&b, ", %d invalid (Arno not connected)", len(invalid))
+		fmt.Fprintf(&b, ", %d invalid (ARNO not connected)", len(invalid))
 	}
 	if unreadable > 0 {
 		fmt.Fprintf(&b, ", %d without a readable transcript", unreadable)
@@ -630,7 +630,7 @@ func InsightReport(results []RunResult) string {
 		}
 	}
 	if len(stats) > 0 {
-		b.WriteString("\ntools used by the Arno arms (calls · errors · mean result bytes · runs using it)\n")
+		b.WriteString("\ntools used by the ARNO arms (calls · errors · mean result bytes · runs using it)\n")
 		names := make([]string, 0, len(stats))
 		for name := range stats {
 			names = append(names, name)

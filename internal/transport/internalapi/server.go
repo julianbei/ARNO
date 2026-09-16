@@ -62,7 +62,7 @@ func (s *Server) Start(context.Context) error {
 // symbol record, because the record has no receiver and the receiver is
 // usually the whole distinction. A read that fails degrades to no signature
 // rather than failing the response: a candidate list without signatures is
-// still exactly what arno returned before this existed.
+// still exactly what ARNO returned before this existed.
 func (s *Server) describeCandidates(candidates []code.Symbol) []protocol.SymbolCandidate {
 	out := make([]protocol.SymbolCandidate, 0, len(candidates))
 	for _, candidate := range candidates {
@@ -326,7 +326,7 @@ func (s *Server) Rename(req protocol.RenameRequest) (protocol.EditResponse, erro
 
 // resolveSymbolID accepts either an exact symbol ID or a name, reporting
 // ambiguity with the candidate IDs so the caller can retry with one of
-// them rather than having arno pick arbitrarily.
+// them rather than having ARNO pick arbitrarily.
 func (s *Server) resolveSymbolID(path string, symbolID string, symbolName string) (string, error) {
 	if symbolID != "" {
 		return symbolID, nil
@@ -653,7 +653,7 @@ func (s *Server) RunTests(req protocol.RunTestsRequest) protocol.RunTestsRespons
 //
 // Computing one means parsing both the committed and working copy of every
 // changed file. On a branch with 88 changed files that measured at 704ms and
-// 4.6KB — roughly 35x the latency and 5x the bytes of any other arno call —
+// 4.6KB — roughly 35x the latency and 5x the bytes of any other ARNO call —
 // which telemetry surfaced on its first live session and sixteen tasks of
 // hand-written feedback never noticed.
 //

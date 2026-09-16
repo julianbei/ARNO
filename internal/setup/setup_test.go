@@ -170,7 +170,7 @@ func TestAnAgentCanReadStatusAndPreviewWithoutRunning(t *testing.T) {
 	}
 }
 
-// Every language Arno has a server for can be installed from the menu.
+// Every language ARNO has a server for can be installed from the menu.
 func TestEveryLanguageServerIsInTheMenu(t *testing.T) {
 	covered := map[string]bool{}
 	for _, component := range LanguageServers() {

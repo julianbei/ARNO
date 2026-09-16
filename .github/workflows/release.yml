@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 jobs:
-  # Arno parses with tree-sitter, whose Go binding is cgo, not pure Go — so
+  # ARNO parses with tree-sitter, whose Go binding is cgo, not pure Go — so
   # there is no cross-compiling without arranging a C toolchain per target.
   # Building each target on its own native runner is the cheaper trade: no
   # cross-toolchain to maintain, and each binary is built by the platform it
@@ -77,7 +77,7 @@ jobs:
           merge-multiple: true
 
       # One MCP bundle (.mcpb) carries all four binaries, so Claude Desktop and
-      # registry clients install Arno without Docker. MCPB tells operating
+      # registry clients install ARNO without Docker. MCPB tells operating
       # systems apart but not architectures; launch.sh picks the binary.
       - name: MCP bundle
         run: |

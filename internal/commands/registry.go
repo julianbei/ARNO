@@ -5,9 +5,9 @@
 // Why this exists. arno's check() covers exactly three kinds — build,
 // typecheck and tests — so every project-specific command an agent needs
 // (vet, lint, codegen, migrate, a docker build) falls off the cliff straight
-// back to raw bash. Everything arno provides is lost with it: the pass/fail
+// back to raw bash. Everything ARNO provides is lost with it: the pass/fail
 // verdict, the decisive-summary extraction, the revision bookkeeping, and any
-// telemetry at all. A bash fallback is arno not being in the loop.
+// telemetry at all. A bash fallback is ARNO not being in the loop.
 //
 // The one rule that makes this more than "bash with extra steps": running
 // takes a *name*, never a shell string. That single restriction is what buys
@@ -43,7 +43,7 @@ import (
 
 // Dir and File name the registry's location inside the workspace. It is a
 // directory rather than a dotfile at the root because .arno/ is where later
-// per-repo arno configuration belongs too.
+// per-repo ARNO configuration belongs too.
 const (
 	Dir  = ".arno"
 	File = "commands.json"
@@ -89,7 +89,7 @@ type Registry struct {
 // Load reads the registry for the workspace rooted at root.
 //
 // A missing file is not an error and yields an empty registry. Most repos
-// will never have one, and arno has to work in a repo that has not opted in —
+// will never have one, and ARNO has to work in a repo that has not opted in —
 // the same "degrade, don't fail" rule the ecosystem discovery follows. A file
 // that exists but does not parse *is* an error: silently treating a
 // malformed registry as empty would report "no command \"build\"" for a
