@@ -116,3 +116,33 @@ Results of the 0.0.4 pilot: [benchmark-results.md](benchmark-results.md).
 The report prints per arm: runs, success rate, mean tokens, turns, cost,
 seconds, lines and files changed, agent errors — then each ARNO arm's
 scorecard verdict against `shell`.
+
+`-arno-tools core+inspect` (or `core+<tool>,<tool>`) runs the ARNO arms with
+the core profile plus named tools, which is how a candidate for the profile
+is measured against `core` before it earns a place.
+
+## Yield
+
+A run's totals say what it cost; the insight report says what the tokens
+bought. For every task with a `verifyFrom`, the harness derives a **gold
+set** from the source checkout at run time: the reference fix's non-test
+files, and every pre-fix line the fix removed or kept as hunk context (lines
+under 12 characters dropped). Hidden test paths and anything that looks like
+a test are left out. The set is saved with the result, so old results can
+be re-analysed without the checkout.
+
+The report's `yield` section then shows per arm, over runs with a gold set:
+
+- **files** — share of gold files any tool result named;
+- **lines** — share of gold lines any tool result showed, verbatim;
+- **lines/k** — gold lines shown per 1k tokens of tool result (bytes / 4,
+  the budgets' estimate): relevant code delivered per token returned;
+- **first gold at call** — index of the call whose result first showed a
+  gold line, 0 when none did: how long localisation took.
+
+SWE-Explore and Agent Retrieval Bench both find that line-level coverage
+under a context budget tracks repair success better than file-level recall,
+so lines/k is the number a result format is tuned against — not whether
+search found every possibly related file. Every tool result counts, in any
+category: a grep match, a read and a compiler error quoting the line are
+each the agent seeing it.

@@ -2,6 +2,7 @@ package edit
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/julianbei/arno/internal/code"
@@ -11,9 +12,52 @@ import (
 	"github.com/julianbei/arno/internal/workspace"
 )
 
-// ErrStaleRevision is returned by ReplaceRange when expectedRevision no
-// longer matches the workspace's current revision.
+// ErrStaleRevision is the sentinel every stale-revision refusal wraps, so
+// callers can errors.Is it. The error actually returned is a
+// StaleRevisionError, which names both revisions and what changed between
+// them: an agent that only hears "stale" tends to carry on with its old
+// reading of the code (SWE-Touch measured that as a 7.7-point drop), while
+// one told which files moved knows exactly what to re-read.
 var ErrStaleRevision = errors.New("edit rejected: stale revision")
+
+// StaleRevisionError is a refused edit whose expectedRevision no longer
+// matches the workspace.
+type StaleRevisionError struct {
+	Expected string
+	Current  string
+	// Changed is every path ARNO edited between Expected and Current, when
+	// Known; otherwise Expected is not a revision the workspace can account
+	// for and the caller is pointed at changes instead.
+	Changed []string
+	Known   bool
+}
+
+func (e *StaleRevisionError) Error() string {
+	head := fmt.Sprintf("edit rejected: stale revision — expected %s, workspace is at %s", e.Expected, e.Current)
+	switch {
+	case !e.Known:
+		return head + "; changes lists what moved — read the affected files again, then retry with expectedRevision " + e.Current
+	case len(e.Changed) == 0:
+		return head + "; no file changed between them — retry with expectedRevision " + e.Current
+	default:
+		return fmt.Sprintf("%s; changed since %s: %s — read those again before editing, then retry with expectedRevision %s",
+			head, e.Expected, strings.Join(e.Changed, ", "), e.Current)
+	}
+}
+
+func (e *StaleRevisionError) Unwrap() error { return ErrStaleRevision }
+
+// checkRevision refuses an edit whose expectedRevision is not the workspace's
+// current one. An empty expectation is no precondition.
+func (s *Service) checkRevision(expected string) error {
+	expected = strings.TrimSpace(expected)
+	current := s.workspace.Revision()
+	if expected == "" || expected == current {
+		return nil
+	}
+	changed, known := s.workspace.ChangedSince(expected)
+	return &StaleRevisionError{Expected: expected, Current: current, Changed: changed, Known: known}
+}
 
 // Service owns mutation operations.
 type Service struct {
@@ -38,9 +82,8 @@ func NewService(
 }
 
 func (s *Service) ReplaceSymbol(symbolID string, expectedRevision string, newCode string) (protocol.EditResponse, error) {
-	current := s.workspace.Revision()
-	if expectedRevision != "" && expectedRevision != current {
-		return protocol.EditResponse{}, ErrStaleRevision
+	if err := s.checkRevision(expectedRevision); err != nil {
+		return protocol.EditResponse{}, err
 	}
 
 	symbol, oldLines, err := s.index.ReplaceSymbolSource(symbolID, newCode)
@@ -69,9 +112,8 @@ func (s *Service) ReplaceSymbol(symbolID string, expectedRevision string, newCod
 }
 
 func (s *Service) ReplaceRange(path string, expectedRevision string, start int, end int, newCode string) (protocol.EditResponse, error) {
-	current := s.workspace.Revision()
-	if expectedRevision != "" && expectedRevision != current {
-		return protocol.EditResponse{}, ErrStaleRevision
+	if err := s.checkRevision(expectedRevision); err != nil {
+		return protocol.EditResponse{}, err
 	}
 
 	oldLines, err := s.index.ReplaceRangeSource(path, start, end, newCode)
@@ -100,9 +142,8 @@ func (s *Service) ReplaceRange(path string, expectedRevision string, start int, 
 // anchoring by text removes the line-drift problem, not the concurrent-edit
 // problem.
 func (s *Service) ReplaceText(path string, expectedRevision string, oldText string, newText string) (protocol.EditResponse, error) {
-	current := s.workspace.Revision()
-	if expectedRevision != "" && expectedRevision != current {
-		return protocol.EditResponse{}, ErrStaleRevision
+	if err := s.checkRevision(expectedRevision); err != nil {
+		return protocol.EditResponse{}, err
 	}
 
 	if _, err := s.index.ReplaceTextSource(path, oldText, newText); err != nil {
@@ -135,9 +176,8 @@ func (s *Service) ReplaceText(path string, expectedRevision string, oldText stri
 // failure mode the op was written for: when ARNO has no cheap way to add
 // something, adding it happens somewhere ARNO cannot see.
 func (s *Service) Insert(path string, expectedRevision string, anchor string, position string, text string) (protocol.EditResponse, error) {
-	current := s.workspace.Revision()
-	if expectedRevision != "" && expectedRevision != current {
-		return protocol.EditResponse{}, ErrStaleRevision
+	if err := s.checkRevision(expectedRevision); err != nil {
+		return protocol.EditResponse{}, err
 	}
 
 	addedLines, err := s.index.InsertSource(path, anchor, position, text)
@@ -164,9 +204,8 @@ func (s *Service) Insert(path string, expectedRevision string, anchor string, po
 // DeleteSymbol removes a declaration entirely, with the same revision
 // precondition as every other mutation.
 func (s *Service) DeleteSymbol(path string, symbolID string, expectedRevision string) (protocol.EditResponse, error) {
-	current := s.workspace.Revision()
-	if expectedRevision != "" && expectedRevision != current {
-		return protocol.EditResponse{}, ErrStaleRevision
+	if err := s.checkRevision(expectedRevision); err != nil {
+		return protocol.EditResponse{}, err
 	}
 
 	symbol, removed, err := s.index.DeleteSymbolSource(path, symbolID)
@@ -261,9 +300,8 @@ func (s *Service) DeleteFile(path string) (protocol.EditResponse, error) {
 // rename touches files the caller never named, the revision check matters
 // more here than anywhere else.
 func (s *Service) Rename(path string, symbolID string, newName string, expectedRevision string) (protocol.EditResponse, error) {
-	current := s.workspace.Revision()
-	if expectedRevision != "" && expectedRevision != current {
-		return protocol.EditResponse{}, ErrStaleRevision
+	if err := s.checkRevision(expectedRevision); err != nil {
+		return protocol.EditResponse{}, err
 	}
 
 	changed, err := s.index.RenameSymbol(path, symbolID, newName)

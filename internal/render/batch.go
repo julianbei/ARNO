@@ -67,3 +67,8 @@ func readRanges(r protocol.ReadRangesResponse) string {
 	}
 	return strings.Join(lines, "\n")
 }
+
+// inspectBatch renders each op's answer under its label, a failed op with
+// its error in place, so one mistyped path does not cost the other answers.
+// A read_range answer already carries its path:start-end header and is not
+// labelled twice.

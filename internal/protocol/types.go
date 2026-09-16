@@ -1280,4 +1280,7 @@ type CheckReport struct {
 	// Unchecked has one "path: reason" entry per file of a known language
 	// that nothing could check. Files with no language are not listed.
 	Unchecked []string `json:",omitempty"`
+	// Preexisting counts the diagnostics the edited files already had before
+	// the edit, left out of Diagnostics because the edit did not cause them.
+	Preexisting int `json:",omitempty"`
 }

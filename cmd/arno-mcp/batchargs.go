@@ -55,6 +55,9 @@ func rangesArg(args map[string]interface{}) ([]protocol.ReadRangeRequest, error)
 	return ranges, nil
 }
 
+// inspectOpsArg decodes inspect's ops array, round-tripping through JSON like
+// rangesArg so field names match the schema. Each op takes its own tool's
+// arguments; lines is read as read_range reads it.
 // parseLines reads "280-400", "280-" (to the end) or "280" (one line).
 //
 // One string rather than two integers because models drop the second key: in

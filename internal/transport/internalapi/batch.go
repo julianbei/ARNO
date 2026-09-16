@@ -137,3 +137,18 @@ func (s *Server) ReadRanges(req protocol.ReadRangesRequest) (protocol.ReadRanges
 	}
 	return protocol.ReadRangesResponse{Revision: s.workspace.Revision(), Results: results}, nil
 }
+
+// Inspect runs several read-only operations — find, grep, read_range,
+// references, outline — in one call, answering each in the order asked. An
+// op that fails reports its own error and leaves the others intact.
+//
+// The batched forms of find, grep and read_range each take one kind of
+// question. An agent localising a change usually has several kinds at once:
+// the declaration, its callers, and the lines beside it. A host that runs
+// parallel calls spends one round trip on those; one that serialises them
+// spends three. Microsoft's tool-architecture study over 11,700 trajectories
+// measured composed operations at 41.6% fewer steps and 56.3% fewer tokens
+// for the same success rate; the benchmark's core+inspect profile is where
+// that claim is tested against ARNO's own per-tool batching.
+// inspectOne answers one op of an inspect batch through the same code path
+// its own tool uses, so the answer reads exactly as that tool's would.

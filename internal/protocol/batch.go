@@ -38,3 +38,10 @@ type ReadRangesResponse struct {
 	Revision string
 	Results  []RangeResult
 }
+
+// InspectOp is one read-only operation in an inspect batch: find, grep,
+// read_range, references or outline, carrying that tool's own arguments.
+// InspectBatchRequest runs several read-only operations in one call.
+// InspectResult is one op's answer: exactly one typed field is set, or Error.
+// An op that fails does not fail the others, as in ReadRangesResponse.
+// InspectBatchResponse answers an inspect batch in the order asked.

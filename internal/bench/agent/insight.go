@@ -80,6 +80,9 @@ type Insight struct {
 	RepeatedReads int `json:"repeatedReads"`
 	ToolErrors    int `json:"toolErrors"`
 	ResultBytes   int `json:"resultBytes"`
+	// Yield is how much of the reference fix's footprint the tool results
+	// delivered, and at what cost; nil for a run without a gold set.
+	Yield *Yield `json:"yield,omitempty"`
 }
 
 // Valid reports whether the run measured its arm: an ARNO arm needs ARNO.
@@ -139,6 +142,9 @@ func Analyze(result RunResult) (Insight, error) {
 	outputByRequest := map[int]int{}
 	callsByRequest := map[int]int{}
 	callByID := map[string]int{}
+	goldFilesSeen := map[string]bool{}
+	goldLinesSeen := map[string]bool{}
+	firstGoldCall := 0
 
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 0, 1024*1024), 64*1024*1024)
@@ -188,9 +194,31 @@ func Analyze(result RunResult) (Insight, error) {
 				if block.Type != "tool_result" {
 					continue
 				}
-				if index, ok := callByID[block.ToolUseID]; ok {
-					in.Calls[index].ResultBytes = resultLength(block.Content)
-					in.Calls[index].Error = block.IsError
+				index, ok := callByID[block.ToolUseID]
+				if !ok {
+					continue
+				}
+				text := resultText(block.Content)
+				in.Calls[index].ResultBytes = len(text)
+				in.Calls[index].Error = block.IsError
+				if result.Gold == nil {
+					continue
+				}
+				// What of the fix's footprint this result put in front of the
+				// agent. Every category counts: a grep match, a read, a
+				// compiler error quoting the line — each is the agent seeing it.
+				for _, path := range result.Gold.Files {
+					if !goldFilesSeen[path] && mentionsPath(text, path) {
+						goldFilesSeen[path] = true
+					}
+				}
+				for _, line := range result.Gold.Lines {
+					if !goldLinesSeen[line] && strings.Contains(text, line) {
+						goldLinesSeen[line] = true
+						if firstGoldCall == 0 {
+							firstGoldCall = in.Calls[index].Index
+						}
+					}
 				}
 			}
 		}
@@ -244,6 +272,13 @@ func Analyze(result RunResult) (Insight, error) {
 			readSinceEdit[call.Target] = true
 		}
 	}
+	if result.Gold != nil {
+		in.Yield = &Yield{
+			GoldFiles: len(result.Gold.Files), GoldFilesSeen: len(goldFilesSeen),
+			GoldLines: len(result.Gold.Lines), GoldLinesSeen: len(goldLinesSeen),
+			ObservationTokens: in.ResultBytes / 4, FirstGoldCall: firstGoldCall,
+		}
+	}
 	return in, nil
 }
 
@@ -255,23 +290,27 @@ func blocks(raw json.RawMessage) []contentBlock {
 	return list
 }
 
-// resultLength is the text a tool result put into the agent's context.
-func resultLength(raw json.RawMessage) int {
+// resultText is the text a tool result put into the agent's context.
+func resultText(raw json.RawMessage) string {
 	var text string
 	if json.Unmarshal(raw, &text) == nil {
-		return len(text)
+		return text
 	}
 	var parts []struct {
 		Text string `json:"text"`
 	}
 	if json.Unmarshal(raw, &parts) == nil {
-		total := 0
+		var b strings.Builder
 		for _, part := range parts {
-			total += len(part.Text)
+			b.WriteString(part.Text)
+			b.WriteByte('\n')
 		}
-		return total
+		if b.Len() > 0 {
+			return b.String()[:b.Len()-1]
+		}
+		return ""
 	}
-	return len(raw)
+	return string(raw)
 }
 
 // normalizeTool gives ARNO's tools one spelling: mcp__arno__arno_outline is
@@ -437,6 +476,39 @@ func Insights(results []RunResult) ([]Insight, int) {
 	return insights, unreadable
 }
 
+// yieldReport compares the arms on what the tool results delivered: the
+// share of the reference fix's files and lines that appeared in any result,
+// gold lines per thousand tokens of result, and how many calls it took to
+// see the first one. Empty when no run has a gold set.
+func yieldReport(groups map[Arm]group) string {
+	var b strings.Builder
+	for _, arm := range []Arm{ArmShell, ArmShellLean, ArmArno, ArmArnoShell} {
+		g, ok := groups[arm]
+		if !ok {
+			continue
+		}
+		var with []Insight
+		for _, in := range g.insights {
+			if in.Yield != nil {
+				with = append(with, in)
+			}
+		}
+		if len(with) == 0 {
+			continue
+		}
+		y := group{insights: with}
+		fmt.Fprintf(&b, "  %-11s %2d  files %3.0f%%  lines %3.0f%%  %5.1f lines/k  first gold at call %4.1f\n", arm, len(with),
+			y.mean(func(in Insight) float64 { return in.Yield.FileRecall() * 100 }),
+			y.mean(func(in Insight) float64 { return in.Yield.LineRecall() * 100 }),
+			y.mean(func(in Insight) float64 { return in.Yield.LinesPerKToken() }),
+			y.mean(func(in Insight) float64 { return float64(in.Yield.FirstGoldCall) }))
+	}
+	if b.Len() == 0 {
+		return ""
+	}
+	return "\nyield: share of the reference fix's files and pre-fix lines that any tool result showed, gold lines per 1k tokens of tool result, and the call whose result first showed one (0 = never; runs with a gold set)\n" + b.String()
+}
+
 type group struct {
 	insights []Insight
 }
@@ -582,6 +654,8 @@ func InsightReport(results []RunResult) string {
 			g.mean(func(in Insight) float64 { return float64(in.InputTokens) / 1000 }),
 			g.mean(func(in Insight) float64 { return float64(in.OutputTokens) / 1000 }))
 	}
+
+	b.WriteString(yieldReport(groups))
 
 	b.WriteString("\ntool result bytes by category (share of each arm's context from tools)\n")
 	for _, arm := range []Arm{ArmShell, ArmArno, ArmArnoShell} {

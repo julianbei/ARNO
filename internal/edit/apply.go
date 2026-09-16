@@ -33,9 +33,8 @@ func (s *Service) Apply(req protocol.ApplyRequest) (protocol.ApplyResponse, erro
 		return protocol.ApplyResponse{}, fmt.Errorf("no edits given")
 	}
 
-	current := s.workspace.Revision()
-	if req.ExpectedRevision != "" && req.ExpectedRevision != current {
-		return protocol.ApplyResponse{}, ErrStaleRevision
+	if err := s.checkRevision(req.ExpectedRevision); err != nil {
+		return protocol.ApplyResponse{}, err
 	}
 
 	root := s.workspace.Root()

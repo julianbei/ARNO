@@ -79,7 +79,7 @@ func runAgent(args []string) int {
 	repeats := flags.Int("repeats", 1, "times to run every task on every arm")
 	repeatStart := flags.Int("repeat-start", 1, "number of the first repeat, for running in rounds")
 	arnoMCP := flags.String("arno-mcp", "arno-mcp", "arno-mcp binary for the ARNO arms")
-	arnoTools := flags.String("arno-tools", "", "tool profile for the ARNO arms: all or core (default: arno-mcp's own)")
+	arnoTools := flags.String("arno-tools", "", "tool profile for the ARNO arms: all, core or core+<tool>[,<tool>] (default: arno-mcp's own)")
 	out := flags.String("out", "bench-results.jsonl", "append one JSON line per run here")
 	allowHost := flags.Bool("allow-host", false, "run agents with permissions bypassed on this machine, outside a sandbox")
 	telemetryDir := flags.String("telemetry-dir", "", "keep each ARNO-arm run's telemetry here (default: <out>.telemetry)")

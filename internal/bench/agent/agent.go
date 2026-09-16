@@ -210,6 +210,9 @@ type RunResult struct {
 	TelemetryDir string `json:"telemetryDir,omitempty"`
 	// Transcript is the run's saved agent transcript, one JSON event per line.
 	Transcript string `json:"transcript,omitempty"`
+	// Gold is the reference fix's footprint, derived from the source checkout
+	// at run time, for the yield metrics. Nil when the task names no fix.
+	Gold *Gold `json:"gold,omitempty"`
 }
 
 // TotalTokens is every token the run consumed, cached or not.
@@ -358,6 +361,10 @@ func runOne(ctx context.Context, cfg Config, task Task, arm Arm, repeat int, cap
 		result.DurationMS = time.Since(started).Milliseconds()
 		result.AgentError = strings.TrimSpace(fmt.Sprintf("%v %s", runErr, tail(stderr.String(), 500)))
 	}
+
+	// The gold set comes from the source checkout, which still has the fix;
+	// a task it cannot be derived for simply has no yield figures.
+	result.Gold, _ = goldFor(cfg.Repo, task, commit)
 
 	// The diff is measured before the hidden tests are written, so it is
 	// exactly what the agent left.

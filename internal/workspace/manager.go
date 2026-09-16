@@ -31,7 +31,21 @@ type Manager struct {
 	ckpts    map[string]checkpointSnapshot
 	// runs are the most recent finished validation runs, oldest first.
 	runs []protocol.ValidationRun
+	// ledger records which paths each revision bump changed, oldest first,
+	// so a stale-revision refusal can name what moved since the caller's
+	// expected revision instead of only saying that something did.
+	ledger []revisionEntry
 }
+
+// revisionEntry is one revision bump and the paths it changed.
+type revisionEntry struct {
+	revision int
+	paths    []string
+}
+
+// maxLedgerEntries bounds the revision ledger. A caller whose expected
+// revision is older than the window gets "unknown" rather than a partial list.
+const maxLedgerEntries = 500
 
 type checkpointSnapshot struct {
 	id       string
@@ -100,6 +114,45 @@ func (m *Manager) Revision() string {
 	return revisionString(m.revision)
 }
 
+// ChangedSince lists the paths ARNO edited after the given revision, sorted
+// and deduplicated, for a refusal that names what to re-read. known is false
+// when expected is not a revision this workspace can account for: malformed,
+// ahead of the current revision, or older than the ledger keeps. Revisions
+// count only ARNO's own edits; a file changed outside ARNO is caught per
+// file by expectedDigest, not here.
+func (m *Manager) ChangedSince(expected string) (paths []string, known bool) {
+	n, err := strconv.Atoi(strings.TrimPrefix(strings.TrimSpace(expected), "r"))
+	if err != nil || n < 1 || !strings.HasPrefix(strings.TrimSpace(expected), "r") {
+		return nil, false
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if n > m.revision {
+		return nil, false
+	}
+	if n == m.revision {
+		return nil, true
+	}
+	// Every bump after n must be in the ledger, or the answer is partial.
+	if len(m.ledger) == 0 || m.ledger[0].revision > n+1 {
+		return nil, false
+	}
+	seen := make(map[string]bool)
+	for _, entry := range m.ledger {
+		if entry.revision <= n {
+			continue
+		}
+		for _, path := range entry.paths {
+			if !seen[path] {
+				seen[path] = true
+				paths = append(paths, path)
+			}
+		}
+	}
+	sort.Strings(paths)
+	return paths, true
+}
+
 func (m *Manager) BumpRevision(changedPaths ...string) (oldRevision, newRevision string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -113,6 +166,24 @@ func (m *Manager) BumpRevision(changedPaths ...string) (oldRevision, newRevision
 			continue
 		}
 		m.changed[filepath.Clean(p)] = struct{}{}
+	}
+
+	entry := revisionEntry{revision: m.revision}
+	seen := make(map[string]bool, len(changedPaths))
+	for _, p := range changedPaths {
+		if p == "" {
+			continue
+		}
+		path := pathFromChangedKey(filepath.Clean(p))
+		if !seen[path] {
+			seen[path] = true
+			entry.paths = append(entry.paths, path)
+		}
+	}
+	sort.Strings(entry.paths)
+	m.ledger = append(m.ledger, entry)
+	if len(m.ledger) > maxLedgerEntries {
+		m.ledger = m.ledger[len(m.ledger)-maxLedgerEntries:]
 	}
 
 	if m.bus != nil {

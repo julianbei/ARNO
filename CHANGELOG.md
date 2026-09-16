@@ -1,5 +1,51 @@
 # Changelog
 
+## Unreleased
+
+### A stale-revision refusal says what moved
+
+`edit rejected: stale revision` used to be the whole message. It now names
+both revisions and every file ARNO edited between them — `expected r3,
+workspace is at r5; changed since r3: a.go, b.go — read those again before
+editing, then retry with expectedRevision r5` — so the agent re-reads exactly
+what changed instead of carrying on with a stale picture, the failure mode
+SWE-Touch measured at 7.7 points. A revision the workspace cannot account for
+points at `changes`. `errors.Is(err, ErrStaleRevision)` still holds; the
+error is a `StaleRevisionError` with the parts.
+
+### The benchmark measures yield per token
+
+Each task's gold set — the reference fix's non-test files and its pre-fix
+lines — is derived from the source checkout at run time and saved with the
+result. The insight report gains a `yield` section per arm: the share of
+gold files and lines any tool result showed, gold lines per 1k tokens of
+tool result, and the call whose result first showed one. Relevant code
+delivered per token returned is what a result format is tuned against, not
+whether search found every possibly related file.
+
+### An edit response lists what the edit changed
+
+A file's diagnostics are snapshotted before ARNO writes it, and the edit
+response lists only the ones the edit added, with one line counting the
+rest: `260 pre-existing diagnostics not shown: already there before this
+edit`. When no snapshot exists — the checker was still starting — at most
+12 are listed, nearest the edited lines first, and the count of the rest.
+Found by the benchmark's yield metrics: a Django test module under pyright
+put 583 lines of pre-existing errors into every edit response.
+
+### --tools core+<tool>
+
+`--tools core+<tool>[,<tool>]` lists the core profile plus named tools, so a
+candidate can be benchmarked against `core` without a second hardcoded
+list. The first candidate, a read-only batch tool, was never called in 15
+runs and did not ship; the benchmark round is in docs/benchmark-results.md.
+
+### Django in the benchmark
+
+`bench/tasks/django.json`: three real fixes in a 7,000-file repository, run
+on a Python 3.13 venv with sqlite. Raw results of every round from
+2026-09-16 on live under `bench/results/<date>/`.
+
 ## 0.0.12
 
 ### Jade is now ARNO

@@ -1,6 +1,7 @@
 package edit
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -144,8 +145,65 @@ func TestApplyRejectsStaleRevision(t *testing.T) {
 		ExpectedRevision: "r-not-current",
 		Edits:            []protocol.EditOp{{Op: "replace_text", Path: "a.go", OldText: "main", NewText: "other"}},
 	})
-	if err != ErrStaleRevision {
+	if !errors.Is(err, ErrStaleRevision) {
 		t.Fatalf("expected ErrStaleRevision, got %v", err)
+	}
+	// A revision the workspace cannot account for points at changes.
+	if !strings.Contains(err.Error(), "expected r-not-current, workspace is at r1") || !strings.Contains(err.Error(), "changes lists what moved") {
+		t.Fatalf("expected the refusal to name both revisions and point at changes, got %q", err)
+	}
+}
+
+// A stale-revision refusal names the files that changed in between, so the
+// agent knows what to re-read rather than only that something moved.
+func TestStaleRevisionNamesChangedFiles(t *testing.T) {
+	dir := t.TempDir()
+	svc := newTestService(t, dir)
+	writeIn(t, dir, "a.go", "package main\n")
+	writeIn(t, dir, "b.go", "package main\n")
+	writeIn(t, dir, "c.go", "package main\n")
+
+	if _, err := svc.Apply(protocol.ApplyRequest{Edits: []protocol.EditOp{
+		{Op: "replace_text", Path: "a.go", OldText: "main", NewText: "first"},
+	}}); err != nil {
+		t.Fatalf("first apply: %v", err)
+	}
+	if _, err := svc.Apply(protocol.ApplyRequest{Edits: []protocol.EditOp{
+		{Op: "replace_text", Path: "b.go", OldText: "main", NewText: "second"},
+		{Op: "replace_text", Path: "a.go", OldText: "first", NewText: "third"},
+	}}); err != nil {
+		t.Fatalf("second apply: %v", err)
+	}
+
+	_, err := svc.Apply(protocol.ApplyRequest{
+		ExpectedRevision: "r1",
+		Edits:            []protocol.EditOp{{Op: "replace_text", Path: "c.go", OldText: "main", NewText: "other"}},
+	})
+	var stale *StaleRevisionError
+	if !errors.As(err, &stale) || !errors.Is(err, ErrStaleRevision) {
+		t.Fatalf("expected a StaleRevisionError, got %v", err)
+	}
+	if stale.Expected != "r1" || stale.Current != "r3" || !stale.Known {
+		t.Fatalf("expected r1 vs r3 known, got %+v", stale)
+	}
+	if got := strings.Join(stale.Changed, ","); got != "a.go,b.go" {
+		t.Fatalf("expected a.go and b.go once each, got %q", got)
+	}
+	want := "expected r1, workspace is at r3; changed since r1: a.go, b.go — read those again before editing, then retry with expectedRevision r3"
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("expected %q in %q", want, err.Error())
+	}
+	if contentOf(t, dir, "c.go") != "package main\n" {
+		t.Fatalf("expected c.go untouched after the refusal")
+	}
+
+	// Only the edits after the expected revision are listed.
+	_, err = svc.Apply(protocol.ApplyRequest{
+		ExpectedRevision: "r2",
+		Edits:            []protocol.EditOp{{Op: "replace_text", Path: "c.go", OldText: "main", NewText: "other"}},
+	})
+	if !errors.As(err, &stale) || strings.Join(stale.Changed, ",") != "a.go,b.go" {
+		t.Fatalf("expected the r2 to r3 bump (a.go and b.go) only, got %v", err)
 	}
 }
 

@@ -149,6 +149,14 @@ func (s *Service) Checks(scopes ...string) protocol.CheckReport {
 		if result.Unchecked != "" {
 			report.Unchecked = append(report.Unchecked, scopePath(scope)+": "+result.Unchecked)
 		}
+		// What Immediate left out of this file's diagnostics, consumed here
+		// so the next edit response starts from zero.
+		if absolute := s.absolutePath(scope); absolute != "" {
+			s.memoMu.Lock()
+			report.Preexisting += s.preexisting[absolute]
+			delete(s.preexisting, absolute)
+			s.memoMu.Unlock()
+		}
 	}
 	sort.Strings(report.Checked)
 	return report

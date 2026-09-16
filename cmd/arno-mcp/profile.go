@@ -35,6 +35,10 @@ var coreProfileTools = map[string]bool{
 }
 
 // toolsFlag reads --tools all|core (or --tools=core). The default is all.
+// core+<tool>[,<tool>] adds named tools to the core profile — how a candidate
+// for the profile is benchmarked before it earns a place in it, without a
+// second hardcoded list. The 2026-09-16 round ran `inspect` that way; it
+// was never called and was removed.
 func toolsFlag(args []string) (string, error) {
 	for i := 0; i < len(args); i++ {
 		name, value, hasValue := strings.Cut(args[i], "=")
@@ -43,28 +47,59 @@ func toolsFlag(args []string) (string, error) {
 		}
 		if !hasValue {
 			if i+1 >= len(args) {
-				return "", fmt.Errorf("--tools needs a profile: all or core")
+				return "", fmt.Errorf("--tools needs a profile: all, core or core+<tool>")
 			}
 			value = args[i+1]
 		}
-		switch value {
-		case "all", "core":
-			return value, nil
+		base, extras := profileParts(value)
+		if base != "all" && base != "core" {
+			return "", fmt.Errorf("--tools must be all, core or core+<tool>[,<tool>], got %q", value)
 		}
-		return "", fmt.Errorf("--tools must be all or core, got %q", value)
+		if base == "all" && len(extras) > 0 {
+			return "", fmt.Errorf("--tools all already lists every tool, got %q", value)
+		}
+		known := map[string]bool{}
+		for _, tool := range tools() {
+			known[tool.Name] = true
+		}
+		for extra := range extras {
+			if !known[extra] {
+				return "", fmt.Errorf("--tools %s: %s is not a tool", value, extra)
+			}
+		}
+		return value, nil
 	}
 	return "all", nil
+}
+
+// profileParts splits core+inspect,outline into its base and the extra tools
+// as catalog names.
+func profileParts(profile string) (string, map[string]bool) {
+	base, rest, _ := strings.Cut(profile, "+")
+	extras := map[string]bool{}
+	for _, name := range strings.Split(rest, ",") {
+		name = strings.TrimSpace(name)
+		if name == "" {
+			continue
+		}
+		if !strings.HasPrefix(name, "arno.") {
+			name = "arno." + strings.TrimPrefix(name, "arno_")
+		}
+		extras[name] = true
+	}
+	return strings.TrimSpace(base), extras
 }
 
 // listedTools is the catalog tools/list answers with for a profile.
 func listedTools(profile string) []mcpTool {
 	catalog := tools()
-	if profile != "core" {
+	base, extras := profileParts(profile)
+	if base != "core" {
 		return catalog
 	}
-	listed := make([]mcpTool, 0, len(coreProfileTools))
+	listed := make([]mcpTool, 0, len(coreProfileTools)+len(extras))
 	for _, tool := range catalog {
-		if coreProfileTools[tool.Name] {
+		if coreProfileTools[tool.Name] || extras[tool.Name] {
 			listed = append(listed, tool)
 		}
 	}

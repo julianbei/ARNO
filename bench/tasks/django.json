@@ -1,0 +1,46 @@
+{
+  "repository": {
+    "name": "django",
+    "language": "python",
+    "url": "https://github.com/django/django",
+    "commit": "",
+    "setup": "/opt/homebrew/bin/python3.13 -m venv .venv && .venv/bin/pip install -q -e ."
+  },
+  "tasks": [
+    {
+      "id": "formset-custom-add-prefix",
+      "commit": "dc2c0b5a44d4fb531bb00d299c2c428f6ac87474",
+      "prompt": "ModelFormSet ignores a custom Form.add_prefix() when matching submitted primary keys.\n\nA ModelForm can override `add_prefix()` to change how its field names are built, for example a dot instead of a dash: `form-0.name` instead of `form-0-name`. Rendering such a form inside a model formset works, and bound field lookups use the overridden names. But when a bound model formset builds its existing forms it looks up each form's primary key in the submitted data under the default `<prefix>-<pk name>` key, so with data like\n\n```python\n{\n    \"form-TOTAL_FORMS\": \"1\",\n    \"form-INITIAL_FORMS\": \"1\",\n    \"form-MAX_NUM_FORMS\": \"0\",\n    \"form-0.id\": \"3\",\n    \"form-0.name\": \"Charles P. Baudelaire\",\n}\n```\n\nthe primary key is never found: the form is treated as a new object instead of an edit of the existing instance, and `save()` creates a duplicate instead of updating.\n\nExpected: a bound model formset finds each existing form's primary key using the form class's own `add_prefix()`, so the data above validates, `formset.forms[0].instance` is the existing object, and `save()` updates it. When the form class does not override `add_prefix()` keep the current behaviour, and do not construct an extra form instance just to compute the key: each form must still be initialized exactly once.\n\nThe test suite runs with `.venv/bin/python tests/runtests.py <app_label>`, e.g. `.venv/bin/python tests/runtests.py model_formsets`.",
+      "verify": ".venv/bin/python tests/runtests.py --parallel 1 model_formsets.tests.ModelFormsetTest.test_overridden_add_prefix model_formsets.tests.ModelFormsetTest.test_form_initialized_once_with_default_add_prefix",
+      "timeoutSeconds": 1200,
+      "verifyFrom": "be6a149de8f85fb8f858680f721dbaadd182f1d8",
+      "verifyPaths": [
+        "tests/model_formsets/tests.py"
+      ]
+    },
+    {
+      "id": "admin-exact-search-choices-and-boolean",
+      "commit": "73cc09f14f13fedddc14d6ba5b287cb33c24e4a4",
+      "prompt": "Admin changelist search with `__exact` on non-text search_fields crashes or over-matches.\n\n`ModelAdmin.search_fields` accepts `<field>__exact` entries on non-text fields. A search term that cannot be converted to such a field's type is meant to be skipped for that field, so the term is only matched against the other search fields. Two kinds of fields break this:\n\n1. A field with `choices`, e.g. `choice_field = models.IntegerField(choices=[(1, \"Active\"), (2, \"Archived\")], null=True, blank=True)` next to `name = models.CharField(...)`, with `search_fields = [\"name\", \"choice_field__exact\"]`. Searching for `john` or `random` raises `ValueError` from the ORM and the changelist view answers with a 500. Expected: `john` matches only the rows whose name contains it, `1` matches the rows with choice 1, `2` those with choice 2, and `random` matches nothing, without an error, both through `ModelAdmin.get_changelist_instance()` and through the changelist view itself.\n\n2. A `BooleanField` listed as `bool__exact` next to `name`. An arbitrary term such as `random` matches every row whose boolean is True, because almost any string is coerced to True. Expected: `random` matches nothing; `true`, `True` and `1` match the True rows; `false`, `False` and `0` match the False rows; matching stays case-insensitive, so `FALSE` matches the False rows too. For a nullable boolean (`models.BooleanField(null=True)`) the same holds. The explicit term `None` matches nothing on a non-nullable boolean field and selects the rows whose value is NULL on a nullable one.\n\nThe test suite runs with `.venv/bin/python tests/runtests.py <app_label>`, e.g. `.venv/bin/python tests/runtests.py admin_changelist`.",
+      "verify": ".venv/bin/python tests/runtests.py --parallel 1 admin_changelist.tests.ChangeListTests.test_exact_boolean_lookup_is_case_insensitive admin_changelist.tests.ChangeListTests.test_exact_boolean_lookup_explicit_none admin_changelist.tests.ChangeListTests.test_exact_lookup_for_choices_field admin_changelist.tests.ChangeListTests.test_exact_lookup_for_choices_field_changelist_view admin_changelist.tests.ChangeListTests.test_exact_lookup_for_boolean_field admin_changelist.tests.ChangeListTests.test_exact_lookup_for_null_boolean_field",
+      "timeoutSeconds": 1200,
+      "verifyFrom": "fe81969e83d03b61e587a28ddebb92b9fca2b441",
+      "verifyPaths": [
+        "tests/admin_changelist/admin.py",
+        "tests/admin_changelist/models.py",
+        "tests/admin_changelist/tests.py"
+      ]
+    },
+    {
+      "id": "filtered-relation-alias-in-values-and-order-by",
+      "commit": "439b936753e5a679ffcf40cff5918c5637f7c72b",
+      "prompt": "`.values()`, `.values_list()` and `.order_by()` resolve a FilteredRelation alias containing `__` as a lookup path.\n\nA FilteredRelation can be annotated under any alias, including one containing a double underscore, such as `editor__name`:\n\n```python\nBook.objects.annotate(\n    editor__name=FilteredRelation(\"editor\", condition=Q(editor__isnull=False))\n)\n```\n\n`filter()` on that alias already resolves it as the annotated relation. But `values(\"editor__name\")`, `values_list(\"editor__name\")` and `order_by(\"editor__name\")` split the name on `__` and resolve it as the `editor` relation's `name` field instead of the FilteredRelation.\n\nExpected, on the queryset above: `.values(\"editor__name\")` returns the related editor's primary key under the alias, `[{\"editor__name\": <editor pk>}]`; `.values_list(\"editor__name\")` returns `[(<editor pk>,)]`; and `.order_by(\"editor__name\")` orders by the filtered relation, so books whose editors are named `d` and `c` come back in the order of those editors. In each case the whole alias must be recognised as the FilteredRelation, exactly as `filter()` already does.\n\nThe test suite runs with `.venv/bin/python tests/runtests.py <app_label>`, e.g. `.venv/bin/python tests/runtests.py filtered_relation`.",
+      "verify": ".venv/bin/python tests/runtests.py --parallel 1 filtered_relation.tests.FilteredRelationTests.test_lookup_sep_in_alias_values filtered_relation.tests.FilteredRelationTests.test_lookup_sep_in_alias_order_by",
+      "timeoutSeconds": 1200,
+      "verifyFrom": "73cc09f14f13fedddc14d6ba5b287cb33c24e4a4",
+      "verifyPaths": [
+        "tests/filtered_relation/tests.py"
+      ]
+    }
+  ]
+}

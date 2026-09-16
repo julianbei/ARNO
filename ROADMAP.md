@@ -76,6 +76,63 @@ Competitor details below are the reviewer's claims, not verified here.
   to find tools agents pick wrongly, retry, or never use — then merge or
   delete them. Measured 2026-09-13 (0.0.4); merging is 0.0.5.
 
+### External review, 2026-09-16
+
+A second review, of the research on agent-computer interfaces (SWE-agent's
+ablations, Microsoft's tool-architecture study over 11,700 trajectories,
+SWE-Explore, Agent Retrieval Bench, SWE-Touch), scored against what ARNO
+ships. Its rule: ARNO should not become an agent; it should be an
+exceptionally efficient repository interface for one. Already in place before
+it: token budgets with continuation, diagnostics inside the edit response with
+syntax as the hard guardrail and semantics validated once per batch,
+delta-only edit responses, candidates instead of a failure on an ambiguous
+name, and the non-goals below. What it changed:
+
+- [x] **Stale-revision refusals name what moved.** SWE-Touch measured a
+  7.7-point drop across nine models when repository state changed under an
+  agent, mostly from agents continuing on a stale reading. `edit rejected:
+  stale revision` now reads `expected r3, workspace is at r5; changed since
+  r3: a.go, b.go — read those again before editing, then retry with
+  expectedRevision r5`. Revisions count ARNO's own edits; a file changed
+  outside ARNO is still caught per file by `expectedDigest`. Done 2026-09-16.
+- [x] **Yield per token in the benchmark.** SWE-Explore and Agent Retrieval
+  Bench find that line-level coverage under a context budget tracks repair
+  success better than file-level recall. Each task's gold set — the reference
+  fix's non-test files and its pre-fix lines — is derived from the source
+  checkout at run time, and the insight report shows per arm the share of
+  gold files and lines any tool result showed, gold lines per 1k tokens of
+  tool result, and the call whose result first showed one. Done 2026-09-16.
+- [x] **A read-only batch, as an experiment.** The Microsoft study measured
+  composed operations at 41.6% fewer steps and 56.3% fewer tokens for the
+  same success. `inspect` ran find, grep, read_range, references and outline
+  ops in one call, listed through `--tools core+inspect` for one benchmark
+  arm. Result, 2026-09-16: zero calls in 15 runs, 19% more tokens and 14%
+  more turns than `core`. Agents batched with the per-tool forms they already
+  had and ran 2.5 to 3.2 calls in parallel per round trip. Removed the same
+  day; `--tools core+<tool>` stays for the next candidate.
+- [x] **Edit responses report what the edit changed.** Found by the yield
+  metrics: a Django test module carried 260 pyright errors before any edit,
+  and every `replace_text` returned all of them, 42 KB a call. Done
+  2026-09-16: diagnostics are snapshotted before the write and only new ones
+  listed, with a count of the rest; at most 12 are listed, nearest the edit
+  first, when there is no snapshot.
+- [ ] **A declared command's full output has nowhere to go in the core
+  profile.** Sixteen calls in the Django runs named `/tmp/...`: agents
+  redirected a command's output there and asked `read_range` for it, which
+  the workspace boundary refuses. `job_output` is not in the core profile.
+  Either list it, or let `run_command` return more than the decisive lines
+  on request. Related: the scratch root in §6.
+- [ ] **Pyright answered a diagnostics pull before re-analysing.** Two
+  edits 0.8 s apart: the second's new error was missing until the next
+  call. Wait for the server's analysis of the synced version, or fall back
+  to the publish, before reporting a pulled result as fresh.
+- Not adopted: an intent-ranked repository map and a broad `discover`
+  search. `repository_map` and `retrieve` had zero calls in 36 benchmark
+  runs, and the review's evidence comes from multi-file tasks the suite does
+  not yet have. Revisit if localisation shows up as a failure class there.
+  Also not adopted, and already non-goals: scratchpad tools and an internal
+  model.
+
 ### Surface and cost
 
 - [ ] **Tool profiles.** A small core profile (on the order of inspect, edit,
@@ -95,10 +152,16 @@ Competitor details below are the reviewer's claims, not verified here.
   `structural · tree-sitter`, `no grammar · text fallback`. The rule stays:
   exact when exact, approximate when useful, refuse when approximation is
   unsafe.
-- [ ] **Impact-aware validation.** After an edit, use references to name the
+- [x] **Impact-aware validation.** After an edit, use references to name the
   affected callers, packages and likely tests, and validate those first
   rather than the whole repository. Directly strengthens the transaction, and
   replaces the unread whole-repository typecheck every edit starts today.
+  Done 2026-09-14 (0.0.7): `apply check=impact` runs the edited files' tests
+  plus the tests of every file referencing a touched declaration, and
+  reports the traced footprint; `apply check=tests` runs the edited files'
+  tests only; `run_tests scope=changed` does the same on demand. Bad test
+  selection would give false confidence, so the impact line says what was
+  traced and `check tests` still runs everything.
 
 ### Investigate
 

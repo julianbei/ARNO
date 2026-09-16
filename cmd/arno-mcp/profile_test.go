@@ -39,6 +39,25 @@ func TestCoreProfileListsOnlyRealToolsAndIsSmaller(t *testing.T) {
 // act on, and what TDQS grades descriptions against.
 const maxCoreCatalogBytes = 13700
 
+// core+<tool> lists the core profile plus the named tools, so a candidate can
+// be benchmarked against core without a second hardcoded list.
+func TestCoreProfilePlusNamedTools(t *testing.T) {
+	listed := listedTools("core+outline,references")
+	if len(listed) != len(coreProfileTools)+2 {
+		t.Fatalf("expected core plus two tools, got %d", len(listed))
+	}
+	names := map[string]bool{}
+	for _, tool := range listed {
+		names[tool.Name] = true
+	}
+	if !names["arno.outline"] || !names["arno.references"] || !names["arno.find"] {
+		t.Fatalf("expected outline, references and the core tools, got %v", names)
+	}
+	if len(listedTools("core+")) != len(coreProfileTools) {
+		t.Fatal("core+ with no names is core")
+	}
+}
+
 func TestToolsFlag(t *testing.T) {
 	cases := []struct {
 		args    []string
@@ -50,6 +69,10 @@ func TestToolsFlag(t *testing.T) {
 		{[]string{"--tools=all"}, "all", false},
 		{[]string{"--tools"}, "", true},
 		{[]string{"--tools=lean"}, "", true},
+		{[]string{"--tools", "core+outline"}, "core+outline", false},
+		{[]string{"--tools=core+outline,arno.references"}, "core+outline,arno.references", false},
+		{[]string{"--tools=core+dance"}, "", true},
+		{[]string{"--tools=all+outline"}, "", true},
 	}
 	for _, tc := range cases {
 		got, err := toolsFlag(tc.args)

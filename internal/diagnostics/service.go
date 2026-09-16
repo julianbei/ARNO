@@ -5,11 +5,14 @@ import (
 	"go/parser"
 	"go/scanner"
 	"go/token"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/julianbei/arno/internal/protocol"
+	"github.com/julianbei/arno/internal/writes"
 )
 
 // Service normalizes parser, LSP, and lint diagnostics.
@@ -20,17 +23,123 @@ type Service struct {
 
 	memoMu sync.Mutex
 	memo   map[string]checkMemo
+	// baseline holds, per absolute path, the diagnostics a file had before
+	// ARNO's first write to it since its last edit response. Immediate
+	// consumes it to leave out what the edit did not cause.
+	baseline map[string][]protocol.Diagnostic
+	// preexisting is how many baseline diagnostics Immediate last left out
+	// per file, for Checks to report as one count.
+	preexisting map[string]int
 }
 
 func NewService(root string) *Service {
-	return &Service{root: root, memo: make(map[string]checkMemo)}
+	s := &Service{
+		root:        root,
+		memo:        make(map[string]checkMemo),
+		baseline:    make(map[string][]protocol.Diagnostic),
+		preexisting: make(map[string]int),
+	}
+	writes.Observe(root, s.beforeWrite)
+	return s
+}
+
+// beforeWrite records what a file's checker said about it before ARNO
+// changes it, once per edit: the first write since the last edit response
+// sets the baseline, later writes of the same edit (a formatter's, the next
+// op of an apply) leave it alone, and Immediate clears it.
+//
+// A file that already carries hundreds of diagnostics — a Django test module
+// under pyright with no stubs — returned all of them on every edit: one
+// benchmark response was 583 lines, 42 KB, none of it caused by the edit
+// and all of it read into the agent's context. What an edit response owes
+// the agent is what the edit changed.
+func (s *Service) beforeWrite(absolute string) {
+	s.memoMu.Lock()
+	_, have := s.baseline[absolute]
+	s.memoMu.Unlock()
+	if have {
+		return
+	}
+	var diagnostics []protocol.Diagnostic
+	if _, err := os.Stat(absolute); err == nil {
+		rel, err := filepath.Rel(s.root, absolute)
+		if err != nil {
+			return
+		}
+		// Memoised on the file's current mtime and size, so an edit of a
+		// file checked by the previous edit pays nothing here.
+		result := s.Check(filepath.ToSlash(rel))
+		if result.Unchecked != "" {
+			// Nothing looked — a language server still starting, say — so
+			// there is no baseline. The response then reports everything
+			// rather than passing off an unchecked file as clean.
+			return
+		}
+		diagnostics = result.Diagnostics
+	}
+	s.memoMu.Lock()
+	if _, have := s.baseline[absolute]; !have {
+		s.baseline[absolute] = append([]protocol.Diagnostic(nil), diagnostics...)
+	}
+	s.memoMu.Unlock()
+}
+
+// absolutePath is scope's file as the memo and baseline key it.
+func (s *Service) absolutePath(scope string) string {
+	path := scopePath(scope)
+	if path == "" || filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(s.root, path)
+}
+
+// diagnosticKey identifies a diagnostic across an edit that moved its line:
+// the same message at the same level in the same file is the same finding.
+func diagnosticKey(d protocol.Diagnostic) string {
+	return string(d.Level) + "\x00" + d.Message
 }
 
 // Immediate runs the fast, synchronous checks that fit within an edit's
-// latency budget and returns their diagnostics. Check has the same result
-// with the name of the checker that produced it.
+// latency budget and returns the diagnostics the edit is responsible for:
+// everything the checker reports now that it did not report before the
+// write. The count left out is reported by Checks. A file with no baseline
+// — checked without a write, or written outside the write path — reports
+// everything.
 func (s *Service) Immediate(scope string) []protocol.Diagnostic {
-	return s.Check(scope).Diagnostics
+	all := s.Check(scope).Diagnostics
+	absolute := s.absolutePath(scope)
+	if absolute == "" {
+		return all
+	}
+	s.memoMu.Lock()
+	baseline, have := s.baseline[absolute]
+	delete(s.baseline, absolute)
+	if !have {
+		delete(s.preexisting, absolute)
+	}
+	s.memoMu.Unlock()
+	if !have {
+		return all
+	}
+	remaining := make(map[string]int, len(baseline))
+	for _, d := range baseline {
+		remaining[diagnosticKey(d)]++
+	}
+	fresh := make([]protocol.Diagnostic, 0, len(all))
+	suppressed := 0
+	for _, d := range all {
+		key := diagnosticKey(d)
+		if remaining[key] > 0 {
+			remaining[key]--
+			suppressed++
+			continue
+		}
+		fresh = append(fresh, d)
+	}
+	s.memoMu.Lock()
+	s.preexisting[absolute] = suppressed
+	s.memoMu.Unlock()
+	return fresh
 }
 
 // checkGo is the Go path: a real syntax parse, then gopls for type-level

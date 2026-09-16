@@ -11,6 +11,7 @@ headless on Sonnet 5, one run per task per arm, $1.50 cap per run. Recorded
 | [ky](https://github.com/sindresorhus/ky) | TypeScript | download progress drops response metadata; mixed-case method not uppercased; `parseJson` ignored by `clone` |
 | [requests](https://github.com/psf/requests) | Python | content-type parameter without a value; preserve a double slash in the path; redirect history references itself |
 | [ripgrep](https://github.com/BurntSushi/ripgrep) | Rust | hidden whitelist for a dot path; null data with line regexp; replace with multiline lookaround panics |
+| [django](https://github.com/django/django) (from 2026-09-16) | Python | model formset ignores a custom `add_prefix()`; admin `__exact` search crashes on a choices field and over-matches booleans; FilteredRelation alias with `__` mis-resolved by `values()` and `order_by()` |
 
 ## Suite
 
@@ -106,6 +107,75 @@ are from the rerun above.
   gap seen in the 0.0.7 transcripts remains.
 
 The core profile stays as it was.
+
+## Full suite, with a large repository
+
+ARNO at the 2026-09-16 working tree (0.0.12 plus the stale-revision message
+and the yield metrics; one arm also listed an experimental `inspect` tool).
+Four arms on 15 tasks: the twelve above and three from Django — 7,091
+files, 165k lines of framework Python, pyright as the language server, tests
+through `runtests.py` — added to test the claim that ARNO's advantage grows
+with repository size. Django runs had a $2 cap, the rest $1.50 as before.
+$36.22 in total, one run per cell. Raw results in
+[bench/results/2026-09-16](../bench/results/2026-09-16).
+
+Small repositories, 12 tasks:
+
+| Arm | Solved | Tokens | Turns | Time | Cost |
+|---|---|---|---|---|---|
+| `shell` | 11 of 12 | 1.63M | 25.2 | 236s | $0.59 |
+| `shell-lean` | 11 of 12 | 0.98M | 27.2 | 249s | $0.44 |
+| `core` | 11 of 12 | 0.88M | 28.5 | 193s | $0.41 |
+| `core+inspect` | 12 of 12 | 1.04M | 32.5 | 185s | $0.45 |
+
+Django, 3 tasks:
+
+| Arm | Solved | Tokens | Turns | Time | Cost |
+|---|---|---|---|---|---|
+| `shell` | 3 of 3 | 3.55M | 45.7 | 378s | $1.23 |
+| `shell-lean` | 3 of 3 | 2.32M | 47.7 | 356s | $0.93 |
+| `core` | 3 of 3 | 2.73M | 51.3 | 328s | $1.14 |
+| `core+inspect` | 3 of 3 | 3.34M | 60.7 | 401s | $1.26 |
+
+Scorecard against `shell`, all 15 tasks: `core` passes at 0.62x tokens and
+equal success; `core+inspect` passes at 0.74x tokens and +7 points.
+
+- **Size did not favour ARNO here.** On Django `core` spent 23% fewer tokens
+  than `shell` and 18% more than `shell-lean`, with 8% more turns, and every
+  arm solved all three tasks. Three tasks at one run each settle nothing,
+  but the round gives the claim that bash loses in a large repository no
+  support either.
+- **`inspect` was never called.** Zero calls in 15 runs with it listed. The
+  arm spent 19% more tokens and 14% more turns than `core` on the small
+  repositories, 22% and 18% on Django, and solved one task more — ky's
+  download-progress task, which every other arm failed in every round; one
+  run cannot say whether that was the tool or the dice. Agents batched with
+  what they had: `queries` on 18% of `grep` calls, `ranges` on 8% of
+  `read_range` calls, and 2.5 to 3.2 parallel calls per round trip against
+  1.1 for the shell arms. Removed the same day.
+- **Yield.** The shell arms' tool results showed 89–91% of the fix's
+  pre-fix lines, ARNO's 74–85%. Per 1k tokens of tool result, `shell`
+  delivered 4.3 gold lines on the small repositories and 0.9 on Django,
+  `core` 2.6 and 0.3. ARNO's runs put 151 KB of tool results into the
+  context per Django task against 64 KB for `shell`; 75 KB of it was edit
+  responses.
+- **The edit response was the leak.** A Django test module carried 260
+  pyright errors before any edit (no Django stubs), and every `replace_text`
+  returned all of them: one response was 583 lines and 42 KB, none of it
+  caused by the edit. Fixed after the round: diagnostics are snapshotted
+  before the write and only new ones are listed, with one line counting the
+  rest, and a response lists at most 12, nearest the edit first, when no
+  snapshot exists. The same edit now returns 2 KB with a cold checker and
+  0.6 KB warm, the new error included.
+- **Tool errors.** 2.5 per ARNO run on Django, 0.7 for `shell`. Twelve
+  `read_range` and four `create_file` calls named `/tmp/...`: agents
+  redirected a declared command's output there because `job_output` is not
+  in the core profile, so a full log has nowhere else to go. Three
+  `run_command` calls guessed a name before declaring one. One `apply` of 14
+  edits rolled back on one bad anchor.
+- **Pyright answered a pull before re-analysing** when two edits came 0.8 s
+  apart: the second edit's new error was missing until the next call. Seen
+  in the live check after the round, not in a run.
 
 ## What the numbers say
 

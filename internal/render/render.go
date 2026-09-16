@@ -568,9 +568,13 @@ func edit(r protocol.EditResponse) string {
 	// Diagnostics are why an agent reads an edit response at all, so they
 	// get their own lines rather than being folded into the header.
 	transient := false
-	for _, d := range r.Diagnostics {
+	shown, hidden := nearestDiagnostics(r.Diagnostics, r.Snippets, maxEditDiagnostics)
+	for _, d := range shown {
 		lines = append(lines, diagnosticLine(d))
 		transient = transient || transientDiagnostic.MatchString(d.Message)
+	}
+	if hidden > 0 {
+		lines = append(lines, hiddenDiagnosticsLine(hidden))
 	}
 	// An import added before the code that uses it, or a call before the
 	// helper it calls, errors until the next edit lands. Agents read those as
@@ -805,8 +809,12 @@ func apply(r protocol.ApplyResponse) string {
 
 	// Diagnostics before the file list: a batch that compiled is routine, a
 	// batch that broke something is the thing the caller must act on.
-	for _, d := range r.Diagnostics {
+	shown, hidden := nearestDiagnostics(r.Diagnostics, r.Snippets, maxEditDiagnostics)
+	for _, d := range shown {
 		lines = append(lines, diagnosticLine(d))
+	}
+	if hidden > 0 {
+		lines = append(lines, hiddenDiagnosticsLine(hidden))
 	}
 	lines = append(lines, uncheckedLines(r.Checks)...)
 	if r.CheckSummary != "" {
@@ -1072,13 +1080,85 @@ func checkedSuffix(report protocol.CheckReport) string {
 }
 
 // uncheckedLines gives each file of a known language that nothing could
-// check its own line, with the reason — the actionable half of the report.
+// check its own line, with the reason — the actionable half of the report —
+// and one line for the diagnostics the edited files already had, so an
+// empty diagnostics list reads as "nothing new" rather than "nothing wrong".
 func uncheckedLines(report protocol.CheckReport) []string {
-	lines := make([]string, 0, len(report.Unchecked))
+	lines := make([]string, 0, len(report.Unchecked)+1)
 	for _, entry := range report.Unchecked {
 		lines = append(lines, "not checked: "+entry)
 	}
+	if report.Preexisting > 0 {
+		noun := "diagnostics"
+		if report.Preexisting == 1 {
+			noun = "diagnostic"
+		}
+		lines = append(lines, fmt.Sprintf("%d pre-existing %s not shown: already there before this edit", report.Preexisting, noun))
+	}
 	return lines
+}
+
+// maxEditDiagnostics bounds the diagnostics an edit response lists. Past it
+// the ones nearest the edited lines are shown and the rest counted. A Django
+// test module already carrying 260 pyright errors put all of them into every
+// edit response — 42 KB a call — whenever the checker was too cold to say
+// which were there before the edit. SWE-agent's ablations put a budget on
+// every observation for the same reason: an agent reads what it is given.
+const maxEditDiagnostics = 12
+
+// nearestDiagnostics keeps the diagnostics closest to the edited regions,
+// errors before warnings at equal distance, when there are more than max.
+// Under max they are returned as they came.
+func nearestDiagnostics(diagnostics []protocol.Diagnostic, snippets []protocol.Snippet, max int) (shown []protocol.Diagnostic, hidden int) {
+	if len(diagnostics) <= max {
+		return diagnostics, 0
+	}
+	distance := func(d protocol.Diagnostic) int {
+		best := 1 << 30
+		for _, s := range snippets {
+			if s.Path != d.Path {
+				continue
+			}
+			gap := 0
+			switch {
+			case d.Line < s.StartLine:
+				gap = s.StartLine - d.Line
+			case d.Line > s.EndLine:
+				gap = d.Line - s.EndLine
+			}
+			if gap < best {
+				best = gap
+			}
+		}
+		return best
+	}
+	rank := func(level protocol.DiagnosticLevel) int {
+		switch level {
+		case protocol.DiagnosticError:
+			return 0
+		case protocol.DiagnosticWarning:
+			return 1
+		}
+		return 2
+	}
+	ordered := append([]protocol.Diagnostic(nil), diagnostics...)
+	sort.SliceStable(ordered, func(a, b int) bool {
+		da, db := distance(ordered[a]), distance(ordered[b])
+		if da != db {
+			return da < db
+		}
+		if ra, rb := rank(ordered[a].Level), rank(ordered[b].Level); ra != rb {
+			return ra < rb
+		}
+		return ordered[a].Line < ordered[b].Line
+	})
+	return ordered[:max], len(ordered) - max
+}
+
+// hiddenDiagnosticsLine says how many diagnostics the cap left out and where
+// the whole list is.
+func hiddenDiagnosticsLine(hidden int) string {
+	return fmt.Sprintf("%d more diagnostics not shown (the %d nearest the edit are listed); check with kind typecheck reports the whole file", hidden, maxEditDiagnostics)
 }
 
 // diagnosticLine renders one diagnostic as `level path:line:column message`.
