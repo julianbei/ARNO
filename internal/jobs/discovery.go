@@ -293,9 +293,11 @@ func DetectCommandCandidates(dir string) []protocol.CommandCandidate {
 
 // coveredValidationRuns is the exact command string (as a person would type
 // it) check would run for build, typecheck and tests in dir, the same kinds
-// capabilities lists under Validation. lint is not among them: unlike the
-// other three, check only runs a declared lint command, never a discovered
-// one, so there is nothing here to be redundant with.
+// capabilities lists under Validation. lint has no kind of its own here —
+// check only ever runs a declared lint command, never a discovered one — but
+// a lint candidate can still end up excluded anyway: makefileTargetCandidates
+// lets typecheck fall back to a Makefile's lint target when no vet target
+// exists, so lint can be what "typecheck" covers.
 func coveredValidationRuns(dir string) map[string]bool {
 	covered := map[string]bool{}
 	for _, kind := range []string{"build", "typecheck", "tests"} {
