@@ -6,9 +6,15 @@ import (
 	"time"
 )
 
+// waitForCompletion blocks until the job finishes. The deadline is a hang
+// detector, not a time budget: one caller waits for a real `go build ./...`
+// over this repository, which takes well over five seconds with a cold build
+// cache or on a loaded machine, and failing there reported a flake as a
+// broken argument mapping. Sixty seconds still catches a job that never
+// completes, which is what the tests are for.
 func waitForCompletion(t *testing.T, r *Runner, id string) (status string, summary string) {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
+	deadline := time.Now().Add(60 * time.Second)
 	for time.Now().Before(deadline) {
 		_, status, summary, ok := r.Status(id)
 		if !ok {
