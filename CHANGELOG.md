@@ -72,6 +72,14 @@ name 0.0.13 as the last release that answers to the old spellings.
 
 ### Fixed
 
+The conformance suite told a machine with `typescript-language-server` but no
+`node_modules/typescript` in the fixture that ARNO had regressed. The server
+resolves `tsserver.js` from the workspace, so it started, reported a version,
+then exited on initialize — and the failed 90-second handshake was reported as
+a server that "starts or answers markedly slower". A case now names the
+workspace path its server needs and skips with the command that fixes it. The
+container installs that dependency, so it still runs those languages for real.
+
 `a arno-mcp` in three comments the rename's blanket replacement left
 ungrammatical, and a README and llms.txt that still described 0.0.12 as
 upcoming after it had shipped.
