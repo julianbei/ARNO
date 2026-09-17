@@ -32,7 +32,7 @@ func TestEditDiagnostics(t *testing.T) {
 
 	for _, tc := range cases() {
 		t.Run(tc.name, func(t *testing.T) {
-			if reason, ok := serverUsable(tc.server); !ok {
+			if reason, ok := serverUsable(tc); !ok {
 				t.Skipf("%s: %s", tc.server, reason)
 			}
 			edit, ok := breakingEdit[tc.name]

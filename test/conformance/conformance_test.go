@@ -66,6 +66,19 @@ type languageCase struct {
 	// three times the 2026-09-14 container baseline, so noise passes and a
 	// release that makes a server markedly slower to start fails.
 	answerBudget time.Duration
+
+	// workspaceDep is a path inside the fixture the server needs before it can
+	// answer at all, relative to the fixture directory. Empty means none.
+	//
+	// typescript-language-server drives tsserver.js resolved from the
+	// workspace, not from its own installation: without it the server starts,
+	// reports a version, then exits on initialize with "Could not find a valid
+	// TypeScript installation". The container installs typescript@5 into each
+	// fixture for exactly this reason. A machine that has the server but not
+	// the fixture dependency must skip, the same as one missing the server —
+	// otherwise it reports someone else's missing npm install as an ARNO
+	// regression, and the 90s handshake timeout as a performance one.
+	workspaceDep string
 }
 
 func cases() []languageCase {
@@ -81,12 +94,14 @@ func cases() []languageCase {
 			declarations: []string{"Store", "put", "newStore"},
 			server:       "typescript-language-server", otherFile: "use.ts", renamed: "store2",
 			answerBudget: 10 * time.Second, // baseline 1.7s
+			workspaceDep: "node_modules/typescript",
 		},
 		{
 			name: "javascript", dir: "javascript", file: "store.js", symbol: "put",
 			declarations: []string{"Store", "put", "newStore"},
 			server:       "typescript-language-server", otherFile: "use.js", renamed: "store2",
 			answerBudget: 10 * time.Second, // baseline 1.7s
+			workspaceDep: "node_modules/typescript",
 		},
 		{
 			name: "python", dir: "python", file: "store.py", symbol: "put",
@@ -158,7 +173,7 @@ func TestSemantics(t *testing.T) {
 
 	for _, tc := range cases() {
 		t.Run(tc.name, func(t *testing.T) {
-			if reason, ok := serverUsable(tc.server); !ok {
+			if reason, ok := serverUsable(tc); !ok {
 				t.Skipf("%s: %s", tc.server, reason)
 			}
 
@@ -300,20 +315,29 @@ var versionProbe = map[string][]string{
 	"solargraph":                 {"--version"},
 }
 
-func serverUsable(server string) (string, bool) {
-	if _, err := exec.LookPath(server); err != nil {
+// serverUsable reports whether tc's language server can actually answer here:
+// installed, runnable, and with whatever the fixture has to supply. The reason
+// it returns is what the skip message says, so it names the missing piece.
+func serverUsable(tc languageCase) (string, bool) {
+	if _, err := exec.LookPath(tc.server); err != nil {
 		return "not installed", false
 	}
 
-	args, probeable := versionProbe[server]
-	if !probeable {
-		return "", true
+	if args, probeable := versionProbe[tc.server]; probeable {
+		cmd := exec.Command(tc.server, args...)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Sprintf("installed but not runnable (%s)", firstLine(string(output))), false
+		}
 	}
 
-	cmd := exec.Command(server, args...)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Sprintf("installed but not runnable (%s)", firstLine(string(output))), false
+	if tc.workspaceDep != "" {
+		dep := filepath.Join("repos", tc.dir, tc.workspaceDep)
+		if _, err := os.Stat(dep); err != nil {
+			return fmt.Sprintf("installed, but the %s fixture has no %s — run: cd test/conformance/repos/%s && npm install typescript@5",
+				tc.dir, tc.workspaceDep, tc.dir), false
+		}
 	}
+
 	return "", true
 }
 
