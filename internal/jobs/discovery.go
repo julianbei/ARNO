@@ -503,8 +503,16 @@ func parseMakefileTargets(content string) map[string]bool {
 // (a dry run that prints the target's commands without executing them)
 // rather than trusting a parsed name alone — the same "prove it, don't
 // assume it" principle applied to npm scripts above.
+// Bounded like every other ecosystem probe: `make -n` does not run the
+// target's recipe, but it does expand the makefile, and expansion can call
+// out — `$(shell ...)` runs during a parse, and a recursive make can descend
+// for a long time. An unbounded probe would hang detection, and detection
+// runs while answering a tool call.
 func verifyMakeTarget(dir string, target string) bool {
-	cmd := exec.Command("make", "-n", target)
+	ctx, cancel := context.WithTimeout(context.Background(), manifestDiscoveryTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "make", "-n", target)
 	cmd.Dir = dir
 	return cmd.Run() == nil
 }
