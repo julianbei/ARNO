@@ -14,19 +14,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/julianbei/arno/internal/code"
-	"github.com/julianbei/arno/internal/diagnostics"
-	"github.com/julianbei/arno/internal/edit"
 	"github.com/julianbei/arno/internal/events"
 	"github.com/julianbei/arno/internal/jobs"
 	"github.com/julianbei/arno/internal/languages"
-	"github.com/julianbei/arno/internal/lsp"
 	"github.com/julianbei/arno/internal/protocol"
 	"github.com/julianbei/arno/internal/render"
 	"github.com/julianbei/arno/internal/telemetry"
 	"github.com/julianbei/arno/internal/transport/internalapi"
 	"github.com/julianbei/arno/internal/update"
-	"github.com/julianbei/arno/internal/workspace"
 )
 
 type rpcRequest struct {
@@ -94,6 +89,10 @@ var toolAnnotationsByName = map[string]toolAnnotations{
 	"arno.job_status":      readOnlyTool,
 	"arno.job_output":      readOnlyTool,
 	"arno.events":          readOnlyTool,
+	// Switching changes which directory every later call reads and writes,
+	// so it is not read-only, but it never changes a file: additive, like a
+	// checkpoint.
+	"arno.workspace":       additiveTool,
 	"arno.insert":          additiveTool,
 	"arno.create_file":     additiveTool,
 	"arno.checkpoint":      additiveTool,
@@ -141,6 +140,18 @@ type mcpServer struct {
 	// they complete.
 	background backgroundJobs
 	jobEvents  <-chan events.Event
+
+	// graph is everything bound to the current workspace root; api, telemetry
+	// and instructions above are its fields, held here too so the 30-odd call
+	// sites that use them need not learn about the graph. A workspace switch
+	// replaces all four together.
+	graph *workspaceGraph
+	// bus, jobs and langs do not depend on the root and outlive a switch.
+	bus   *events.Bus
+	jobs  *jobs.Runner
+	langs *languages.Registry
+	// ctx is the process context, used to build a graph on a later switch.
+	ctx context.Context
 }
 
 // version is stamped at build time via -ldflags (see the Makefile). It is
@@ -220,34 +231,30 @@ func main() {
 	}
 
 	bus := events.NewBus()
-	wm := workspace.NewManager(root, bus)
-	ci := code.NewIndex(root, bus)
-
-	// Language servers are started lazily on first use and shut down when
-	// ARNO exits. Leaking them is not hypothetical: jdtls and metals hold
-	// hundreds of megabytes each, and an agent harness may restart ARNO
-	// often.
-	servers := lsp.NewManager(root)
-	defer servers.Close()
-	ci.UseLanguageServers(servers)
-	ds := diagnostics.NewService(root)
-	// Edits in every language with a server get that server's diagnostics
-	// in the response, and every response names what checked it.
-	ds.UseLanguageServers(ci.LanguageServerDiagnostics)
 	jr := jobs.NewRunner(bus)
-	es := edit.NewService(wm, ci, ds, jr)
 	lr := languages.NewRegistry()
 
 	lr.Register("typescript", languages.NewNoopAdapter("typescript"))
 	lr.Register("go", languages.NewNoopAdapter("go"))
 	lr.Register("rust", languages.NewNoopAdapter("rust"))
 
-	api := internalapi.NewServer(wm, ci, es, ds, jr, lr, bus)
-	if err := api.Start(ctx); err != nil {
-		fatalf("failed to start internal api: %v", err)
-	}
+	s := &mcpServer{profile: profile, jobEvents: bus.Subscribe(256), bus: bus, jobs: jr, langs: lr, ctx: ctx}
 
-	s := &mcpServer{api: api, telemetry: telemetry.New(root), profile: profile, instructions: projectInstructions(root) + capabilityBrief(ci), jobEvents: bus.Subscribe(256)}
+	// Everything bound to the root is built here and rebuilt on a workspace
+	// switch, so the two paths cannot drift apart. Language servers are
+	// started lazily on first use and closed when the graph is replaced or
+	// ARNO exits. Leaking them is not hypothetical: jdtls and metals hold
+	// hundreds of megabytes each, and an agent harness may restart ARNO
+	// often.
+	graph, err := s.openWorkspaceGraph(ctx, root)
+	if err != nil {
+		fatalf("%v", err)
+	}
+	defer func() { graph.close() }()
+	s.graph = graph
+	s.api = graph.api
+	s.telemetry = graph.rec
+	s.instructions = graph.instructions
 	if err := s.loop(os.Stdin, os.Stdout); err != nil {
 		fatalf("mcp loop failed: %v", err)
 	}
@@ -744,6 +751,12 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 	case "arno.changes":
 		res := s.api.Changes()
 		return jsonResult(res)
+	case "arno.workspace":
+		text, err := s.switchWorkspace(s.ctx, stringArg(args, "path"))
+		if err != nil {
+			return mcpToolResult{}, err
+		}
+		return mcpToolResult{Content: []mcpTextContent{{Type: "text", Text: text}}}, nil
 	case "arno.diff":
 		res, err := s.api.Diff(protocol.DiffRequest{
 			Target:   stringArg(args, "target"),
@@ -1190,6 +1203,16 @@ func catalogTools() []mcpTool {
 			Name:        "arno.changes",
 			Description: "Return the current workspace revision and a list of changed paths.",
 			InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		},
+		{
+			Name:        "arno.workspace",
+			Description: "Report the directory ARNO reads and writes, and switch it to another git worktree of the same repository. Call it with no path when a repository has several worktrees checked out: ARNO serves the one it was started in, whatever directory the caller is in now, so an edit meant for a worktree otherwise lands in the starting checkout without any error. Switching rebuilds the index, revisions and language servers for the new worktree.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"path": map[string]interface{}{"type": "string", "description": "Worktree to serve, as listed by a call with no path. Omit to report the current workspace and the alternatives."},
+				},
+			},
 		},
 		{
 			Name:        "arno.diff",

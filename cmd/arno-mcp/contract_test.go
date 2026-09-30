@@ -39,6 +39,7 @@ var frozenSurface = map[string][]string{
 	// Added in 0.0.6; adding a tool is compatible.
 	"arno.capabilities":    {},
 	"arno.changes":         {},
+	"arno.workspace":       {},
 	"arno.check":           {},
 	"arno.checkpoint":      {},
 	"arno.context":         {"path"},

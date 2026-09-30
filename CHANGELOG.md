@@ -2,6 +2,33 @@
 
 ## 0.0.13
 
+### A session can serve another worktree of its repository
+
+ARNO resolves every path against one workspace root, fixed when the process
+starts. An MCP server is a long-lived separate process, so a `cd` into a
+`git worktree` never reaches it: the edit lands in the starting checkout, and
+nothing errors, because the path is perfectly valid there. `git status` in the
+worktree shows nothing, and the mistake surfaces later in the other checkout
+(issue #3).
+
+`workspace` reports the directory ARNO reads and writes, lists the worktrees of
+the same repository, and switches to one. Only those: a session pointed at a
+repository cannot be sent anywhere else on disk, which is the containment
+`pathguard` gives within a root.
+
+A switch rebuilds the revision counter, the symbol index, diagnostics,
+telemetry, `.arno/project.json` instructions and the language servers.
+Repointing path resolution alone would have been worse than the bug: `rootUri`
+is fixed at a language server's `initialize`, so edits would land in the new
+worktree while references, diagnostics and renames still answered for the old
+one. Revisions restart at r1 and checkpoints do not follow — they belong to the
+workspace that made them — and the next call that needs a language server pays
+to start it.
+
+The tool is in the full catalog, not `core`: a session-setup call, and core has
+119 bytes of headroom. Unlisted tools stay callable, so `--tools core` can
+still switch.
+
 ### Detected command candidates
 
 `run_command`'s listing and unknown-name refusal, and `capabilities`, now
