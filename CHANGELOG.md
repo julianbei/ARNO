@@ -2,6 +2,19 @@
 
 ## 0.0.13
 
+### An edit names the directory it wrote to
+
+Every edit response carries the absolute workspace root under its header:
+
+```
+r1 → r2 · file.txt · +1 -1
+in /repos/app-hotfix
+```
+
+Preventing the wrong-worktree write is one half; seeing it is the other. A
+session that never calls `workspace` still gets a signal on the first edit
+instead of days later, from another checkout's diff.
+
 ### A session can serve another worktree of its repository
 
 ARNO resolves every path against one workspace root, fixed when the process

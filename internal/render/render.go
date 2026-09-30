@@ -565,6 +565,15 @@ func edit(r protocol.EditResponse) string {
 	}
 	head += checkedSuffix(r.Checks)
 	lines = append(lines, head)
+	// The directory the edit was written to, on its own line under the
+	// header. A relative path is resolved against the root the server was
+	// started in, which is not always the directory the caller is in: with
+	// several worktrees of one repository checked out, an edit meant for one
+	// silently lands in another (issue #3). It is worth the line — the
+	// alternative is finding out from the other checkout's diff.
+	if r.Workspace != "" {
+		lines = append(lines, "in "+r.Workspace)
+	}
 
 	// Diagnostics are why an agent reads an edit response at all, so they
 	// get their own lines rather than being folded into the header.

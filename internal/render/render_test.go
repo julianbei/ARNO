@@ -542,3 +542,34 @@ func TestDiagnosticWithoutAColumnOmitsIt(t *testing.T) {
 		t.Fatalf("expected a known column kept, got:\n%s", out)
 	}
 }
+
+// An edit names the directory it was written to. A relative path is resolved
+// against the root the server started in, which is not always where the caller
+// is: with several worktrees of one repository checked out, an edit meant for
+// one lands in another and nothing in the response said so (issue #3).
+func TestEditNamesTheWorkspaceItWroteTo(t *testing.T) {
+	text, ok := Text(protocol.EditResponse{
+		OldRevision: "r1",
+		NewRevision: "r2",
+		Changed:     []string{"file.txt"},
+		Workspace:   "/repos/app-hotfix",
+	})
+	if !ok {
+		t.Fatal("an edit response should render")
+	}
+	if !strings.Contains(text, "in /repos/app-hotfix") {
+		t.Errorf("the edit should name the workspace it wrote to, got:\n%s", text)
+	}
+}
+
+// A response carrying no workspace renders without an empty "in " line: the
+// field is omitted rather than reported blank.
+func TestEditWithoutAWorkspaceSaysNothingAboutOne(t *testing.T) {
+	text, ok := Text(protocol.EditResponse{OldRevision: "r1", NewRevision: "r2"})
+	if !ok {
+		t.Fatal("an edit response should render")
+	}
+	if strings.Contains(text, "in ") {
+		t.Errorf("no workspace should mean no line about one, got:\n%s", text)
+	}
+}

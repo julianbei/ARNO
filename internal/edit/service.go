@@ -101,6 +101,7 @@ func (s *Service) ReplaceSymbol(symbolID string, expectedRevision string, newCod
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
+		Workspace:    s.workspace.Root(),
 		NewRevision:  newRev,
 		Changed:      []string{symbolID},
 		AddedLines:   countLines(newCode),
@@ -126,6 +127,7 @@ func (s *Service) ReplaceRange(path string, expectedRevision string, start int, 
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
+		Workspace:    s.workspace.Root(),
 		NewRevision:  newRev,
 		Changed:      []string{path},
 		AddedLines:   countLines(newCode),
@@ -156,6 +158,7 @@ func (s *Service) ReplaceText(path string, expectedRevision string, oldText stri
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
+		Workspace:    s.workspace.Root(),
 		NewRevision:  newRev,
 		Changed:      []string{path},
 		AddedLines:   addedLines,
@@ -190,6 +193,7 @@ func (s *Service) Insert(path string, expectedRevision string, anchor string, po
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
+		Workspace:    s.workspace.Root(),
 		NewRevision:  newRev,
 		Changed:      []string{path},
 		AddedLines:   addedLines,
@@ -218,6 +222,7 @@ func (s *Service) DeleteSymbol(path string, symbolID string, expectedRevision st
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
+		Workspace:    s.workspace.Root(),
 		NewRevision:  newRev,
 		Changed:      []string{symbol.Path},
 		RemovedLines: len(removed),
@@ -241,6 +246,7 @@ func (s *Service) CreateFile(path string, content string) (protocol.EditResponse
 
 	return protocol.EditResponse{
 		OldRevision: oldRev,
+		Workspace:   s.workspace.Root(),
 		NewRevision: newRev,
 		Changed:     []string{path},
 		AddedLines:  countLines(content),
@@ -266,6 +272,7 @@ func (s *Service) ReplaceFile(path string, content string) (protocol.EditRespons
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
+		Workspace:    s.workspace.Root(),
 		NewRevision:  newRev,
 		Changed:      []string{path},
 		AddedLines:   countLines(content),
@@ -287,6 +294,7 @@ func (s *Service) DeleteFile(path string) (protocol.EditResponse, error) {
 
 	return protocol.EditResponse{
 		OldRevision:  oldRev,
+		Workspace:    s.workspace.Root(),
 		NewRevision:  newRev,
 		Changed:      []string{path},
 		RemovedLines: removedLines,
@@ -316,6 +324,7 @@ func (s *Service) Rename(path string, symbolID string, newName string, expectedR
 
 	return protocol.EditResponse{
 		OldRevision: oldRev,
+		Workspace:   s.workspace.Root(),
 		NewRevision: newRev,
 		Changed:     changed,
 		Formatted:   formatted,

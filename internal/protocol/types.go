@@ -1280,6 +1280,14 @@ type EditResponse struct {
 	// Snippets show the edited region as the file now reads, so the caller
 	// need not read it back.
 	Snippets []Snippet `json:",omitempty"`
+	// Workspace is the absolute directory the edit was written to. A caller
+	// gives a relative path and ARNO resolves it against the root the server
+	// was started in, which is not always the directory the caller is in:
+	// with several git worktrees of one repository checked out, an edit meant
+	// for one lands in another with nothing to show for it (issue #3). Naming
+	// the root makes that visible on the first edit rather than days later in
+	// the other checkout's diff.
+	Workspace string `json:",omitempty"`
 }
 
 // Snippet is a region of a file after an edit, with a little context.

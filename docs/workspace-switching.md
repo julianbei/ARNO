@@ -97,9 +97,17 @@ rebuild synchronously without locking the graph.
 5. Report the absolute root in the switch response, and state the cost — the
    next call re-indexes and starts a language server.
 
-## Still open
+## Naming the root on every edit
 
-Whether an edit response should name its absolute root on every call, not only
-after a switch. It is the part of issue #3 that makes the original failure
-visible rather than preventable, and it costs bytes in a response an agent
-reads constantly.
+Switching prevents the wrong-worktree write; it does not make one visible to a
+session that never switches. So `EditResponse` carries `Workspace`, the
+absolute directory the edit was written to, and an edit renders it under the
+header:
+
+```
+r1 → r2 · file.txt · +1 -1
+in /repos/app-hotfix
+```
+
+One line on a response an agent reads constantly, against a failure whose
+alternative discovery path is another checkout's diff, days later.
