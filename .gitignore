@@ -21,3 +21,9 @@ test/conformance/repos/*/node_modules/
 test/conformance/repos/*/package-lock.json
 test/conformance/repos/ruby/Gemfile.lock
 test/conformance/repos/*/target/
+
+# `go build ./cmd/<name>` writes the binary into the directory it is run from,
+# so a build at the repository root leaves one here. Anchored to the root:
+# cmd/arno-mcp/ is the source, and must stay tracked.
+/arno-mcp
+/arno-bench
