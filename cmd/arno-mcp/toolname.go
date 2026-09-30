@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/julianbei/arno/internal/compat"
-
 	"fmt"
 	"sort"
 	"strings"
@@ -41,11 +39,6 @@ func canonicalToolName(name string) (string, error) {
 	}
 	if rest, ok := strings.CutPrefix(name, "arno_"); ok && known["arno."+rest] {
 		return "arno." + rest, nil
-	}
-	// Jade's names, until the release after 0.0.12: a tester's client config
-	// and any agent that learned jade.find keep working across the rename.
-	if renamed := compat.ToolName(name); renamed != "" && known[renamed] {
-		return renamed, nil
 	}
 	return "", unknownToolError(name, known)
 }

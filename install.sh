@@ -17,18 +17,6 @@
 # ARNO_ADD_TO_PATH  1 adds the install directory to the shell profile without asking
 set -eu
 
-# Jade's variables keep working for one release. The new name always wins.
-for name in VERSION INSTALL_DIR RELEASE_URL SERVERS SKIP_SETUP ADD_TO_PATH; do
-	eval "current=\${ARNO_$name:-}"
-	eval "legacy=\${JADE_$name:-}"
-	if [ -z "$current" ] && [ -n "$legacy" ]; then
-		eval "ARNO_$name=\$legacy"
-		export "ARNO_$name"
-		printf 'arno: JADE_%s is deprecated, use ARNO_%s\n' "$name" "$name" >&2
-	fi
-done
-unset current legacy
-
 repo="julianbei/arno"
 version="${ARNO_VERSION:-}"
 base="${ARNO_RELEASE_URL:-https://github.com/$repo/releases/download}"

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/julianbei/arno/internal/compat"
-
 	"bufio"
 	"context"
 	"encoding/json"
@@ -209,7 +207,7 @@ func main() {
 
 	ctx := context.Background()
 
-	resolved, err := resolveWorkspaceRoot(os.Args[1:], compat.Getenv, os.Getwd)
+	resolved, err := resolveWorkspaceRoot(os.Args[1:], os.Getenv, os.Getwd)
 	if err != nil {
 		fatalf("%v", err)
 	}
@@ -1445,7 +1443,7 @@ func int64Arg(args map[string]interface{}, key string) int64 {
 // default because the consumer is a language model, but a consumer that
 // genuinely parses responses can set ARNO_JSON=1 to opt out.
 func arnoJSONOutput() bool {
-	value := strings.TrimSpace(compat.Getenv("ARNO_JSON"))
+	value := strings.TrimSpace(os.Getenv("ARNO_JSON"))
 	return value == "1" || strings.EqualFold(value, "true")
 }
 

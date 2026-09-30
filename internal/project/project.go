@@ -11,8 +11,6 @@
 package project
 
 import (
-	"github.com/julianbei/arno/internal/compat"
-
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -72,7 +70,7 @@ type Config struct {
 // a path outside the workspace is, because acting on half a config would run
 // commands nobody declared.
 func Load(root string) (*Config, error) {
-	data, err := os.ReadFile(compat.StatePath(root, File))
+	data, err := os.ReadFile(filepath.Join(root, Dir, File))
 	if os.IsNotExist(err) {
 		return nil, nil
 	}

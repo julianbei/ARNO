@@ -39,7 +39,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/julianbei/arno/internal/compat"
 	"github.com/julianbei/arno/internal/protocol"
 )
 
@@ -141,14 +140,12 @@ const StateDirEnv = "ARNO_STATE_DIR"
 func New(root string) *Recorder {
 	recorder := &Recorder{
 		root:     root,
-		disabled: strings.TrimSpace(compat.Getenv("ARNO_TELEMETRY")) == "0",
+		disabled: strings.TrimSpace(os.Getenv("ARNO_TELEMETRY")) == "0",
 	}
-	if stateDir := strings.TrimSpace(compat.Getenv(StateDirEnv)); stateDir != "" {
+	if stateDir := strings.TrimSpace(os.Getenv(StateDirEnv)); stateDir != "" {
 		recorder.path = filepath.Join(stateDir, workspaceKey(root), File)
 	} else {
-		// compat.StatePath keeps writing to a .jade/ log that already exists,
-		// so a session's history is not split in two by the rename.
-		recorder.path = compat.StatePath(root, File)
+		recorder.path = filepath.Join(root, Dir, File)
 		recorder.inWorkspace = true
 	}
 	return recorder

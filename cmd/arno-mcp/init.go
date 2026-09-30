@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/julianbei/arno/internal/compat"
-
 	"encoding/json"
 	"fmt"
 	"io"
@@ -84,7 +82,7 @@ func capabilityBrief(index *code.Index) string {
 // discovery finds, for a person to review and commit. It never overwrites an
 // existing config: that file is the repository's statement, not ARNO's.
 func runInit(args []string, stdout io.Writer) error {
-	resolved, err := resolveWorkspaceRoot(args, compat.Getenv, os.Getwd)
+	resolved, err := resolveWorkspaceRoot(args, os.Getenv, os.Getwd)
 	if err != nil {
 		return err
 	}

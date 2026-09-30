@@ -28,8 +28,6 @@
 package commands
 
 import (
-	"github.com/julianbei/arno/internal/compat"
-
 	"encoding/json"
 	"fmt"
 	"os"
@@ -97,7 +95,7 @@ type Registry struct {
 func Load(root string) (*Registry, error) {
 	registry := &Registry{root: root, commands: map[string]Command{}}
 
-	data, err := os.ReadFile(compat.StatePath(root, File))
+	data, err := os.ReadFile(filepath.Join(root, Dir, File))
 	if os.IsNotExist(err) {
 		return registry, nil
 	}

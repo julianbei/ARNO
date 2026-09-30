@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### The Jade names are gone
+
+`jade.find` and `jade_find`, the `JADE_*` environment variables and reading a
+`.jade/` directory are removed. 0.0.12 and 0.0.13 accepted all three and said
+on stderr that they would stop working after 0.0.13; this is that release.
+
+What changes for anyone still on them:
+
+- A call to `jade.find` now fails like any other unknown tool. The refusal
+  names the `arno.` spelling, so the fix is in the error.
+- `JADE_VERSION`, `JADE_TELEMETRY` and the rest are ignored. Use `ARNO_*`;
+  `install.sh` no longer translates them either.
+- A workspace with only a `.jade/` directory is read as having no declared
+  commands, no project file and no telemetry history. `git mv .jade .arno`
+  keeps all three.
+
+`internal/compat` is deleted with them.
+
 ## 0.0.13
 
 ### An edit names the directory it wrote to

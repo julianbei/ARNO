@@ -35,15 +35,19 @@ Renamed files and directories: `cmd/jade-mcp/` → `cmd/arno-mcp/`,
 `configs/jade.example.yaml`, `.jade/commands.json`, the logo files, and
 `internal/bench/agent/testdata/stream-jade.jsonl`.
 
-## Compatibility, and when it ends
+## Compatibility, and when it ended
 
-Everything below is accepted, answers, and says it is deprecated. All of it is
-deleted in the release after **0.0.13**.
+**Over.** Everything below was accepted through 0.0.13, each use saying on
+stderr that it would stop working after that release, and all of it — with
+`internal/compat` itself — is deleted in the release after 0.0.13.
 
-That was originally the release after 0.0.12. It moved out by one because
-0.0.12 and 0.0.13 shipped a day apart: anyone who installed under the old name
-and did not update within 24 hours would have been broken by a grace period
-that existed only on paper.
+The removal was originally set for the release after 0.0.12. It moved out by
+one because 0.0.12 and 0.0.13 shipped a day apart: anyone who installed under
+the old name and did not update within 24 hours would have been broken by a
+grace period that existed only on paper.
+
+What follows is what the layer did, kept as the record of what was promised
+and for how long.
 
 - **Tool names.** `jade.find` and `jade_find` resolve to `arno.find`.
   `canonicalToolName` in `toolname.go` already maps two spellings to one wire
