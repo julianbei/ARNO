@@ -71,7 +71,9 @@ var (
 // unannotated. Destructive means it can overwrite or remove what was there:
 // edits, deletions, revert, and run_command's arbitrary shell. check and
 // run_tests run the project's own commands, which write build output but are
-// not meant to change source.
+// not meant to change source. workspace is additive for the same reason a
+// checkpoint is: it changes which directory later calls read and write, but
+// never a file.
 var toolAnnotationsByName = map[string]toolAnnotations{
 	"arno.capabilities":    readOnlyTool,
 	"arno.workspace_tree":  readOnlyTool,
@@ -89,9 +91,6 @@ var toolAnnotationsByName = map[string]toolAnnotations{
 	"arno.job_status":      readOnlyTool,
 	"arno.job_output":      readOnlyTool,
 	"arno.events":          readOnlyTool,
-	// Switching changes which directory every later call reads and writes,
-	// so it is not read-only, but it never changes a file: additive, like a
-	// checkpoint.
 	"arno.workspace":       additiveTool,
 	"arno.insert":          additiveTool,
 	"arno.create_file":     additiveTool,
