@@ -13,7 +13,6 @@ import (
 	"github.com/julianbei/arno/internal/events"
 	"github.com/julianbei/arno/internal/jobs"
 	"github.com/julianbei/arno/internal/languages"
-	"github.com/julianbei/arno/internal/telemetry"
 	"github.com/julianbei/arno/internal/transport/internalapi"
 	"github.com/julianbei/arno/internal/workspace"
 )
@@ -30,7 +29,7 @@ func newTestMCPServerAt(t *testing.T, root string) *mcpServer {
 	jr := jobs.NewRunner(bus)
 	es := edit.NewService(wm, ci, ds, jr)
 	api := internalapi.NewServer(wm, ci, es, ds, jr, languages.NewRegistry(), bus)
-	return &mcpServer{api: api, telemetry: telemetry.New(root)}
+	return newTestMCPServerWith(root, api)
 }
 
 func readFileText(t *testing.T, path string) string {

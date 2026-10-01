@@ -141,17 +141,49 @@ func gitWorktrees(ctx context.Context, root string) ([]worktree, error) {
 // sameWorkspaceDir compares two directories by their resolved absolute paths, so that a
 // symlinked or differently spelled path still matches the workspace it names.
 func sameWorkspaceDir(a, b string) bool {
-	resolve := func(p string) string {
-		abs, err := filepath.Abs(p)
-		if err != nil {
-			return filepath.Clean(p)
-		}
-		if real, err := filepath.EvalSymlinks(abs); err == nil {
-			return real
-		}
-		return abs
+	return resolveDir(a) == resolveDir(b)
+}
+
+// resolveDir is a path reduced to the one spelling every comparison uses:
+// absolute, with symlinks followed. git prints its own resolved spelling —
+// /private/var on macOS where the caller said /var — so comparing anything
+// else matches worktrees by luck.
+func resolveDir(p string) string {
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return filepath.Clean(p)
 	}
-	return resolve(a) == resolve(b)
+	if real, err := filepath.EvalSymlinks(abs); err == nil {
+		return real
+	}
+	return abs
+}
+
+// resolveMissingPath resolves a path that need not exist yet, by resolving the
+// deepest ancestor that does and re-attaching the rest.
+//
+// EvalSymlinks fails outright on a path with a missing component, so
+// resolveDir leaves such a path unresolved — and on macOS an unresolved /var
+// path never matches git's /private/var spelling. The file a create_file names
+// is exactly the file that does not exist yet, which is when being told which
+// worktree it belongs to matters most.
+func resolveMissingPath(p string) string {
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return filepath.Clean(p)
+	}
+	current, rest := abs, ""
+	for {
+		if real, err := filepath.EvalSymlinks(current); err == nil {
+			return filepath.Join(real, rest)
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return abs
+		}
+		rest = filepath.Join(filepath.Base(current), rest)
+		current = parent
+	}
 }
 
 // describeWorkspaces reports the active workspace and what else this session
@@ -175,7 +207,7 @@ func describeWorkspaces(root string, list []worktree) string {
 		}
 		fmt.Fprintf(&b, "%s%s%s\n", marker, w.path, branch)
 	}
-	b.WriteString("\nswitch with workspace path=<one of these>")
+	b.WriteString("\nAct in one for a single call: root=<path> on any tool — a session and its subagents can use different worktrees at the same time this way.\nChange the default for every later call: workspace path=<path>.")
 	return b.String()
 }
 
@@ -211,9 +243,10 @@ func (s *mcpServer) switchWorkspace(ctx context.Context, target string) (string,
 		return fmt.Sprintf("already serving %s; nothing changed", match.path), nil
 	}
 
-	// Built before the old one is closed, so a failure leaves the session
+	// Resolved through the cache, so a workspace this session has already
+	// served is adopted rather than rebuilt, and a failure leaves the session
 	// serving the workspace it already had rather than none at all.
-	next, err := s.openWorkspaceGraph(ctx, match.path)
+	next, err := s.graphForRoot(ctx, match.path)
 	if err != nil {
 		return "", fmt.Errorf("could not open %s, still serving %s: %w", match.path, s.graph.root, err)
 	}
@@ -224,10 +257,9 @@ func (s *mcpServer) switchWorkspace(ctx context.Context, target string) (string,
 	s.api = next.api
 	s.telemetry = next.rec
 	s.instructions = next.instructions
-	previous.close()
 
-	return fmt.Sprintf("workspace is now %s%s\nwas %s\n\nRevisions start again at r1 and checkpoints from the previous workspace are gone: they belong to the workspace that made them. The next call that needs a language server pays for starting it, and the symbol index is built again for this worktree.",
-		match.path, branchSuffix(match.branch), previous.root), nil
+	return fmt.Sprintf("workspace is now %s%s\nwas %s\n\nRevisions and checkpoints belong to the workspace that made them, so this one starts with its own. %s stays open and switching back to it is free until it is evicted.\n\nSwitching is only needed to change the default: any tool can act in another worktree for one call with root=<path>, which is what lets subagents work in several at once.",
+		match.path, branchSuffix(match.branch), previous.root, previous.root), nil
 }
 
 func branchSuffix(branch string) string {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -35,7 +36,20 @@ func newTestMCPServer(t *testing.T) (*mcpServer, string) {
 	lr := languages.NewRegistry()
 
 	api := internalapi.NewServer(wm, ci, es, ds, jr, lr, bus)
-	return &mcpServer{api: api, telemetry: telemetry.New(root)}, root
+	return newTestMCPServerWith(root, api), root
+}
+
+// newTestMCPServerWith assembles a server around an already-wired api the way
+// main does: the graph is the unit a tool call is dispatched against, so a
+// server without one is not a server any dispatch path would accept.
+func newTestMCPServerWith(root string, api *internalapi.Server) *mcpServer {
+	rec := telemetry.New(root)
+	graph := &workspaceGraph{root: root, api: api, rec: rec}
+	graphs := newGraphCache(maxOpenWorkspacesDefault)
+	graphs.add(graph)
+	// ctx is not optional: a tool call resolves its workspace against it, so
+	// a server without one is a shape main never builds.
+	return &mcpServer{api: api, telemetry: rec, graph: graph, graphs: graphs, ctx: context.Background()}
 }
 
 func toolCall(t *testing.T, name string, args map[string]interface{}) json.RawMessage {

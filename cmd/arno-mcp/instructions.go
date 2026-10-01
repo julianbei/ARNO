@@ -26,4 +26,5 @@ const serverInstructions = "ARNO inspects, edits and validates code in this work
 	"Edits return diagnostics inline, so a build is rarely needed to see a mistake. " +
 	"Changing more than one site? Use arno.apply: one atomic call, one validation at the end, " +
 	"and no errors reported from half-finished intermediate states. " +
-	"Tool names are accepted as arno.<name> or arno_<name>."
+	"Tool names are accepted as arno.<name> or arno_<name>. " +
+	"Another worktree of this repository? Pass root=<path> on any tool; arno.workspace lists them."

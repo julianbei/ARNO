@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.0.15
+
+### A tool call can name the worktree it acts in
+
+Every tool except `workspace`, `telemetry`, `events` and the two job tools
+takes an optional `root`:
+
+```
+arno.replace_text path=src/a.ts oldText=... newText=... root=/repos/wt-spell
+```
+
+The call acts in that worktree and nothing else changes: the session's
+default workspace, and every other caller sharing the server, are untouched.
+A call that names no `root` behaves exactly as it did in 0.0.14.
+
+This is issue #4. An MCP stdio server is one process per client connection
+and a request carries no caller identity, so a session and the subagents
+inside it share one server. The only way to reach another worktree was
+`workspace path=`, which repoints the whole server — correct for one caller,
+and for two it silently sends the other's reads, edits and diagnostics to the
+wrong tree. That is the failure mode of #3, reintroduced by the workaround
+for #3.
+
+A `root` must be a worktree of the repository the server was started in,
+checked against `git worktree list`. Anything else is refused and the refusal
+lists the valid targets, so the argument cannot reach another repository.
+
+Each worktree is a full workspace: its own index, language servers, revision
+counter, checkpoints and `.arno/`. At most three are open at once, least
+recently used evicted first and the session's default never evicted; set
+`ARNO_MAX_WORKSPACES` to change the bound. Eviction closes language servers
+and touches nothing on disk.
+
+`docs/worktrees.md` has the details.
+
+### A refused path in a sibling worktree says how to reach it
+
+An absolute path into another worktree of the same repository is still
+refused — it is outside this workspace — but the refusal now names the way
+in rather than only the problem:
+
+```
+/repos/wt-spell/plan/README.md is in /repos/wt-spell, another worktree of
+this repository. Act there with root=/repos/wt-spell and path=plan/README.md,
+which leaves this session's workspace where it is.
+```
+
+### Changed
+
+- `workspace` is now for changing a session's default workspace. It still
+  lists the worktrees and reports which one is served. Switching no longer
+  closes the workspace it leaves: it stays open and switching back is free
+  until it is evicted.
+- The core `tools/list` grew about 1.3 KB, paid by every session, because
+  `root` is declared on every tool it applies to. An argument an agent cannot
+  see in the schema is an argument it does not use, which is why it is not
+  hidden behind a flag; its description is one sentence for the same reason.
+
 ## 0.0.14
 
 ### The Jade names are gone

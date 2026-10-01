@@ -2,6 +2,14 @@
 
 Status: shipped in 0.0.13 as the `workspace` tool. Answers issue #3.
 
+> **Superseded for most uses by 0.0.15.** Switching repoints the whole
+> server, which is wrong when a session and its subagents share it — issue
+> #4. Since 0.0.15 a tool call names its worktree with `root=<path>` instead,
+> and switching is only for changing a session's default. See
+> [worktrees.md](worktrees.md). This document stays because the reasoning
+> below — why a switch must rebuild everything bound to the root — is what
+> the per-call workspace is built on.
+
 ## The bug this comes from
 
 ARNO resolves every path against one workspace root, fixed when the process

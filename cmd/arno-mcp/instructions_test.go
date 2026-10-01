@@ -21,10 +21,13 @@ func TestCoreToolsAreRealAndNamedInInstructions(t *testing.T) {
 	}
 }
 
-// Instructions are paid for by every session.
+// Instructions are paid for by every session. The bound was 600 until 0.0.15
+// added the one sentence that tells an agent a tool can act in another
+// worktree: the capability is unreachable if nothing says it exists, and the
+// tool schemas alone did not get agents to reach for it.
 func TestInstructionsStayShort(t *testing.T) {
-	if len(serverInstructions) > 600 {
-		t.Fatalf("server instructions are %d bytes; keep them under 600", len(serverInstructions))
+	if len(serverInstructions) > 680 {
+		t.Fatalf("server instructions are %d bytes; keep them under 680", len(serverInstructions))
 	}
 }
 

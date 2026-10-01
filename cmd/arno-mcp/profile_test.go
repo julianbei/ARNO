@@ -37,7 +37,12 @@ func TestCoreProfileListsOnlyRealToolsAndIsSmaller(t *testing.T) {
 // 13000 until every tool gained MCP annotations (read-only and destructive
 // hints, about 35 bytes each) and delete_file its undo note: metadata hosts
 // act on, and what TDQS grades descriptions against.
-const maxCoreCatalogBytes = 13700
+//
+// It moved again in 0.0.15, to 15200, when every root-bound tool gained the
+// optional root argument (about 120 bytes each). That one is paid by every
+// session, not only the fleets that need it, which is why its description is
+// a single sentence and the explanation lives in docs/worktrees.md.
+const maxCoreCatalogBytes = 15200
 
 // core+<tool> lists the core profile plus the named tools, so a candidate can
 // be benchmarked against core without a second hardcoded list.

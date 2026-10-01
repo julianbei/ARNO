@@ -143,6 +143,10 @@ type mcpServer struct {
 	// sites that use them need not learn about the graph. A workspace switch
 	// replaces all four together.
 	graph *workspaceGraph
+	// graphs holds every workspace this server has open, the default among
+	// them. A call that names a root is served from here, which is what lets
+	// one session and its subagents work in different worktrees at once.
+	graphs *graphCache
 	// bus, jobs and langs do not depend on the root and outlive a switch.
 	bus   *events.Bus
 	jobs  *jobs.Runner
@@ -247,7 +251,12 @@ func main() {
 	if err != nil {
 		fatalf("%v", err)
 	}
-	defer func() { graph.close() }()
+	// The cache owns every graph's lifetime, this first one included, so a
+	// workspace the session returns to is not rebuilt and nothing is closed
+	// twice.
+	s.graphs = newGraphCache(maxOpenWorkspaces())
+	s.graphs.add(graph)
+	defer func() { s.graphs.closeAll() }()
 	s.graph = graph
 	s.api = graph.api
 	s.telemetry = graph.rec
@@ -392,10 +401,23 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 		return mcpToolResult{}, err
 	}
 
+	// Which workspace this call acts in is settled before anything runs, so a
+	// root that is not a worktree of this repository fails the call rather
+	// than half-serving it from the default one.
+	graph, err := s.graphForCall(s.ctx, args)
+	if err != nil {
+		s.telemetry.RecordRejected(req.Name, telemetry.Classify(err))
+		return mcpToolResult{}, err
+	}
+
 	started := time.Now()
 	stopProgress := s.reportProgress(req.Meta.ProgressToken, req.Name)
-	result, err := s.dispatchToolCall(req.Name, args)
+	result, err := s.dispatchToolCall(graph, req.Name, args)
 	stopProgress()
+	// A path in a sibling worktree is reachable, just not the way it was
+	// named. Saying so here covers every tool at once, because they all
+	// refuse out-of-workspace paths through the same guard.
+	err = s.suggestRootForOutsidePath(err, args)
 	if err == nil {
 		s.rememberBackgroundJobs(args, result)
 	}
@@ -406,7 +428,9 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 	if err == nil && result.outcome != "" {
 		outcome = result.outcome
 	}
-	s.telemetry.RecordCall(req.Name, telemetry.TargetOf(args), time.Since(started), resultBytes(result), outcome)
+	// Recorded against the workspace the call acted in, not the default one:
+	// telemetry lives in that root's .arno/ and describes what happened there.
+	graph.rec.RecordCall(req.Name, telemetry.TargetOf(args), time.Since(started), resultBytes(result), outcome)
 	return result, err
 }
 
@@ -422,18 +446,22 @@ func resultBytes(result mcpToolResult) int {
 	return total
 }
 
-func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (mcpToolResult, error) {
+// dispatchToolCall runs one tool against g, the workspace the call named or
+// the session default when it named none. Every handler reads g.api rather
+// than the server's, so two calls in one session can act in two worktrees.
+func (s *mcpServer) dispatchToolCall(g *workspaceGraph, name string, args map[string]interface{}) (mcpToolResult, error) {
+	api := g.api
 	switch name {
 	case "arno.workspace_tree":
 		maxEntries := intArg(args, "maxEntries")
-		res, err := s.api.WorkspaceTree(protocol.WorkspaceTreeRequest{MaxEntries: maxEntries, Budget: intArg(args, "budget"), Continue: stringArg(args, "continue")})
+		res, err := api.WorkspaceTree(protocol.WorkspaceTreeRequest{MaxEntries: maxEntries, Budget: intArg(args, "budget"), Continue: stringArg(args, "continue")})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
 	case "arno.outline":
 		path := stringArg(args, "path")
-		res, err := s.api.Outline(protocol.OutlineRequest{Path: path})
+		res, err := api.Outline(protocol.OutlineRequest{Path: path})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
@@ -444,7 +472,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 			if err != nil {
 				return mcpToolResult{}, err
 			}
-			res, err := s.api.ReadRanges(protocol.ReadRangesRequest{Ranges: ranges})
+			res, err := api.ReadRanges(protocol.ReadRangesRequest{Ranges: ranges})
 			if err != nil {
 				return mcpToolResult{}, err
 			}
@@ -462,7 +490,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 				return mcpToolResult{}, err
 			}
 		}
-		res, err := s.api.ReadRange(protocol.ReadRangeRequest{
+		res, err := api.ReadRange(protocol.ReadRangeRequest{
 			Path:      path,
 			StartLine: startLine,
 			EndLine:   endLine,
@@ -474,7 +502,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "arno.history":
-		res, err := s.api.History(protocol.HistoryRequest{
+		res, err := api.History(protocol.HistoryRequest{
 			Path:         stringArg(args, "path"),
 			SymbolID:     stringArg(args, "symbolId"),
 			SymbolName:   stringArg(args, "symbolName"),
@@ -488,7 +516,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "arno.context":
-		res, err := s.api.Context(protocol.ContextRequest{
+		res, err := api.Context(protocol.ContextRequest{
 			Path:       stringArg(args, "path"),
 			SymbolID:   stringArg(args, "symbolId"),
 			SymbolName: stringArg(args, "symbolName"),
@@ -502,7 +530,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		path := stringArg(args, "path")
 		symbolID := stringArg(args, "symbolId")
 		symbolName := stringArg(args, "symbolName")
-		res, err := s.api.References(protocol.ReferencesRequest{
+		res, err := api.References(protocol.ReferencesRequest{
 			Path:       path,
 			SymbolID:   symbolID,
 			SymbolName: symbolName,
@@ -514,7 +542,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "arno.rename":
-		res, err := s.api.Rename(protocol.RenameRequest{
+		res, err := api.Rename(protocol.RenameRequest{
 			Path:             stringArg(args, "path"),
 			SymbolID:         stringArg(args, "symbolId"),
 			SymbolName:       stringArg(args, "symbolName"),
@@ -527,7 +555,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		return jsonResult(res)
 	case "arno.find":
 		if queries := stringsArg(args, "queries"); len(queries) > 0 {
-			res, err := s.api.FindBatch(queries, stringArg(args, "kind"), intArg(args, "limit"), intArg(args, "maxLines"), stringArg(args, "dependency"))
+			res, err := api.FindBatch(queries, stringArg(args, "kind"), intArg(args, "limit"), intArg(args, "maxLines"), stringArg(args, "dependency"))
 			if err != nil {
 				return mcpToolResult{}, err
 			}
@@ -536,7 +564,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		if blank(stringArg(args, "query")) && blank(stringArg(args, "continue")) {
 			return mcpToolResult{}, fmt.Errorf("find needs query (one name), queries (several names) or continue (the next page)")
 		}
-		res, err := s.api.Find(protocol.FindRequest{
+		res, err := api.Find(protocol.FindRequest{
 			Dependency: stringArg(args, "dependency"),
 			Query:      stringArg(args, "query"),
 			Kind:       stringArg(args, "kind"),
@@ -552,7 +580,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 	case "arno.retrieve":
 		query := stringArg(args, "query")
 		maxTokens := intArg(args, "maxTokens")
-		res, err := s.api.Retrieve(protocol.RetrievalRequest{Query: query, MaxTokens: maxTokens})
+		res, err := api.Retrieve(protocol.RetrievalRequest{Query: query, MaxTokens: maxTokens})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
@@ -561,13 +589,13 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		symbolID := stringArg(args, "symbolId")
 		newCode := stringArg(args, "newCode")
 		expected := stringArg(args, "expectedRevision")
-		res, err := s.api.ReplaceSymbol(protocol.ReplaceSymbolRequest{SymbolID: symbolID, NewCode: newCode, ExpectedRevision: expected})
+		res, err := api.ReplaceSymbol(protocol.ReplaceSymbolRequest{SymbolID: symbolID, NewCode: newCode, ExpectedRevision: expected})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
 	case "arno.insert":
-		res, err := s.api.Insert(protocol.InsertRequest{
+		res, err := api.Insert(protocol.InsertRequest{
 			Path:             stringArg(args, "path"),
 			ExpectedRevision: stringArg(args, "expectedRevision"),
 			ExpectedDigest:   stringArg(args, "expectedDigest"),
@@ -580,7 +608,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "arno.replace_text":
-		res, err := s.api.ReplaceText(protocol.ReplaceTextRequest{
+		res, err := api.ReplaceText(protocol.ReplaceTextRequest{
 			Path:             stringArg(args, "path"),
 			ExpectedRevision: stringArg(args, "expectedRevision"),
 			ExpectedDigest:   stringArg(args, "expectedDigest"),
@@ -594,13 +622,13 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 	case "arno.create_file":
 		path := stringArg(args, "path")
 		content := stringArg(args, "content")
-		res, err := s.api.CreateFile(protocol.CreateFileRequest{Path: path, Content: content})
+		res, err := api.CreateFile(protocol.CreateFileRequest{Path: path, Content: content})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
 	case "arno.replace_file":
-		res, err := s.api.ReplaceFile(protocol.ReplaceFileRequest{
+		res, err := api.ReplaceFile(protocol.ReplaceFileRequest{
 			Path:    stringArg(args, "path"),
 			Content: stringArg(args, "content"),
 		})
@@ -613,7 +641,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		if err != nil {
 			return mcpToolResult{}, err
 		}
-		res, err := s.api.Apply(protocol.ApplyRequest{
+		res, err := api.Apply(protocol.ApplyRequest{
 			Edits:            edits,
 			ExpectedRevision: stringArg(args, "expectedRevision"),
 			Format:           boolArgDefault(args, "format", true),
@@ -624,7 +652,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "arno.delete_symbol":
-		res, err := s.api.DeleteSymbol(protocol.DeleteSymbolRequest{
+		res, err := api.DeleteSymbol(protocol.DeleteSymbolRequest{
 			Path:             stringArg(args, "path"),
 			SymbolID:         stringArg(args, "symbolId"),
 			SymbolName:       stringArg(args, "symbolName"),
@@ -636,13 +664,13 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		return jsonResult(res)
 	case "arno.delete_file":
 		path := stringArg(args, "path")
-		res, err := s.api.DeleteFile(protocol.DeleteFileRequest{Path: path})
+		res, err := api.DeleteFile(protocol.DeleteFileRequest{Path: path})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
 	case "arno.check":
-		res, err := s.api.Check(protocol.CheckRequest{
+		res, err := api.Check(protocol.CheckRequest{
 			Kind:           stringArg(args, "kind"),
 			Wait:           boolArgDefault(args, "wait", true),
 			TimeoutSeconds: intArg(args, "timeoutSeconds"),
@@ -654,14 +682,14 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "arno.telemetry":
-		res, err := s.api.Telemetry(protocol.TelemetryRequest{Reset: boolArg(args, "reset"), Catalog: catalogNames()})
+		res, err := api.Telemetry(protocol.TelemetryRequest{Reset: boolArg(args, "reset"), Catalog: catalogNames()})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
 	case "arno.grep":
 		if queries := stringsArg(args, "queries"); len(queries) > 0 {
-			res, err := s.api.GrepBatch(queries, protocol.GrepRequest{
+			res, err := api.GrepBatch(queries, protocol.GrepRequest{
 				Dependency: stringArg(args, "dependency"),
 				Regex:      boolArg(args, "regex"),
 				IgnoreCase: boolArg(args, "ignoreCase"),
@@ -679,7 +707,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		if blank(stringArg(args, "query")) && blank(stringArg(args, "continue")) {
 			return mcpToolResult{}, fmt.Errorf("grep needs query (one pattern), queries (several patterns) or continue (the next page)")
 		}
-		res, err := s.api.Grep(protocol.GrepRequest{
+		res, err := api.Grep(protocol.GrepRequest{
 			Dependency: stringArg(args, "dependency"),
 			Query:      stringArg(args, "query"),
 			Regex:      boolArg(args, "regex"),
@@ -696,7 +724,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "arno.run_command":
-		res, err := s.api.RunCommand(protocol.RunCommandRequest{
+		res, err := api.RunCommand(protocol.RunCommandRequest{
 			Name:           stringArg(args, "name"),
 			Wait:           boolArgDefault(args, "wait", true),
 			TimeoutSeconds: intArg(args, "timeoutSeconds"),
@@ -706,7 +734,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return jsonResult(res)
 	case "arno.declare_command":
-		res, err := s.api.DeclareCommand(protocol.DeclareCommandRequest{
+		res, err := api.DeclareCommand(protocol.DeclareCommandRequest{
 			Name:        stringArg(args, "name"),
 			Run:         stringArg(args, "run"),
 			Description: stringArg(args, "description"),
@@ -721,7 +749,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		scope := stringArg(args, "scope")
 		file := stringArg(args, "file")
 		testName := stringArg(args, "test")
-		res := s.api.RunTests(protocol.RunTestsRequest{
+		res := api.RunTests(protocol.RunTestsRequest{
 			Wait:           boolArgDefault(args, "wait", true),
 			TimeoutSeconds: intArg(args, "timeoutSeconds"),
 			Scope:          scope,
@@ -730,7 +758,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		})
 		return jsonResult(res)
 	case "arno.capabilities":
-		res, err := s.api.Capabilities()
+		res, err := api.Capabilities()
 		if err != nil {
 			return mcpToolResult{}, err
 		}
@@ -746,7 +774,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return result, err
 	case "arno.changes":
-		res := s.api.Changes()
+		res := api.Changes()
 		return jsonResult(res)
 	case "arno.workspace":
 		text, err := s.switchWorkspace(s.ctx, stringArg(args, "path"))
@@ -755,7 +783,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		}
 		return mcpToolResult{Content: []mcpTextContent{{Type: "text", Text: text}}}, nil
 	case "arno.diff":
-		res, err := s.api.Diff(protocol.DiffRequest{
+		res, err := api.Diff(protocol.DiffRequest{
 			Target:   stringArg(args, "target"),
 			Since:    stringArg(args, "since"),
 			Budget:   intArg(args, "budget"),
@@ -767,25 +795,25 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 		return jsonResult(res)
 	case "arno.checkpoint":
 		note := stringArg(args, "note")
-		res := s.api.Checkpoint(protocol.CheckpointRequest{Note: note})
+		res := api.Checkpoint(protocol.CheckpointRequest{Note: note})
 		return jsonResult(res)
 	case "arno.revert":
 		checkpointID := stringArg(args, "checkpointId")
-		res, err := s.api.Revert(protocol.RevertRequest{CheckpointID: checkpointID})
+		res, err := api.Revert(protocol.RevertRequest{CheckpointID: checkpointID})
 		if err != nil {
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
 	case "arno.job_status":
 		id := stringArg(args, "id")
-		res, err := s.api.JobStatus(id)
+		res, err := api.JobStatus(id)
 		if err != nil {
 			return mcpToolResult{}, err
 		}
 		return jsonResult(res)
 	case "arno.job_output":
 		id := stringArg(args, "id")
-		res, err := s.api.JobOutputPage(id, intArg(args, "budget"), stringArg(args, "continue"))
+		res, err := api.JobOutputPage(id, intArg(args, "budget"), stringArg(args, "continue"))
 		if err != nil {
 			return mcpToolResult{}, err
 		}
@@ -793,7 +821,7 @@ func (s *mcpServer) dispatchToolCall(name string, args map[string]interface{}) (
 	case "arno.events":
 		after := int64Arg(args, "after")
 		limit := intArg(args, "limit")
-		res := s.api.Events(after, limit)
+		res := api.Events(after, limit)
 		return jsonResult(res)
 	default:
 		return mcpToolResult{}, fmt.Errorf("unknown tool: %s", name)
@@ -816,8 +844,31 @@ func catalogNames() []string {
 // repository_map, read_symbol and replace_range, deprecated in 0.0.7.
 var deprecatedTools = map[string]string{}
 
+// toolsWithoutRoot are the tools a root argument would be meaningless on.
+// workspace takes path and names the workspace itself; the job tools address
+// a job by id, wherever it was started; telemetry and events are recorded per
+// workspace but reported for the session as a whole.
+var toolsWithoutRoot = map[string]bool{
+	"arno.workspace":  true,
+	"arno.job_status": true,
+	"arno.job_output": true,
+	"arno.events":     true,
+	"arno.telemetry":  true,
+}
+
+// rootArgument is declared on every other tool so a caller can act in another
+// worktree of the same repository without switching the server. It is
+// deliberately one short sentence: it is paid for once per tool in every
+// tools/list, and the long form belongs in docs/worktrees.md.
+func rootArgument() map[string]interface{} {
+	return map[string]interface{}{
+		"type":        "string",
+		"description": "Worktree of this repository to act in. Defaults to the session's workspace.",
+	}
+}
+
 // tools is the served catalog, a deprecated tool saying so before anything
-// else in its description.
+// else in its description and every root-bound tool accepting root.
 func tools() []mcpTool {
 	catalog := catalogTools()
 	for i := range catalog {
@@ -827,8 +878,29 @@ func tools() []mcpTool {
 		if reason, ok := deprecatedTools[catalog[i].Name]; ok {
 			catalog[i].Description = "Deprecated, removed before 0.1.0: " + reason + ". " + catalog[i].Description
 		}
+		if !toolsWithoutRoot[catalog[i].Name] {
+			addRootArgument(&catalog[i])
+		}
 	}
 	return catalog
+}
+
+// addRootArgument adds root to one tool's declared properties. A tool whose
+// schema has no properties map gets one, so capabilities — which declares no
+// arguments at all — can still be asked about another worktree.
+func addRootArgument(tool *mcpTool) {
+	if tool.InputSchema == nil {
+		tool.InputSchema = map[string]interface{}{"type": "object"}
+	}
+	properties, ok := tool.InputSchema["properties"].(map[string]interface{})
+	if !ok {
+		properties = map[string]interface{}{}
+		tool.InputSchema["properties"] = properties
+	}
+	if _, taken := properties["root"]; taken {
+		return
+	}
+	properties["root"] = rootArgument()
 }
 
 func catalogTools() []mcpTool {
@@ -1203,7 +1275,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "arno.workspace",
-			Description: "Report the directory ARNO reads and writes, and switch it to another git worktree of the same repository. Call it with no path when a repository has several worktrees checked out: ARNO serves the one it was started in, whatever directory the caller is in now, so an edit meant for a worktree otherwise lands in the starting checkout without any error. Switching rebuilds the index, revisions and language servers for the new worktree.",
+			Description: "List the git worktrees of this repository and report which one ARNO serves by default, or change that default with path. Call it with no path when a repository has several worktrees checked out: ARNO serves the one it was started in, whatever directory the caller is in now. To work in another worktree, prefer root=<path> on the tool itself — that acts in one worktree for one call and leaves every other caller alone, which is what lets a session and its subagents edit different worktrees at the same time. Change the default only for a session that stays in one worktree.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

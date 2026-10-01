@@ -480,6 +480,14 @@ given both ARNO and the shell made no ARNO call in three of three runs; the
 same setup with `alwaysLoad` called ARNO directly. Other hosts may have their
 own equivalent — check that ARNO's tools are actually being called.
 
+**One server serves one repository, but any of its worktrees.** ARNO is
+pinned to the directory it was started in, and no `cd` in your shell reaches
+it — MCP carries no per-call working directory. To act in another `git
+worktree` of the same repository, pass `root=<path>` on the tool; a session
+and its subagents can each name their own, so they do not disturb each other.
+`arno.workspace` lists the worktrees. See
+[docs/worktrees.md](docs/worktrees.md).
+
 **The MCP tool catalog is fixed at connection time.** A newly added tool does
 not appear until the client reconnects. If you upgrade ARNO mid-session and a
 tool seems missing, reconnect before investigating.
@@ -501,6 +509,7 @@ deliberately still uses `go run` for that reason.
 | `ARNO_STATE_DIR` | Keep the telemetry log outside the workspace, one subdirectory per workspace. |
 | `ARNO_METALS_IMPORT=1` | Let metals import an sbt build so Scala edits get diagnostics. Runs sbt; creates `.bloop/` and `.metals/`. |
 | `ARNO_UPDATE_CHECK=0` | Turn off the daily check for a newer release ([Update check](#update-check)). |
+| `ARNO_MAX_WORKSPACES` | How many git worktrees one server keeps open at once (default 3, least recently used evicted first). See [docs/worktrees.md](docs/worktrees.md). |
 
 The [install script](#with-the-install-script) reads its own:
 
@@ -613,6 +622,12 @@ exits non-zero fails.
 | `revert` | Restore those files to a checkpoint. Never moves git, and refuses if a commit landed since the checkpoint. |
 | `events` | The workspace event stream. |
 | `telemetry` | How ARNO's own tools have been used in this workspace. |
+| `workspace` | List this repository's git worktrees, and change which one the session serves by default. |
+
+Every tool above except `workspace`, `events`, `telemetry`, `job_status` and
+`job_output` also takes an optional `root=<path>`: one of this repository's
+git worktrees, to act in for that one call. See
+[docs/worktrees.md](docs/worktrees.md).
 
 ---
 

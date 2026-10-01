@@ -144,6 +144,9 @@ changing with it.
 | An anchor must match exactly once; an ambiguous one is refused | `TestReplaceTextRefusesAmbiguousAnchor`, `TestInsertRefusesAmbiguousAnchor`, `TestApplyRejectsAmbiguousAnchorBeforeWritingAnything` |
 | An anchor that is not there is refused | `TestReplaceTextRefusesMissingAnchor`, `TestInsertRefusesMissingAnchorText` |
 | No path outside the workspace is read or written, symlinks included | `TestEveryPathToolRefusesToLeaveTheWorkspace`, `TestEscapesAreRefusedAndNameTheRoot` |
+| `root=<path>` acts in that worktree only, and leaves the session's default workspace where it was | `TestCallWithRootWritesIntoThatWorktreeOnly`, `TestDefaultWorkspaceSurvivesARootedCall` |
+| A `root` that is not a worktree of this repository is refused, so the argument cannot reach another repository | `TestRootOutsideTheRepositoryIsRefused` |
+| A refused absolute path that lies in a sibling worktree names the `root` and relative path that would work | `TestOutsidePathInASiblingWorktreeSuggestsRoot` |
 | `create_file` never overwrites; `replace_file` never creates | `TestCreateFileRefusesToOverwriteExisting`, `TestReplaceFileRefusesToCreate` |
 | An unknown `apply` op is refused before any edit is written | `TestApplyRejectsUnknownOpBeforeWriting` |
 
