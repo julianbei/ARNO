@@ -35,6 +35,21 @@ and touches nothing on disk.
 
 `docs/worktrees.md` has the details.
 
+### An edit without `root` says which worktree it landed in
+
+A session in its own worktree that omitted `root` edited the server's start
+worktree without any sign of it: "defaults to the session's workspace" read as
+"already my worktree". `root` now says "Default: the server's start worktree,
+not your cwd", the server instructions say to pass it on every call from a
+worktree, and an edit made without it in a repository with more than one
+worktree ends with:
+
+```
+acted in /repos/main (the server's default worktree; pass root=<path> to act in another)
+```
+
+Rooted calls and single-worktree repositories get no extra line.
+
 ### A refused path in a sibling worktree says how to reach it
 
 An absolute path into another worktree of the same repository is still

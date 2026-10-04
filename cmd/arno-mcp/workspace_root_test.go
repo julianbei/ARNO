@@ -287,3 +287,24 @@ func TestOutsidePathWithNoWorktreeSuggestsNothing(t *testing.T) {
 		t.Errorf("there is no worktree to suggest, got: %v", err)
 	}
 }
+
+func TestEditWithoutRootNamesTheDefaultWorktree(t *testing.T) {
+	main, side := twoWorktrees(t)
+	s := newWorktreeTestServer(t, main)
+
+	text, err := callText(t, s, "arno.create_file", map[string]interface{}{"path": "unrooted.txt", "content": "x\n"})
+	if err != nil {
+		t.Fatalf("create_file: %v", err)
+	}
+	if !strings.Contains(text, "acted in ") || !strings.Contains(text, filepath.Base(main)) {
+		t.Errorf("an unrooted edit should name the worktree it landed in, got:\n%s", text)
+	}
+
+	text, err = callText(t, s, "arno.create_file", map[string]interface{}{"root": side, "path": "rooted.txt", "content": "x\n"})
+	if err != nil {
+		t.Fatalf("rooted create_file: %v", err)
+	}
+	if strings.Contains(text, "acted in ") {
+		t.Errorf("a rooted edit needs no reminder, got:\n%s", text)
+	}
+}

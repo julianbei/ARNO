@@ -420,6 +420,7 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 	err = s.suggestRootForOutsidePath(err, args)
 	if err == nil {
 		s.rememberBackgroundJobs(args, result)
+		result = s.noteDefaultWorktree(graph, req.Name, args, result)
 	}
 
 	// A returned error always wins: it is the stronger signal, and a handler
@@ -863,7 +864,7 @@ var toolsWithoutRoot = map[string]bool{
 func rootArgument() map[string]interface{} {
 	return map[string]interface{}{
 		"type":        "string",
-		"description": "Worktree of this repository to act in. Defaults to the session's workspace.",
+		"description": "Worktree to act in. Default: the server's start worktree, not your cwd.",
 	}
 }
 

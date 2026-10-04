@@ -189,6 +189,28 @@ func (s *mcpServer) graphForCall(ctx context.Context, args map[string]interface{
 	return s.graphForRoot(ctx, target)
 }
 
+// noteDefaultWorktree names the worktree a mutating call landed in when the
+// caller gave no root and the repository has more than one worktree: the case
+// where an agent in its own worktree edits the server's by mistake. The caller
+// sees the wrong path in the same turn instead of in someone's git status.
+func (s *mcpServer) noteDefaultWorktree(g *workspaceGraph, tool string, args map[string]interface{}, result mcpToolResult) mcpToolResult {
+	if strings.TrimSpace(stringArg(args, "root")) != "" || toolsWithoutRoot[tool] {
+		return result
+	}
+	if hints, ok := toolAnnotationsByName[tool]; !ok || hints.ReadOnlyHint != nil {
+		return result
+	}
+	list, err := gitWorktrees(s.ctx, g.root)
+	if err != nil || len(list) < 2 {
+		return result
+	}
+	result.Content = append(result.Content, mcpTextContent{
+		Type: "text",
+		Text: "acted in " + g.root + " (the server's default worktree; pass root=<path> to act in another)",
+	})
+	return result
+}
+
 // suggestRootForOutsidePath turns the containment refusal into an instruction
 // when the path the caller named is in a sibling worktree of this repository.
 //
