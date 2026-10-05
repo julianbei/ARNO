@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.0.16
+
+### A long line no longer truncates the file it is in
+
+`splitLines` read with a `bufio.Scanner` and ignored `scanner.Err()`. A line
+longer than `bufio.MaxScanTokenSize` (64 KiB) ends the scan with
+`ErrTooLong`, so the discarded error meant the rest of the file silently did
+not exist.
+
+It is the primitive 21 call sites read lines through — `read_range`, `grep`,
+`find`, symbol extraction, `delete_symbol`, the LSP bridge — and the splice
+that writes a file back writes exactly the lines it returns. So a
+`replace_range` anywhere in such a file deleted everything from the long line
+onwards **and reported success**. Measured on a 249-line file with one 70 KB
+shader literal, a three-line edit left 47 lines and 602 of 72927 bytes,
+reporting `+1 -3`. One minified bundle, generated file or long template
+literal was enough to hit it.
+
+Upgrade if you edit any repository that might contain one.
+
+### An edit keeps the file's line endings
+
+Because the same function drops `\r` and the splice rejoined with `\n`, a
+three-line edit rewrote every line of a CRLF file. An edit now keeps the
+line terminator the file uses, and whether it ended with a newline.
+
+### An anchor copied from a read matches the file it came from
+
+Every read strips `\r`, so an anchor copied out of one is LF text for a CRLF
+file and matched nothing: `replace_text` refused an anchor the caller had
+just verified byte for byte against the file. It now retries the anchor
+converted to the file's endings — only when the exact one is absent and the
+converted one is present, so a genuinely wrong anchor still fails — and
+converts the replacement with it, so an edit cannot introduce mixed endings.
+
+### A failed check says the edit is still on disk
+
+Rollback covers an edit that failed to apply, not one that applied and then
+failed validation. Issue #5 was reported as "the check caught it and rolled
+back fully", which never happened; the caller believed the tree was clean.
+A failed or timed-out `check` now ends the response with the edit's status
+and the revision to revert from. The behaviour is unchanged — a check that
+fails for a reason that predates the edit should not discard correct work —
+only the silence about it is gone.
+
+### An anchor hint says what its guess rests on
+
+`AnchorHint` pins an anchor on one line that occurs exactly once and reports
+where the two part. Stated flatly — `line 1145 reads ""` — that guess read as
+a fact about the file, and issue #5 has a caller chasing a line 400 past the
+block it was editing. It now names the line the alignment rests on and says
+it may be wrong.
+
+All of the above is issue #5.
+
 ## 0.0.15
 
 ### A tool call can name the worktree it acts in

@@ -147,6 +147,10 @@ changing with it.
 | `root=<path>` acts in that worktree only, and leaves the session's default workspace where it was | `TestCallWithRootWritesIntoThatWorktreeOnly`, `TestDefaultWorkspaceSurvivesARootedCall` |
 | A `root` that is not a worktree of this repository is refused, so the argument cannot reach another repository | `TestRootOutsideTheRepositoryIsRefused` |
 | A refused absolute path that lies in a sibling worktree names the `root` and relative path that would work | `TestOutsidePathInASiblingWorktreeSuggestsRoot` |
+| A line of any length is read and written back intact; no file is truncated at a long line | `TestSplitLinesKeepsEverythingAfterAVeryLongLine`, `TestReplaceRangeKeepsContentAfterAVeryLongLine` |
+| An edit keeps the file's line endings and whether it ended with a newline | `TestReplaceRangeKeepsCRLFLineEndings`, `TestReplaceRangeKeepsAMissingTrailingNewline` |
+| An anchor copied from a read matches the file it came from, CRLF included; an absent anchor is still refused | `TestReplaceTextMatchesAnLFAnchorAgainstACRLFFile`, `TestReplaceTextStillRefusesAnAbsentAnchor` |
+| A failed `check` does not undo the edit, and the response says so | `TestApplySaysTheEditSurvivedAFailedCheck`, `TestApplySaysNothingExtraWhenTheCheckPassed` |
 | `create_file` never overwrites; `replace_file` never creates | `TestCreateFileRefusesToOverwriteExisting`, `TestReplaceFileRefusesToCreate` |
 | An unknown `apply` op is refused before any edit is written | `TestApplyRejectsUnknownOpBeforeWriting` |
 

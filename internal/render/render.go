@@ -830,6 +830,14 @@ func apply(r protocol.ApplyResponse) string {
 	if r.CheckSummary != "" {
 		lines = append(lines, r.CheckSummary)
 	}
+	// A failed check does not undo the edit: rollback covers an edit that
+	// failed to apply, not one that applied and then failed validation.
+	// Issue #5 was reported as "the check caught it and rolled back fully",
+	// which it never did — the caller believed the tree was clean and moved
+	// on. The response has to say which it was.
+	if r.CheckOutcome == protocol.OutcomeFailed || r.CheckOutcome == protocol.OutcomeTimedOut {
+		lines = append(lines, fmt.Sprintf("the edit is on disk and was not undone — revert it with revert, or fix forward (workspace is at %s)", r.NewRevision))
+	}
 	for _, path := range r.Changed {
 		lines = append(lines, "  "+path)
 	}
