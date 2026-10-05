@@ -57,7 +57,14 @@ func AnchorHint(source string, anchor string) string {
 				return fmt.Sprintf("the anchor's line %q is at line %d, but the anchor does not fit around it", clipHint(line), positions[normalized]+1)
 			}
 			if normalizeSpace(fileLines[at]) != normalizeSpace(expected) {
-				return fmt.Sprintf("line %d reads %q where the anchor has %q", at+1, clipHint(fileLines[at]), clipHint(expected))
+				// The alignment is a guess: it pins the anchor by one line
+				// that happens to be unique and reports where the two then
+				// part. Said flatly ("line 1145 reads \"\"") that guess reads
+				// as a fact about the file, and issue #5 has a caller chasing
+				// a line 400 past the block it was editing. Naming the line
+				// the guess rests on makes it checkable.
+				return fmt.Sprintf("aligning the anchor on its line %q (file line %d), line %d reads %q where the anchor has %q — if that alignment is wrong, the anchor differs earlier",
+					clipHint(line), positions[normalized]+1, at+1, clipHint(fileLines[at]), clipHint(expected))
 			}
 		}
 	}

@@ -1,7 +1,6 @@
 package code
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -1234,7 +1233,7 @@ func (i *Index) ReplaceSymbolSource(symbolID string, newCode string) (Symbol, []
 		return Symbol{}, nil, fmt.Errorf("symbol %s has invalid range", symbol.ID)
 	}
 
-	oldLines, err := spliceAndWrite(absolute, lines, symbol.From, symbol.To, newCode)
+	oldLines, err := spliceAndWrite(absolute, string(data), lines, symbol.From, symbol.To, newCode)
 	if err != nil {
 		return Symbol{}, nil, err
 	}
@@ -1259,7 +1258,7 @@ func (i *Index) ReplaceRangeSource(path string, start int, end int, newCode stri
 		return nil, fmt.Errorf("range %d-%d is invalid for %s (%d lines)", start, end, path, len(lines))
 	}
 
-	return spliceAndWrite(absolute, lines, start, end, newCode)
+	return spliceAndWrite(absolute, string(data), lines, start, end, newCode)
 }
 
 // CreateFile writes a brand-new file. It refuses to overwrite an existing
@@ -1354,7 +1353,11 @@ func (i *Index) DeleteFile(path string) (int, error) {
 // spliceAndWrite replaces lines [from,to] (inclusive, 1-indexed) of lines
 // with newCode's lines, writes the result to absolute, and returns the
 // displaced old lines.
-func spliceAndWrite(absolute string, lines []string, from int, to int, newCode string) ([]string, error) {
+// spliceAndWrite replaces lines [from,to] with newCode and writes the file
+// back. source is the file as it was read: it decides the line terminator and
+// whether the file ended with a newline, so an edit changes the lines it names
+// and nothing else about the file's shape.
+func spliceAndWrite(absolute string, source string, lines []string, from int, to int, newCode string) ([]string, error) {
 	oldLines := append([]string(nil), lines[from-1:to]...)
 	newLines := splitLines(newCode)
 
@@ -1363,7 +1366,15 @@ func spliceAndWrite(absolute string, lines []string, from int, to int, newCode s
 	updated = append(updated, newLines...)
 	updated = append(updated, lines[to:]...)
 
-	if err := writeFile(absolute, []byte(strings.Join(updated, "\n")+"\n")); err != nil {
+	terminator := lineTerminator(source)
+	rewritten := strings.Join(updated, terminator)
+	// A file that ended without a newline keeps ending without one. Adding it
+	// unasked shows up as a change to a line the edit never named.
+	if strings.HasSuffix(source, "\n") || source == "" {
+		rewritten += terminator
+	}
+
+	if err := writeFile(absolute, []byte(rewritten)); err != nil {
 		return nil, err
 	}
 	return oldLines, nil
@@ -1476,16 +1487,41 @@ func (i *Index) leavesWorkspace(path string, info os.FileInfo) bool {
 	return i.gitIgnored(path)
 }
 
+// splitLines splits source into lines the way bufio.ScanLines does — on "\n",
+// with one optional "\r" stripped, and no empty final element for a trailing
+// newline — but without a line-length limit.
+//
+// It used a bufio.Scanner and ignored scanner.Err(). A line longer than
+// bufio.MaxScanTokenSize (64 KiB) ends the scan with ErrTooLong, so the
+// discarded error meant the rest of the file silently did not exist: every
+// read, grep and symbol lookup stopped there, and because spliceAndWrite
+// writes back exactly these lines, a replace_range anywhere in such a file
+// deleted everything from the long line onwards and reported success. One
+// minified bundle, generated file or long shader literal was enough. A
+// 70 KB line in a 249-line file cost 202 lines and 72 of 73 KB.
 func splitLines(input string) []string {
-	scanner := bufio.NewScanner(strings.NewReader(input))
-	lines := make([]string, 0, 64)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	if len(lines) == 0 {
+	if input == "" {
 		return []string{""}
 	}
+	lines := strings.Split(strings.TrimSuffix(input, "\n"), "\n")
+	for index, line := range lines {
+		lines[index] = strings.TrimSuffix(line, "\r")
+	}
 	return lines
+}
+
+// lineTerminator reports the terminator to write a file back with: "\r\n"
+// when the source uses it, "\n" otherwise.
+//
+// splitLines drops "\r", so joining its result with "\n" rewrites every line
+// of a CRLF file. That turned a three-line edit into a whole-file diff and,
+// in a repository that checks line endings, into a failing build no part of
+// the diff explained.
+func lineTerminator(source string) string {
+	if first := strings.IndexByte(source, '\n'); first > 0 && source[first-1] == '\r' {
+		return "\r\n"
+	}
+	return "\n"
 }
 
 var declarationPatterns = []struct {

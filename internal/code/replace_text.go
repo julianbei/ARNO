@@ -44,6 +44,7 @@ func (i *Index) ReplaceTextSource(path string, oldText string, newText string) (
 	}
 
 	source := string(data)
+	oldText, newText = matchLineEndings(source, oldText, newText)
 	count := strings.Count(source, oldText)
 	switch count {
 	case 0:
@@ -73,4 +74,39 @@ func countLinesIn(text string) int {
 		return 0
 	}
 	return strings.Count(trimmed, "\n") + 1
+}
+
+// matchLineEndings rewrites a multi-line anchor and its replacement to the
+// line endings the file actually uses, when the anchor would otherwise match
+// nothing.
+//
+// Every read path strips "\r" (see splitLines), so an agent that copies an
+// anchor out of a read and sends it back is holding LF text for a CRLF file.
+// strings.Count then found nothing, and the refusal said "anchor text not
+// found" about text the caller had just verified byte for byte against the
+// file — the one message guaranteed to send it looking in the wrong place.
+//
+// The conversion is attempted only when the exact anchor is absent and the
+// converted one is present, so a file with mixed endings, or an anchor that
+// is genuinely wrong, is left to fail as before. The replacement is converted
+// with the anchor: inserting LF text into a CRLF file is how a mixed file
+// gets made.
+func matchLineEndings(source string, oldText string, newText string) (string, string) {
+	if !strings.Contains(oldText, "\n") || strings.Contains(source, oldText) {
+		return oldText, newText
+	}
+
+	toCRLF := func(text string) string {
+		return strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\n", "\r\n")
+	}
+	toLF := func(text string) string {
+		return strings.ReplaceAll(text, "\r\n", "\n")
+	}
+
+	for _, convert := range []func(string) string{toCRLF, toLF} {
+		if converted := convert(oldText); converted != oldText && strings.Contains(source, converted) {
+			return converted, convert(newText)
+		}
+	}
+	return oldText, newText
 }
