@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -306,5 +307,144 @@ func TestEditWithoutRootNamesTheDefaultWorktree(t *testing.T) {
 	}
 	if strings.Contains(text, "acted in ") {
 		t.Errorf("a rooted edit needs no reminder, got:\n%s", text)
+	}
+}
+
+// strictServer is a server in strict mode at the main worktree of a
+// repository that has a second one: the fleet's configuration.
+func strictServer(t *testing.T) (s *mcpServer, main string, side string) {
+	t.Helper()
+	main, side = twoWorktrees(t)
+	s = newWorktreeTestServer(t, main)
+	s.requireWorkspace = true
+	return s, main, side
+}
+
+func createInDefault(t *testing.T, s *mcpServer, name string) (string, error) {
+	t.Helper()
+	return callText(t, s, "arno.create_file", map[string]interface{}{"path": name, "content": "x\n"})
+}
+
+// The failure that cost one fleet session 1387 lines in the shared checkout:
+// a write that names no worktree, from a session that never said which one it
+// works in. In strict mode it is refused and nothing lands anywhere.
+func TestStrictModeRefusesAWriteFromAnUndeclaredSession(t *testing.T) {
+	s, main, side := strictServer(t)
+
+	_, err := createInDefault(t, s, "stray.txt")
+	if err == nil {
+		t.Fatal("a write from an undeclared session must be refused in strict mode")
+	}
+	if !strings.Contains(err.Error(), "workspace path=") {
+		t.Errorf("the refusal should say how to declare a workspace, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), filepath.Base(side)) {
+		t.Errorf("the refusal should list the worktrees, got: %v", err)
+	}
+	for _, dir := range []string{main, side} {
+		if _, statErr := os.Stat(filepath.Join(dir, "stray.txt")); statErr == nil {
+			t.Errorf("nothing should have been written, but %s has the file", dir)
+		}
+	}
+}
+
+// Reading is never the hazard, so it is never refused.
+func TestStrictModeStillAllowsReads(t *testing.T) {
+	s, _, _ := strictServer(t)
+
+	if _, err := callText(t, s, "arno.grep", map[string]interface{}{"query": "original"}); err != nil {
+		t.Errorf("a read must work before a workspace is declared: %v", err)
+	}
+}
+
+// Declaring once is the whole cost: afterwards no call needs root.
+func TestDeclaringTheWorkspaceLiftsStrictModeForLaterCalls(t *testing.T) {
+	s, _, side := strictServer(t)
+
+	if _, err := callText(t, s, "arno.workspace", map[string]interface{}{"path": side}); err != nil {
+		t.Fatalf("declaring the workspace: %v", err)
+	}
+	if _, err := createInDefault(t, s, "declared.txt"); err != nil {
+		t.Fatalf("a declared session should write without root: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(side, "declared.txt")); err != nil {
+		t.Errorf("the write should have landed in the declared worktree: %v", err)
+	}
+}
+
+// A session that really is working in the start worktree has nothing to
+// switch to, but strict mode still has to hear it said.
+func TestNamingTheStartWorktreeCountsAsDeclaring(t *testing.T) {
+	s, main, _ := strictServer(t)
+
+	if _, err := callText(t, s, "arno.workspace", map[string]interface{}{"path": main}); err != nil {
+		t.Fatalf("declaring the start worktree: %v", err)
+	}
+	if _, err := createInDefault(t, s, "start.txt"); err != nil {
+		t.Fatalf("a session that named the start worktree should write: %v", err)
+	}
+}
+
+// Listing the worktrees is not a declaration: it says what exists, not which
+// one the session works in.
+func TestListingWorktreesDoesNotDeclareOne(t *testing.T) {
+	s, _, _ := strictServer(t)
+
+	if _, err := callText(t, s, "arno.workspace", map[string]interface{}{}); err != nil {
+		t.Fatalf("listing worktrees: %v", err)
+	}
+	if _, err := createInDefault(t, s, "listed.txt"); err == nil {
+		t.Error("listing the worktrees must not lift strict mode")
+	}
+}
+
+// root on a call names the worktree for that call, which is what a subagent
+// working elsewhere does. It does not declare the session's own.
+func TestRootOnACallSatisfiesStrictModeForThatCallOnly(t *testing.T) {
+	s, _, side := strictServer(t)
+
+	if _, err := callText(t, s, "arno.create_file", map[string]interface{}{"root": side, "path": "viaroot.txt", "content": "x\n"}); err != nil {
+		t.Fatalf("a call that names its worktree should be allowed: %v", err)
+	}
+	if _, err := createInDefault(t, s, "after.txt"); err == nil {
+		t.Error("a call that names its worktree must not declare the session's own")
+	}
+}
+
+// Strict mode is for fleets. Left off, behaviour is exactly what it was.
+func TestWithoutStrictModeAnUndeclaredWriteIsAllowed(t *testing.T) {
+	main, _ := twoWorktrees(t)
+	s := newWorktreeTestServer(t, main)
+
+	if _, err := createInDefault(t, s, "plain.txt"); err != nil {
+		t.Fatalf("strict mode is off, the write should work: %v", err)
+	}
+}
+
+// A repository with one worktree has nothing to mix up, so strict mode has
+// nothing to ask.
+func TestStrictModeIgnoresARepositoryWithOneWorktree(t *testing.T) {
+	main, _ := twoWorktrees(t)
+	solo := filepath.Join(filepath.Dir(main), "solo")
+	if err := os.MkdirAll(solo, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", solo, "init", "-q", ".").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	s := newWorktreeTestServer(t, solo)
+	s.requireWorkspace = true
+
+	if _, err := createInDefault(t, s, "alone.txt"); err != nil {
+		t.Fatalf("a single-worktree repository should not be asked to declare: %v", err)
+	}
+}
+
+func TestRequireWorkspaceReadsTheEnvironment(t *testing.T) {
+	for value, want := range map[string]bool{"": false, "0": false, "no": false, "1": true, "true": true, "TRUE": true, "on": true} {
+		t.Setenv(envRequireWorkspace, value)
+		if got := requireWorkspaceDeclared(); got != want {
+			t.Errorf("%s=%q: got %v, want %v", envRequireWorkspace, value, got, want)
+		}
 	}
 }

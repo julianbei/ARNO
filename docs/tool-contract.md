@@ -151,6 +151,11 @@ changing with it.
 | An edit keeps the file's line endings and whether it ended with a newline | `TestReplaceRangeKeepsCRLFLineEndings`, `TestReplaceRangeKeepsAMissingTrailingNewline` |
 | An anchor copied from a read matches the file it came from, CRLF included; an absent anchor is still refused | `TestReplaceTextMatchesAnLFAnchorAgainstACRLFFile`, `TestReplaceTextStillRefusesAnAbsentAnchor` |
 | A failed `check` does not undo the edit, and the response says so | `TestApplySaysTheEditSurvivedAFailedCheck`, `TestApplySaysNothingExtraWhenTheCheckPassed` |
+| In strict mode (`ARNO_REQUIRE_WORKSPACE=1`), a call that can change something is refused, and writes nothing, until the session has named its worktree; reads are never refused | `TestStrictModeRefusesAWriteFromAnUndeclaredSession`, `TestStrictModeStillAllowsReads` |
+| Naming the worktree with `workspace path=` (the start worktree included) lifts it; listing does not; `root=` satisfies one call and declares nothing | `TestDeclaringTheWorkspaceLiftsStrictModeForLaterCalls`, `TestNamingTheStartWorktreeCountsAsDeclaring`, `TestListingWorktreesDoesNotDeclareOne`, `TestRootOnACallSatisfiesStrictModeForThatCallOnly` |
+| Strict mode is off by default and silent in a repository with one worktree | `TestWithoutStrictModeAnUndeclaredWriteIsAllowed`, `TestStrictModeIgnoresARepositoryWithOneWorktree` |
+| rustfmt formats the edited file only, never the modules it declares, with the project's edition and nearest `rustfmt.toml` | `TestRustfmtFormatsOnlyTheEditedFileNotItsModules`, `TestRustfmtUsesTheEditionTheProjectDeclares`, `TestRustfmtHonorsTheNearestRustfmtToml` |
+| A formatter that prints nothing never empties the file | `TestStdinFormatterNeverWritesAnEmptyResult` |
 | `create_file` never overwrites; `replace_file` never creates | `TestCreateFileRefusesToOverwriteExisting`, `TestReplaceFileRefusesToCreate` |
 | An unknown `apply` op is refused before any edit is written | `TestApplyRejectsUnknownOpBeforeWriting` |
 

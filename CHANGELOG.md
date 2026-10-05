@@ -1,5 +1,68 @@
 # Changelog
 
+## 0.0.17
+
+### Strict mode: a write must name its worktree
+
+`ARNO_REQUIRE_WORKSPACE=1` makes the server refuse any call that can change
+something until the session has said which worktree it works in. It applies
+only in a repository with more than one worktree, and reads are never refused.
+
+A fleet field report showed why it is needed. Every Claude session starts its
+own server, usually from the shared main checkout, so every session that
+moves into its own worktree and never says so defaults to the same checkout
+as every other. One session's edits — 1,387 lines — landed in the shared tree
+on top of other sessions' work, with no error. 0.0.16 added a note after the
+write; that reports the wrong tree after it has happened.
+
+Naming the worktree is one call, after which no call needs `root`:
+
+```
+arno.workspace path=/repos/wt-feature
+```
+
+The session's subagents inherit it, because they share its server. A subagent
+working in a different worktree passes `root=<path>` on its own calls. Naming
+the worktree the server started in counts; listing the worktrees does not;
+`root=` on a call satisfies that call only.
+
+Off by default: a repository with a stray second worktree and a session
+working in the first is the ordinary case, and refusing it would punish
+everyone for a failure only a fleet has. `docs/worktrees.md` has the details,
+including what it does not catch.
+
+The server instructions and the `workspace` and `root` descriptions now lead
+with declaring once. `root=` remains the override for one call.
+
+### rustfmt formats the file you edited, and nothing else
+
+Run on a file, `rustfmt` also rewrites every file that file declares with
+`mod x;`. Editing `lib.rs`, `main.rs` or any `mod.rs` reformatted the whole
+module tree below it: a fleet session reported fourteen files it had not
+touched reformatted after an edit to two. ARNO now formats through standard
+input, which formats exactly the content it is given, and still honors the
+nearest `rustfmt.toml`.
+
+It also stops assuming edition 2015. `rustfmt` takes the edition from
+`cargo fmt`, not from `Cargo.toml`; run on a file it treated async as a
+syntax error, refused, and the file was silently never formatted. The edition
+now comes from `Cargo.toml` (or the workspace, for `edition.workspace`), and
+not at all when the project's own `rustfmt.toml` sets one, since a flag would
+override the config the project declared. With no manifest it is 2021.
+
+### ruff.toml counts as declaring ruff
+
+A project that keeps its formatter settings in `ruff.toml` or `.ruff.toml`
+under a `[format]` section has chosen ruff just as one with
+`[tool.ruff.format]` has. Without the section it is still a linter config and
+nothing runs.
+
+### Limits worth knowing
+
+ARNO does not interpret `.editorconfig`. It formats with the formatters a
+project declares and otherwise leaves the file as edited, which since 0.0.16
+includes keeping the file's line endings and trailing-newline state.
+
 ## 0.0.16
 
 ### A long line no longer truncates the file it is in

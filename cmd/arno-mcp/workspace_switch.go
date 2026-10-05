@@ -240,6 +240,10 @@ func (s *mcpServer) switchWorkspace(ctx context.Context, target string) (string,
 			target, describeWorkspaces(s.graph.root, list))
 	}
 	if match.current {
+		// Naming the worktree the server started in is a declaration too: a
+		// session that really is working there has nothing to switch, but
+		// strict mode still needs to hear it said once.
+		s.workspaceDeclared = true
 		return fmt.Sprintf("already serving %s; nothing changed", match.path), nil
 	}
 
@@ -252,6 +256,7 @@ func (s *mcpServer) switchWorkspace(ctx context.Context, target string) (string,
 	}
 	previous := s.graph
 	s.graph = next
+	s.workspaceDeclared = true
 	// The loop handles one request at a time, so no other call is reading
 	// these while they are replaced.
 	s.api = next.api

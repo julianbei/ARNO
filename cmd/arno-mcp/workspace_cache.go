@@ -189,24 +189,78 @@ func (s *mcpServer) graphForCall(ctx context.Context, args map[string]interface{
 	return s.graphForRoot(ctx, target)
 }
 
+// envRequireWorkspace turns on strict mode: in a repository with several
+// worktrees, a call that can change something is refused until the session has
+// said which worktree it works in.
+const envRequireWorkspace = "ARNO_REQUIRE_WORKSPACE"
+
+// requireWorkspaceDeclared reads strict mode from the environment. Off unless
+// asked for: a repository with a stray second worktree and a session working
+// in the first one is the ordinary case, and refusing it would punish everyone
+// for a failure only a fleet of worktrees has.
+func requireWorkspaceDeclared() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(envRequireWorkspace))) {
+	case "1", "true", "yes", "on":
+		return true
+	}
+	return false
+}
+
+// isMutatingCall reports whether a tool can change the workspace or run
+// something in it: anything annotated, and not read-only, that acts in a
+// workspace at all.
+func isMutatingCall(tool string) bool {
+	if toolsWithoutRoot[tool] {
+		return false
+	}
+	hints, ok := toolAnnotationsByName[tool]
+	return ok && hints.ReadOnlyHint == nil
+}
+
+// requireDeclaredWorkspace is strict mode. Every Claude session starts its own
+// server, usually from the shared main checkout, so a session that moves into
+// its own worktree and never says so writes into the checkout every other
+// session also defaults to — on top of their work, with no error. Refusing
+// the first write until the session has named its worktree turns that into one
+// extra call.
+//
+// Naming it is workspace path=<worktree> once, after which no call needs root;
+// root on a single call also satisfies it, because that call has named its
+// worktree. Reads are never refused.
+func (s *mcpServer) requireDeclaredWorkspace(g *workspaceGraph, tool string, args map[string]interface{}) error {
+	if !s.requireWorkspace || s.workspaceDeclared || !isMutatingCall(tool) {
+		return nil
+	}
+	if strings.TrimSpace(stringArg(args, "root")) != "" {
+		return nil
+	}
+	list, err := gitWorktrees(s.ctx, g.root)
+	if err != nil || len(list) < 2 {
+		return nil
+	}
+	return fmt.Errorf("%s not run: this repository has %d worktrees and this session has not said which one it works in, so the change would land in %s, the server's start worktree, which may not be yours. Nothing was written.\n\nSay it once with workspace path=<your worktree> — after that no call needs root — or pass root=<your worktree> on this call.\n\n%s",
+		tool, len(list), g.root, describeWorkspaces(g.root, list))
+}
+
 // noteDefaultWorktree names the worktree a mutating call landed in when the
 // caller gave no root and the repository has more than one worktree: the case
 // where an agent in its own worktree edits the server's by mistake. The caller
 // sees the wrong path in the same turn instead of in someone's git status.
 func (s *mcpServer) noteDefaultWorktree(g *workspaceGraph, tool string, args map[string]interface{}, result mcpToolResult) mcpToolResult {
-	if strings.TrimSpace(stringArg(args, "root")) != "" || toolsWithoutRoot[tool] {
-		return result
-	}
-	if hints, ok := toolAnnotationsByName[tool]; !ok || hints.ReadOnlyHint != nil {
+	if strings.TrimSpace(stringArg(args, "root")) != "" || !isMutatingCall(tool) {
 		return result
 	}
 	list, err := gitWorktrees(s.ctx, g.root)
 	if err != nil || len(list) < 2 {
 		return result
 	}
+	which := "the server's start worktree"
+	if s.workspaceDeclared {
+		which = "this session's declared worktree"
+	}
 	result.Content = append(result.Content, mcpTextContent{
 		Type: "text",
-		Text: "acted in " + g.root + " (the server's default worktree; pass root=<path> to act in another)",
+		Text: "acted in " + g.root + " (" + which + "; pass root=<path> to act in another)",
 	})
 	return result
 }

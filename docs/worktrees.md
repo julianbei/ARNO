@@ -47,14 +47,50 @@ the language server start again.
 
 | You want | Use |
 | --- | --- |
-| A session that stays in one worktree | `--root` at startup, nothing else |
+| A session that stays in one worktree | `arno.workspace path=<it>` once; its subagents inherit that |
 | One call elsewhere, everything else unchanged | `root=` on that call |
-| Several callers in several worktrees at once | `root=` on every call |
-| A session that has moved to another worktree for good | `arno.workspace path=` |
+| A subagent working in a different worktree than its parent | `root=` in that subagent's brief, on every call |
+| A server started in the right worktree | `--root` at startup |
 
-`arno.workspace` with no path lists the worktrees and marks the default. It
-remains the way to change the default; it is no longer the way to reach
-another worktree for a single call.
+`arno.workspace` with no path lists the worktrees and marks the default.
+
+Every Claude session starts its own server, usually from the shared main
+checkout, so an undeclared session's default is the checkout every other
+session also defaults to. Subagents share their parent's server and so its
+declared workspace; the server cannot tell them apart, which is why a subagent
+in another worktree has to name it.
+
+## Strict mode
+
+`ARNO_REQUIRE_WORKSPACE=1` makes the server refuse any call that can change
+something — edits, creates, deletes, `run_command`, `revert` and the rest —
+until the session has said which worktree it works in. It applies only in a
+repository with more than one worktree; reads are never refused.
+
+```
+arno.create_file not run: this repository has 3 worktrees and this session has
+not said which one it works in, so the change would land in /repos/main, the
+server's start worktree, which may not be yours. Nothing was written.
+
+Say it once with workspace path=<your worktree> — after that no call needs
+root — or pass root=<your worktree> on this call.
+```
+
+Naming the worktree the server started in counts: a session that really is
+working there has nothing to switch, but strict mode still wants it said once.
+Listing the worktrees does not count. `root=` on a call satisfies that call
+only and does not declare the session's own worktree.
+
+It is off by default. A repository with a stray second worktree and a session
+working in the first is the ordinary case, and refusing it would punish
+everyone for a failure only a fleet of worktrees has: undeclared sessions all
+default to the same checkout, so one that forgot to move lands its writes on
+top of everyone else's, with no error.
+
+What it does not catch: a subagent working in a different worktree from its
+parent without `root=` writes into the parent's declared worktree. The edit
+response ends with `acted in <path> (this session's declared worktree; …)` so
+the wrong tree shows up in the same turn.
 
 ## A path in the wrong worktree
 

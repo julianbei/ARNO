@@ -147,6 +147,11 @@ type mcpServer struct {
 	// them. A call that names a root is served from here, which is what lets
 	// one session and its subagents work in different worktrees at once.
 	graphs *graphCache
+	// requireWorkspace is strict mode (ARNO_REQUIRE_WORKSPACE); workspaceDeclared
+	// records that the session has named its worktree with the workspace tool,
+	// which lifts the requirement for every later call.
+	requireWorkspace  bool
+	workspaceDeclared bool
 	// bus, jobs and langs do not depend on the root and outlive a switch.
 	bus   *events.Bus
 	jobs  *jobs.Runner
@@ -239,7 +244,7 @@ func main() {
 	lr.Register("go", languages.NewNoopAdapter("go"))
 	lr.Register("rust", languages.NewNoopAdapter("rust"))
 
-	s := &mcpServer{profile: profile, jobEvents: bus.Subscribe(256), bus: bus, jobs: jr, langs: lr, ctx: ctx}
+	s := &mcpServer{profile: profile, jobEvents: bus.Subscribe(256), bus: bus, jobs: jr, langs: lr, ctx: ctx, requireWorkspace: requireWorkspaceDeclared()}
 
 	// Everything bound to the root is built here and rebuilt on a workspace
 	// switch, so the two paths cannot drift apart. Language servers are
@@ -407,6 +412,10 @@ func (s *mcpServer) handleToolCall(raw json.RawMessage) (mcpToolResult, error) {
 	graph, err := s.graphForCall(s.ctx, args)
 	if err != nil {
 		s.telemetry.RecordRejected(req.Name, telemetry.Classify(err))
+		return mcpToolResult{}, err
+	}
+	if err := s.requireDeclaredWorkspace(graph, req.Name, args); err != nil {
+		graph.rec.RecordRejected(req.Name, telemetry.Classify(err))
 		return mcpToolResult{}, err
 	}
 
@@ -864,7 +873,7 @@ var toolsWithoutRoot = map[string]bool{
 func rootArgument() map[string]interface{} {
 	return map[string]interface{}{
 		"type":        "string",
-		"description": "Worktree to act in. Default: the server's start worktree, not your cwd.",
+		"description": "Worktree for this call. Default: the one set with workspace, else the start tree.",
 	}
 }
 
@@ -1276,7 +1285,7 @@ func catalogTools() []mcpTool {
 		},
 		{
 			Name:        "arno.workspace",
-			Description: "List the git worktrees of this repository and report which one ARNO serves by default, or change that default with path. Call it with no path when a repository has several worktrees checked out: ARNO serves the one it was started in, whatever directory the caller is in now. To work in another worktree, prefer root=<path> on the tool itself — that acts in one worktree for one call and leaves every other caller alone, which is what lets a session and its subagents edit different worktrees at the same time. Change the default only for a session that stays in one worktree.",
+			Description: "Declare which git worktree this session works in, or list them. ARNO serves the worktree it was started in, whatever directory the caller is in now, so a session working in another worktree must say so once: workspace path=<its worktree>. Every later call then acts there, and so do the session's subagents. A subagent working in a different worktree passes root=<path> on its own calls instead. Call with no path to list the worktrees and see which is the default.",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

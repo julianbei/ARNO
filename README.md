@@ -482,10 +482,12 @@ own equivalent — check that ARNO's tools are actually being called.
 
 **One server serves one repository, but any of its worktrees.** ARNO is
 pinned to the directory it was started in, and no `cd` in your shell reaches
-it — MCP carries no per-call working directory. To act in another `git
-worktree` of the same repository, pass `root=<path>` on the tool; a session
-and its subagents can each name their own, so they do not disturb each other.
-`arno.workspace` lists the worktrees. See
+it — MCP carries no per-call working directory. A session working in another
+`git worktree` of the same repository says so once with
+`arno.workspace path=<worktree>`; its subagents inherit that. A subagent in a
+different worktree passes `root=<path>` on its own calls. For fleets, set
+`ARNO_REQUIRE_WORKSPACE=1` so a write from a session that never said which
+worktree it works in is refused instead of landing in the shared checkout. See
 [docs/worktrees.md](docs/worktrees.md).
 
 **The MCP tool catalog is fixed at connection time.** A newly added tool does
@@ -509,6 +511,7 @@ deliberately still uses `go run` for that reason.
 | `ARNO_STATE_DIR` | Keep the telemetry log outside the workspace, one subdirectory per workspace. |
 | `ARNO_METALS_IMPORT=1` | Let metals import an sbt build so Scala edits get diagnostics. Runs sbt; creates `.bloop/` and `.metals/`. |
 | `ARNO_UPDATE_CHECK=0` | Turn off the daily check for a newer release ([Update check](#update-check)). |
+| `ARNO_REQUIRE_WORKSPACE=1` | In a repository with several worktrees, refuse writes until the session has named its worktree with `arno.workspace` (or `root=` on the call). For fleets of sessions that share a checkout. See [docs/worktrees.md](docs/worktrees.md). |
 | `ARNO_MAX_WORKSPACES` | How many git worktrees one server keeps open at once (default 3, least recently used evicted first). See [docs/worktrees.md](docs/worktrees.md). |
 
 The [install script](#with-the-install-script) reads its own:
@@ -881,12 +884,17 @@ reporting and what is already known. What is planned is in
 - **No completion, hover or code actions.** ARNO's LSP client implements what
   the tools need — references, rename, diagnostics — not the whole protocol.
 - **No blame, no cross-repo work, no remote execution.**
-- **Formatting runs only where it is safe.** gofmt and rustfmt always run.
-  prettier (TypeScript/JavaScript), black or ruff (Python) and scalafmt run
-  only when the repository declares them — its config file, and for Node and
-  Python the project's own binary — because a formatter the project did not
-  choose turns a one-line edit into a whole-file diff. Ruby, Java, JSON and
-  Markdown are left as edited.
+- **Formatting follows the project's own rules, and only for the files you
+  edited.** gofmt and rustfmt always run. prettier (TypeScript/JavaScript),
+  black or ruff (Python) and scalafmt run only when the repository declares
+  them — a prettier config or `package.json` key, `[tool.black]`,
+  `[tool.ruff.format]` or a `[format]` section in `ruff.toml`,
+  `.scalafmt.conf` — using, for Node and Python, the project's own binary,
+  because a formatter the project did not choose turns a one-line edit into a
+  whole-file diff. rustfmt reads the nearest `rustfmt.toml` and the edition
+  from `Cargo.toml` (or the workspace), and formats the one file: it does not
+  follow `mod` declarations into files you did not touch. Ruby, Java, JSON and
+  Markdown are left as edited, and ARNO does not interpret `.editorconfig`.
 - **Revision tracking is ARNO's own counter, not git's.** It detects concurrent
   edits within a session. It is not a VCS. A checkpoint snapshots the files ARNO
   has edited and records git's `HEAD`; `revert` restores those files and

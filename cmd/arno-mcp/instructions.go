@@ -27,4 +27,4 @@ const serverInstructions = "ARNO inspects, edits and validates code in this work
 	"Changing more than one site? Use arno.apply: one atomic call, one validation at the end, " +
 	"and no errors reported from half-finished intermediate states. " +
 	"Tool names are accepted as arno.<name> or arno_<name>. " +
-	"In a git worktree? Pass root=<its path> on every call: the default is the server's start tree, not your cwd."
+	"In a git worktree? Call arno.workspace path=<its path> once first; root=<path> overrides a single call."
